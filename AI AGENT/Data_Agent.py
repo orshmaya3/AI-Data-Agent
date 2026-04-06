@@ -22,11 +22,7 @@ class DataAgent:
             print(f"[Data Agent] ❌ Unexpected error: {e}")
             return None
 
-# --- Small test code to ensure it works ---
-if __name__ == "__main__":
-    # Path to the previously uploaded file
-    agent = DataAgent("online_retail_small.csv")
-    df = agent.get_data()
+
     
     if df is not None:
         # Print the first 3 rows to visually verify everything is correct
