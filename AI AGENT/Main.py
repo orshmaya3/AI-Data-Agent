@@ -1,50 +1,44 @@
-# We import our Manager to handle the logic
+import pandas as pd
+import os
 from Manager import ManagerAgent
-from Data_Agent import DataAgent # הוספנו ייבוא של סוכן הנתונים לכאן
 
-def start_app():
-    """
-    This function starts the interactive application loop.
-    """
-    print("=========================================")
-    print("🤖 Welcome to the AI Data Department 🤖")
-    print("=========================================")
+def main():
+    print("🚀 Starting AI Data Agency...")
     
-    # --- טעינת הנתונים פעם אחת בלבד! ---
-    print("⏳ Loading data into memory, please wait...")
-    d_agent = DataAgent("online_retail_small.csv")
-    df = d_agent.get_data()
+    # הגדרת נתיב הקובץ (וודא שהשם תואם למה שיש לכם בתיקייה)
+    file_path = "online_retail_small.csv" 
     
-    if df is None:
-        print("❌ CRITICAL ERROR: Could not load data. Shutting down.")
+    # 1. בדיקה שהקובץ קיים
+    if not os.path.exists(file_path):
+        print(f"❌ Error: Could not find the data file '{file_path}' in the current directory.")
         return
-        
-    print(f"✅ Data loaded successfully! Found {len(df)} rows.")
-    print("Type 'exit' or 'quit' to close the app.\n")
 
-    # במקום להעביר למנהל את שם הקובץ, אנחנו מעבירים לו את הנתונים המוכנים (df)
+    # 2. טעינת הנתונים לזיכרון פעם אחת בלבד!
+    print("📊 Loading data into memory...")
+    try:
+        df = pd.read_csv(file_path, encoding='ISO-8859-1')
+        print(f"✅ Data loaded successfully! ({len(df)} rows ready).")
+    except Exception as e:
+        print(f"❌ Error loading data: {e}")
+        return
+
+    # 3. יצירת המנהל והעברת הנתונים אליו
     manager = ManagerAgent(df)
-
-    # The infinite loop that keeps the program running waiting for user input
+    
+    print("🤖 Manager Agent is ready. Type 'exit' to quit.\n")
+    print("-" * 50)
+    
+    # 4. לולאת השיחה
     while True:
-        # Prompt the user to type something
-        user_input = input("\n👤 You: ").strip()
-
-        # Check if the user wants to exit
-        if user_input.lower() in ['exit', 'quit', 'יציאה']:
-            print("👋 Shutting down the Data Department. Goodbye!")
+        user_input = input("\n👤 You: ")
+        
+        if user_input.lower() in ['exit', 'quit']:
+            print("👋 Shutting down the agency. Goodbye!")
             break
-        
-        # Prevent empty inputs
-        if not user_input:
-            continue
-
-        # Pass the input to the Manager and get the response
+            
+        # העברת הבקשה למנהל
         response = manager.handle_request(user_input)
-        
-        # Print the Manager's response
-        print(f"\n👔 {response}")
+        print(f"\n🤖 Manager: {response}")
 
-# --- Application entry point ---
 if __name__ == "__main__":
-    start_app()
+    main()
