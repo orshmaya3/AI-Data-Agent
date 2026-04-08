@@ -46,10 +46,24 @@ class SalesAnalyst:
         monthly_df['Month'] = monthly_df['InvoiceDate'].dt.to_period('M').astype(str)
         return monthly_df.groupby('Month')['Revenue'].sum().astype(float).to_dict()
 
-    def get_top_products_by_revenue(self, limit: int = 5) -> dict:
-        """Gets the top-selling products ranked by total revenue generated."""
-        return self.df.groupby('Description')['Revenue'].sum().nlargest(limit).to_dict()
+    def get_top_products_by_revenue(self, limit: int = 5, country: str = None) -> dict:
+        """
+        Gets the top-selling products ranked by total revenue generated. 
+        Args:
+            limit: How many products to return (default 5).
+            country: Optional. If the user asks for a specific country, pass the FULL COUNTRY NAME here. 
+                     IMPORTANT: Translate abbreviations (e.g., 'FR' -> 'France', 'UK' -> 'United Kingdom').
+        """
+        data = self.df
+        
+        # אם ה-AI העביר לנו שם של מדינה, נסנן את הטבלה קודם כל לפי המדינה הזו
+        if country:
+            data = data[data['Country'].str.lower() == country.lower()]
+            if data.empty:
+                return {"error": f"No sales data found for country: {country}"}
 
+        # עכשיו נחשב את הטופ מוצרים על הטבלה המסוננת (או המלאה אם לא התבקשה מדינה)
+        return data.groupby('Description')['Revenue'].sum().nlargest(limit).to_dict()
     def get_refund_rate(self) -> float:
         """Calculates the percentage of transactions that were refunds or returns (negative quantity)."""
         total_transactions = len(self.df)
