@@ -17,14 +17,19 @@ load_dotenv()
 class ManagerAgent:
     def __init__(self, df):
         self.df = df
-        # הקליינט הישן עבור מחלקות המוצרים והלקוחות
+        # הקליינט הישן עבור מחלקת הלקוחות
         self.ai_client = OpenAI() 
         
-        # --- הגדרות LangChain למחלקת מכירות בלבד ---
+        # --- הגדרה משותפת ל-LangChain ---
         self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        # הורדת תבנית הנחיות (Prompt) מוכנה של מנהל מסד הנתונים של LangChain
+        prompt = hub.pull("hwchase17/openai-functions-agent")
+
+        # ==========================================
+        # 1. הגדרות LangChain למחלקת מכירות (Sales)
+        # ==========================================
         self.sales_analyst = SalesAnalyst(df)
         
-        # רשימת כל הכלים (Tools) שהסוכן האוטונומי יכול להפעיל לבד
         self.sales_tools = [
             self.sales_analyst.get_total_revenue,
             self.sales_analyst.get_total_orders,
@@ -46,12 +51,34 @@ class ManagerAgent:
             self.sales_analyst.get_repeat_customers_stats
         ]
         
-        # הורדת תבנית הנחיות (Prompt) מוכנה של מנהל מסד הנתונים של LangChain
-        prompt = hub.pull("hwchase17/openai-functions-agent")
-        
-        # יצירת הסוכן האוטונומי והמבצע (Executor)
         sales_agent = create_openai_functions_agent(self.llm, self.sales_tools, prompt)
         self.sales_executor = AgentExecutor(agent=sales_agent, tools=self.sales_tools, verbose=True)
+
+        # ==========================================
+        # 2. הגדרות LangChain למחלקת מוצרים (Products)
+        # ==========================================
+        self.product_analyst = ProductAnalyst(df)
+        
+        self.product_tools = [
+            self.product_analyst.get_total_products_sold,
+            self.product_analyst.get_product_revenue,
+            self.product_analyst.get_average_price_per_product,
+            self.product_analyst.get_product_sales_trend,
+            self.product_analyst.get_top_products_by_revenue,
+            self.product_analyst.get_top_products_by_quantity,
+            self.product_analyst.get_low_stock_indicator,
+            self.product_analyst.get_product_conversion_rate,
+            self.product_analyst.get_product_return_rate,
+            self.product_analyst.get_product_revenue_share,
+            self.product_analyst.get_product_growth_rate,
+            self.product_analyst.get_product_popularity_score,
+            self.product_analyst.get_product_profit_estimate,
+            self.product_analyst.get_product_purchase_frequency,
+            self.product_analyst.get_product_lifecycle_status
+        ]
+        
+        product_agent = create_openai_functions_agent(self.llm, self.product_tools, prompt)
+        self.product_executor = AgentExecutor(agent=product_agent, tools=self.product_tools, verbose=True)
 
     def _translate_to_command(self, user_text):
         """
@@ -151,52 +178,26 @@ class ManagerAgent:
             "high_value_loyal_customers", "customer_average_item_price"
         ]
 
-        # 1. מחלקת מכירות (Sales) - מנוהל כעת באופן אוטונומי על ידי LangChain!
+        # 1. מחלקת מכירות (Sales) - מנוהל באופן אוטונומי על ידי LangChain
         if request_type in sales_commands:
             print("[Manager Agent] 🚀 Handing over to LangChain Autonomous Sales Agent...")
             try:
-                # ה-AI בוחר את הכלים (הפונקציות) בעצמו ומרכיב את התשובה לבד
                 response = self.sales_executor.invoke({"input": user_text})
                 return response["output"]
             except Exception as e:
                 return f"❌ LangChain Error: {e}"
 
-        # 2. מחלקת מוצרים (Products) - פועל במצב קלאסי
+        # 2. מחלקת מוצרים (Products) - מנוהל כעת באופן אוטונומי על ידי LangChain
         elif request_type in product_commands:
-            print("[Manager Agent] 📞 Routing to Product Analyst...")
-            analyst = ProductAnalyst(df)
-            
-            if request_type == "product_revenue":
-                res = analyst.get_product_revenue()
-                return f"💰 Revenue per Product (Top 5): {list(res.items())[:5]}"
-            elif request_type == "product_quantity":
-                res = analyst.get_total_products_sold()
-                return f"📦 Units Sold per Product (Top 5): {list(res.items())[:5]}"
-            elif request_type == "product_avg_price":
-                res = analyst.get_average_price_per_product()
-                return f"🏷️ Average Weighted Price per Product: {list(res.items())[:5]}"
-            elif request_type == "product_return_rate":
-                res = analyst.get_product_return_rate()
-                return f"⚠️ Product Return Rates (High to Low): {list(res.items())[:5]}"
-            elif request_type == "product_share":
-                return f"📊 Revenue Share % per Product: {analyst.get_product_revenue_share()}"
-            elif request_type == "product_popularity":
-                return f"⭐ Product Popularity Scores (Weighted): {analyst.get_product_popularity_score()}"
-            elif request_type == "product_frequency":
-                return f"🛒 Purchase Frequency (% of orders): {analyst.get_product_purchase_frequency()}"
-            elif request_type == "top_product":
-                res = analyst.get_top_products_by_quantity(limit=1)
-                return f"🏆 Our top selling product is: {res}."
-            elif request_type == "total_unique_products":
-                res = analyst.get_total_products_sold()
-                return f"🔢 We have {len(res)} unique products in our catalog."
-            elif request_type in ["product_trend", "product_lifecycle"]:
-                example_product = "WHITE HANGING HEART T-LIGHT HOLDER"
-                if request_type == "product_trend":
-                    return f"📉 Trend for '{example_product}': {analyst.get_product_sales_trend(example_product)}"
-                return f"🔄 Lifecycle Status for '{example_product}': {analyst.get_product_lifecycle_status(example_product)}"
+            print("[Manager Agent] 🚀 Handing over to LangChain Autonomous Product Agent...")
+            try:
+                # ה-AI בוחר את הפונקציות (כולל שליפת שם המוצר מהמשפט) ומרכיב תשובה
+                response = self.product_executor.invoke({"input": user_text})
+                return response["output"]
+            except Exception as e:
+                return f"❌ LangChain Error: {e}"
 
-        # 3. מחלקת לקוחות (Customers) - פועל במצב קלאסי
+        # 3. מחלקת לקוחות (Customers) - פועל במצב קלאסי (if/elif)
         elif request_type in customer_commands:
             print("[Manager Agent] 📞 Routing to Customer Analyst...")
             analyst = CustomerAnalyst(df)
