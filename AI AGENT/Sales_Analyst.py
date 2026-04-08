@@ -158,3 +158,62 @@ class SalesAnalyst:
             "repeat_customers_percentage": f"{percentage:.2f}%",
             "total_unique_customers": int(total_unique)
         }
+    # --- רמה 4: אסטרטגיה עסקית מתקדמת (Advanced Business Strategy) ---
+
+    def get_hourly_sales_distribution(self) -> dict:
+        """Analyzes the distribution of sales by hour of the day to find peak shopping hours."""
+        if 'InvoiceDate' not in self.df.columns: return {"error": "No date data"}
+        hourly_sales = self.df.groupby(self.df['InvoiceDate'].dt.hour)['Revenue'].sum()
+        return {f"{hour}:00": float(rev) for hour, rev in hourly_sales.items()}
+
+    def get_weekend_vs_weekday_sales(self) -> dict:
+        """Compares total revenue generated on weekdays versus weekends to identify shopping patterns."""
+        if 'InvoiceDate' not in self.df.columns: return {"error": "No date data"}
+        is_weekend = self.df['InvoiceDate'].dt.dayofweek >= 5
+        weekend_rev = self.df[is_weekend]['Revenue'].sum()
+        weekday_rev = self.df[~is_weekend]['Revenue'].sum()
+        return {"Weekday Revenue": float(weekday_rev), "Weekend Revenue": float(weekend_rev)}
+
+    def get_churn_risk_customers(self, days_inactive: int = 90) -> dict:
+        """Identifies the number of customers who are at risk of churning (have not purchased in the last X days, default 90)."""
+        if 'InvoiceDate' not in self.df.columns: return {"error": "No date data"}
+        # מציאת תאריך הרכישה האחרון של כל לקוח
+        last_purchase = self.df.groupby('Customer ID')['InvoiceDate'].max()
+        dataset_end_date = self.df['InvoiceDate'].max() # היום האחרון במסד הנתונים
+        
+        days_since_last_purchase = (dataset_end_date - last_purchase).dt.days
+        at_risk = days_since_last_purchase[days_since_last_purchase >= days_inactive]
+        
+        return {
+            "total_customers": int(len(last_purchase)),
+            "at_risk_customers": int(len(at_risk)),
+            "churn_risk_percentage": f"{(len(at_risk) / len(last_purchase)) * 100:.2f}%" if len(last_purchase) > 0 else "0%"
+        }
+
+    def get_revenue_concentration_risk(self) -> str:
+        """Calculates the percentage of total revenue that comes from the top 10% of customers to assess business risk (Whale dependence)."""
+        customer_rev = self.df.groupby('Customer ID')['Revenue'].sum().sort_values(ascending=False)
+        if customer_rev.empty: return "No customer data"
+        
+        top_10_percent_count = max(1, int(len(customer_rev) * 0.10))
+        top_10_rev = customer_rev.head(top_10_percent_count).sum()
+        total_rev = customer_rev.sum()
+        
+        concentration = (top_10_rev / total_rev) * 100
+        return f"Risk Level: {concentration:.2f}% of our total revenue comes from just the top 10% of our customers."
+
+    def get_average_days_between_purchases(self) -> float:
+        """Calculates the average number of days a returning customer waits before making another purchase."""
+        if 'InvoiceDate' not in self.df.columns: return 0.0
+        
+        # סינון לקוחות ללא זהות ומיון לפי לקוח ותאריך
+        sorted_df = self.df.dropna(subset=['Customer ID']).sort_values(['Customer ID', 'InvoiceDate'])
+        
+        # השארת הזמנות ייחודיות כדי למנוע חישוב של 0 ימים בין מוצרים שנקנו באותה הזמנה
+        invoices = sorted_df.drop_duplicates(subset=['Customer ID', 'Invoice']).copy()
+        
+        invoices['PrevPurchaseDate'] = invoices.groupby('Customer ID')['InvoiceDate'].shift(1)
+        invoices['DaysBetween'] = (invoices['InvoiceDate'] - invoices['PrevPurchaseDate']).dt.days
+        
+        avg_days = invoices['DaysBetween'].mean()
+        return float(avg_days) if pd.notna(avg_days) else 0.0

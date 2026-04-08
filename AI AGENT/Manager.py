@@ -45,7 +45,14 @@ class ManagerAgent:
             self.sales_analyst.get_simple_sales_forecast,
             self.sales_analyst.get_sales_trend,
             self.sales_analyst.detect_revenue_drops,
-            self.sales_analyst.get_repeat_customers_stats
+            self.sales_analyst.get_repeat_customers_stats,
+            self.sales_analyst.get_repeat_customers_stats,
+            self.sales_analyst.get_hourly_sales_distribution,
+            self.sales_analyst.get_weekend_vs_weekday_sales,
+            self.sales_analyst.get_churn_risk_customers,
+            self.sales_analyst.get_revenue_concentration_risk,
+            self.sales_analyst.get_average_days_between_purchases
+        
         ]
         
         # יצירת הסוכן בשיטה החדשה
