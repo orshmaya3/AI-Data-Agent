@@ -1,6 +1,10 @@
 import os
+import langchain
 from dotenv import load_dotenv
 from openai import OpenAI
+
+langchain.verbose = False
+langchain.debug = False
 
 # LangChain / LangGraph
 from langchain_openai import ChatOpenAI
@@ -111,7 +115,8 @@ class ManagerAgent:
             self.customer_analyst.get_best_selling_product_per_country,
             self.customer_analyst.get_average_order_value,
             self.customer_analyst.get_monthly_revenue_trend,
-            self.customer_analyst.get_high_value_loyal_customers
+            self.customer_analyst.get_high_value_loyal_customers,
+            self.customer_analyst.get_customer_profile
         ]
 
         customer_prompt = (
@@ -163,6 +168,7 @@ class ManagerAgent:
         - 'total_unique_products' (variety of items)
 
         CUSTOMER COMMANDS:
+        - 'customer_profile' (info about a specific customer ID: spend, orders, items, favorite product, dates)
         - 'total_unique_customers' (how many total distinct customers)
         - 'top_customer' (who spent the most)
         - 'top_spending_customers' (list of top spenders)
@@ -219,7 +225,7 @@ class ManagerAgent:
             "total_unique_customers", "top_customer", "top_spending_customers",
             "top_country", "revenue_by_country", "most_popular_product_customer",
             "repeat_customer_rate", "repeat_customers", "best_selling_product_per_country",
-            "high_value_loyal_customers", "customer_average_item_price"
+            "high_value_loyal_customers", "customer_average_item_price", "customer_profile"
         ]
 
         # Sales
@@ -257,7 +263,7 @@ class ManagerAgent:
             pandas_agent = create_pandas_dataframe_agent(
                 self.llm,
                 df,
-                verbose=True,
+                verbose=False,
                 allow_dangerous_code=True  # required for the pandas agent to run Python internally
             )
 

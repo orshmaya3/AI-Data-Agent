@@ -104,6 +104,42 @@ class CustomerAnalyst:
         monthly_trend = temp_df.groupby('YearMonth')['Revenue'].sum()
         return monthly_trend.round(2).to_dict()
 
+    def get_customer_profile(self, customer_id: int) -> dict:
+        """Returns a full profile for a specific customer ID: total spend, number of orders, items bought, favorite product, first and last purchase date, and refund count."""
+        cdf = self.df[self.df['Customer ID'] == customer_id]
+        if cdf.empty:
+            return {"error": f"Customer ID {customer_id} not found in the dataset."}
+
+        total_spend = round(float(cdf[cdf['Quantity'] > 0]['Revenue'].sum()), 2)
+        total_orders = int(cdf['InvoiceNo'].nunique()) if 'InvoiceNo' in cdf.columns else 0
+        total_items = int(cdf[cdf['Quantity'] > 0]['Quantity'].sum())
+        refund_count = int((cdf['Quantity'] < 0).sum())
+
+        favorite_product = None
+        if 'Description' in cdf.columns:
+            pos = cdf[cdf['Quantity'] > 0]
+            if not pos.empty:
+                favorite_product = str(pos.groupby('Description')['Quantity'].sum().idxmax())
+
+        first_purchase = None
+        last_purchase = None
+        if 'InvoiceDate' in cdf.columns:
+            dates = cdf['InvoiceDate'].dropna()
+            if not dates.empty:
+                first_purchase = str(dates.min().date())
+                last_purchase = str(dates.max().date())
+
+        return {
+            "customer_id": customer_id,
+            "total_spend_gbp": total_spend,
+            "total_orders": total_orders,
+            "total_items_bought": total_items,
+            "refund_transactions": refund_count,
+            "favorite_product": favorite_product,
+            "first_purchase": first_purchase,
+            "last_purchase": last_purchase,
+        }
+
     def get_high_value_loyal_customers(self, order_threshold: int = 5, revenue_threshold: float = 1000.0) -> list:
         """Finds VIP loyal customers who have ordered more than the order_threshold AND spent over the revenue_threshold."""
         if 'InvoiceNo' not in self.df.columns: return []
