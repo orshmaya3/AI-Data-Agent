@@ -2,10 +2,9 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# ייבוא ספריות LangChain
+# ייבוא ספריות - שימוש במנוע LangGraph החדש והיציב!
 from langchain_openai import ChatOpenAI
-from langchain.agents import create_openai_functions_agent, AgentExecutor
-from langchain import hub
+from langgraph.prebuilt import create_react_agent
 
 # ייבוא הסוכנים שלנו
 from Sales_Analyst import SalesAnalyst
@@ -17,16 +16,14 @@ load_dotenv()
 class ManagerAgent:
     def __init__(self, df):
         self.df = df
-        # הקליינט הישן עבור מחלקת הלקוחות
+        # הקליינט הישן עבור הניתוב הראשוני
         self.ai_client = OpenAI() 
         
         # --- הגדרה משותפת ל-LangChain ---
         self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-        # הורדת תבנית הנחיות (Prompt) מוכנה של מנהל מסד הנתונים של LangChain
-        prompt = hub.pull("hwchase17/openai-functions-agent")
 
         # ==========================================
-        # 1. הגדרות LangChain למחלקת מכירות (Sales)
+        # 1. הגדרות LangGraph למחלקת מכירות (Sales)
         # ==========================================
         self.sales_analyst = SalesAnalyst(df)
         
@@ -51,11 +48,11 @@ class ManagerAgent:
             self.sales_analyst.get_repeat_customers_stats
         ]
         
-        sales_agent = create_openai_functions_agent(self.llm, self.sales_tools, prompt)
-        self.sales_executor = AgentExecutor(agent=sales_agent, tools=self.sales_tools, verbose=True)
+        # יצירת הסוכן בשיטה החדשה
+        self.sales_executor = create_react_agent(self.llm, tools=self.sales_tools)
 
         # ==========================================
-        # 2. הגדרות LangChain למחלקת מוצרים (Products)
+        # 2. הגדרות LangGraph למחלקת מוצרים (Products)
         # ==========================================
         self.product_analyst = ProductAnalyst(df)
         
@@ -77,8 +74,34 @@ class ManagerAgent:
             self.product_analyst.get_product_lifecycle_status
         ]
         
-        product_agent = create_openai_functions_agent(self.llm, self.product_tools, prompt)
-        self.product_executor = AgentExecutor(agent=product_agent, tools=self.product_tools, verbose=True)
+        # יצירת הסוכן בשיטה החדשה
+        self.product_executor = create_react_agent(self.llm, tools=self.product_tools)
+
+        # ==========================================
+        # 3. הגדרות LangGraph למחלקת לקוחות (Customers)
+        # ==========================================
+        self.customer_analyst = CustomerAnalyst(df)
+        
+        self.customer_tools = [
+            self.customer_analyst.get_total_revenue,
+            self.customer_analyst.get_total_unique_customers,
+            self.customer_analyst.get_top_country,
+            self.customer_analyst.get_total_items_sold,
+            self.customer_analyst.get_average_item_price,
+            self.customer_analyst.get_top_customer,
+            self.customer_analyst.get_top_spending_customers,
+            self.customer_analyst.get_revenue_by_country,
+            self.customer_analyst.get_most_popular_product,
+            self.customer_analyst.get_refund_rate,
+            self.customer_analyst.get_repeat_customer_rate,
+            self.customer_analyst.get_best_selling_product_per_country,
+            self.customer_analyst.get_average_order_value,
+            self.customer_analyst.get_monthly_revenue_trend,
+            self.customer_analyst.get_high_value_loyal_customers
+        ]
+        
+        # יצירת הסוכן בשיטה החדשה
+        self.customer_executor = create_react_agent(self.llm, tools=self.customer_tools)
 
     def _translate_to_command(self, user_text):
         """
@@ -178,65 +201,31 @@ class ManagerAgent:
             "high_value_loyal_customers", "customer_average_item_price"
         ]
 
-        # 1. מחלקת מכירות (Sales) - מנוהל באופן אוטונומי על ידי LangChain
+        # 1. מחלקת מכירות (Sales) 
         if request_type in sales_commands:
-            print("[Manager Agent] 🚀 Handing over to LangChain Autonomous Sales Agent...")
+            print("[Manager Agent] 🚀 Handing over to LangGraph Autonomous Sales Agent...")
             try:
-                response = self.sales_executor.invoke({"input": user_text})
-                return response["output"]
+                response = self.sales_executor.invoke({"messages": [("user", user_text)]})
+                return response["messages"][-1].content
             except Exception as e:
                 return f"❌ LangChain Error: {e}"
 
-        # 2. מחלקת מוצרים (Products) - מנוהל כעת באופן אוטונומי על ידי LangChain
+        # 2. מחלקת מוצרים (Products)
         elif request_type in product_commands:
-            print("[Manager Agent] 🚀 Handing over to LangChain Autonomous Product Agent...")
+            print("[Manager Agent] 🚀 Handing over to LangGraph Autonomous Product Agent...")
             try:
-                # ה-AI בוחר את הפונקציות (כולל שליפת שם המוצר מהמשפט) ומרכיב תשובה
-                response = self.product_executor.invoke({"input": user_text})
-                return response["output"]
+                response = self.product_executor.invoke({"messages": [("user", user_text)]})
+                return response["messages"][-1].content
             except Exception as e:
                 return f"❌ LangChain Error: {e}"
 
-        # 3. מחלקת לקוחות (Customers) - פועל במצב קלאסי (if/elif)
+        # 3. מחלקת לקוחות (Customers)
         elif request_type in customer_commands:
-            print("[Manager Agent] 📞 Routing to Customer Analyst...")
-            analyst = CustomerAnalyst(df)
-            
-            if request_type == "total_unique_customers":
-                res = analyst.get_total_unique_customers()
-                return f"👥 We have {res} unique customers."
-            elif request_type == "top_customer":
-                res = analyst.get_top_customer()
-                return f"🥇 Our top customer ID is: {res}."
-            elif request_type == "top_spending_customers":
-                res = analyst.get_top_spending_customers()
-                return f"💰 Top spending customers: {res}"
-            elif request_type == "top_country":
-                res = analyst.get_top_country()
-                return f"📍 Most orders come from: {res}."
-            elif request_type == "revenue_by_country":
-                res = analyst.get_revenue_by_country()
-                return f"🌍 Revenue by Country: {res}"
-            elif request_type == "most_popular_product_customer":
-                res = analyst.get_most_popular_product()
-                return f"🛍️ The most popular product by units sold is: {res}."
-            elif request_type == "repeat_customer_rate":
-                res = analyst.get_repeat_customer_rate()
-                return f"🔄 Repeat Customer Rate: {res}%."
-            elif request_type == "repeat_customers":
-                res = analyst.get_repeat_customers_stats()
-                return (f"🔄 Customer Loyalty Stats:\n"
-                        f"- Repeat Customers: {res['repeat_customers_count']}\n"
-                        f"- Retention Rate: {res['repeat_customers_percentage']}\n"
-                        f"- Total Unique Customers: {res['total_unique_customers']}")
-            elif request_type == "best_selling_product_per_country":
-                res = analyst.get_best_selling_product_per_country()
-                return f"🗺️ Best selling products per country: {res}"
-            elif request_type == "high_value_loyal_customers":
-                res = analyst.get_high_value_loyal_customers()
-                return f"💎 VIP Loyal Customers (IDs): {res}"
-            elif request_type == "customer_average_item_price":
-                res = analyst.get_average_item_price()
-                return f"🏷️ The average item price is ${res}."
+            print("[Manager Agent] 🚀 Handing over to LangGraph Autonomous Customer Agent...")
+            try:
+                response = self.customer_executor.invoke({"messages": [("user", user_text)]})
+                return response["messages"][-1].content
+            except Exception as e:
+                return f"❌ LangChain Error: {e}"
 
         return "I'm not sure how to handle that request yet. Try asking about revenue, growth, or top products!"
