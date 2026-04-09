@@ -324,7 +324,8 @@ with tab_dash:
     total_items  = sales.get_total_items_sold()
     aov          = sales.get_average_order_value()
     refund       = sales.get_refund_rate()
-    mom          = sales.get_mom_growth_rate()
+    mom_data     = sales.get_mom_growth_rate()
+    mom          = mom_data.get('latest', 0.0) if isinstance(mom_data, dict) else float(mom_data)
     trend_str    = f"↑ {mom:.1f}% MoM" if mom > 0 else (f"↓ {abs(mom):.1f}% MoM" if mom < 0 else "Stable MoM")
 
     k1, k2, k3, k4, k5 = st.columns(5)

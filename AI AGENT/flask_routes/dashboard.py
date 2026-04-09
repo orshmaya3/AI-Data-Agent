@@ -19,7 +19,8 @@ def api_kpis():
     if df is None:
         return jsonify({'error': 'Data not available'}), 500
 
-    mom = sales.get_mom_growth_rate()
+    mom_data = sales.get_mom_growth_rate()
+    mom = mom_data.get('latest', 0.0) if isinstance(mom_data, dict) else float(mom_data)
     return jsonify({
         'total_revenue': sales.get_total_revenue(),
         'total_orders':  sales.get_total_orders(),

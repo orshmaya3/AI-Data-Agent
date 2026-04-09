@@ -165,7 +165,8 @@ class SalesAnalyst:
 
     def get_sales_trend(self) -> str:
         """Determines the current sales trend (Up, Down, or Stable) compared to the previous month."""
-        growth = self.get_mom_growth_rate()
+        mom_series = self.get_mom_growth_rate()
+        growth = mom_series.get('latest', 0.0) if isinstance(mom_series, dict) else float(mom_series)
         if growth > 0:
             return f"Up (↑ {growth:.2f}%)"
         elif growth < 0:
