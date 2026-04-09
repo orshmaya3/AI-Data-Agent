@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — AI Data Department{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>AI Data Department</h1>
+  <p>Real-time retail analytics powered by autonomous AI agents</p>
+</div>
+
+<!-- KPI Row -->
+<div class="row g-3 mb-4" id="kpi-row">
+  <div class="col-12 text-center py-4">
+    <div class="spinner-border" role="status"></div>
+    <p class="mt-2" style="color:#8b949e;font-size:13px;">Loading metrics...</p>
+  </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row g-3 mb-3">
+  <div class="col-md-8">
+    <div class="chart-panel" id="chart-monthly" style="min-height:300px;">
+      <div class="d-flex justify-content-center align-items-center h-100 py-5">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="chart-panel" id="chart-countries" style="min-height:300px;">
+      <div class="d-flex justify-content-center align-items-center h-100 py-5">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row g-3">
+  <div class="col-md-5">
+    <div class="chart-panel" id="chart-products" style="min-height:320px;">
+      <div class="d-flex justify-content-center align-items-center h-100 py-5">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="chart-panel" id="chart-hourly" style="min-height:320px;">
+      <div class="d-flex justify-content-center align-items-center h-100 py-5">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const LAYOUT_BASE = {
+  paper_bgcolor: '#161b22',
+  plot_bgcolor:  '#161b22',
+  font:  { color: '#8b949e', size: 11 },
+  title: { font: { color: '#f0f6fc', size: 13 } },
+  margin: { l: 10, r: 10, t: 40, b: 10 },
+  showlegend: false,
+  hoverlabel: { bgcolor: '#21262d', font: { color: '#e6edf3' }, bordercolor: '#30363d' },
+  xaxis: { gridcolor: '#21262d', linecolor: '#21262d', zerolinecolor: '#21262d' },
+  yaxis: { gridcolor: '#21262d', linecolor: '#21262d', zerolinecolor: '#21262d' },
+};
+
+const CFG = { responsive: true, displayModeBar: false };
+
+// ── Load KPIs ──
+fetch('/api/kpis')
+  .then(r => r.json())
+  .then(d => {
+    const mom = d.mom_growth;
+    const trend = mom > 0 ? `↑ ${mom.toFixed(1)}% MoM` : mom < 0 ? `↓ ${Math.abs(mom).toFixed(1)}% MoM` : 'Stable MoM';
+    const kpis = [
+      { label: 'Total Revenue',   value: `£${d.total_revenue.toLocaleString('en-GB', {maximumFractionDigits:0})}`, sub: trend },
+      { label: 'Total Orders',    value: d.total_orders.toLocaleString(), sub: 'Unique invoices' },
+      { label: 'Items Sold',      value: d.total_items.toLocaleString(), sub: 'Units dispatched' },
+      { label: 'Avg Order Value', value: `£${d.aov.toFixed(2)}`, sub: 'Per invoice' },
+      { label: 'Refund Rate',     value: `${d.refund_rate.toFixed(1)}%`, sub: 'Of all transactions' },
+    ];
+    document.getElementById('kpi-row').innerHTML = kpis.map(k => `
+      <div class="col">
+        <div class="kpi-card">
+          <div class="kpi-label">${k.label}</div>
+          <div class="kpi-value">${k.value}</div>
+          <div class="kpi-sub">${k.sub}</div>
+        </div>
+      </div>`).join('');
+  })
+  .catch(() => {
+    document.getElementById('kpi-row').innerHTML =
+      '<div class="col-12"><div class="alert-error p-3 rounded">Failed to load KPIs.</div></div>';
+  });
+
+// ── Load Charts ──
+fetch('/api/charts')
+  .then(r => r.json())
+  .then(d => {
+    // Monthly Revenue
+    const months = Object.keys(d.monthly_revenue);
+    const revs   = Object.values(d.monthly_revenue);
+    Plotly.newPlot('chart-monthly', [{
+      x: months, y: revs, type: 'scatter', mode: 'lines',
+      fill: 'tozeroy',
+      line: { color: '#1f6feb', width: 2 },
+      fillcolor: 'rgba(31,111,235,0.10)',
+      hovertemplate: '<b>%{x}</b><br>£%{y:,.0f}<extra></extra>',
+    }], { ...LAYOUT_BASE, title: { text: 'Monthly Revenue', font: { color: '#f0f6fc', size: 13 } },
+          yaxis: { ...LAYOUT_BASE.yaxis, tickprefix: '£' } }, CFG);
+
+    // Top Countries
+    const ctry_names = Object.keys(d.top_countries);
+    const ctry_vals  = Object.values(d.top_countries);
+    Plotly.newPlot('chart-countries', [{
+      x: ctry_vals, y: ctry_names, type: 'bar', orientation: 'h',
+      marker: { color: ctry_vals, colorscale: [[0,'#21262d'],[1,'#1f6feb']], showscale: false },
+      hovertemplate: '<b>%{y}</b><br>£%{x:,.0f}<extra></extra>',
+    }], { ...LAYOUT_BASE, title: { text: 'Top 5 Countries', font: { color: '#f0f6fc', size: 13 } },
+          xaxis: { ...LAYOUT_BASE.xaxis, tickprefix: '£' } }, CFG);
+
+    // Top Products
+    const prod_names = Object.keys(d.top_products).map(n => n.length > 28 ? n.slice(0,28)+'…' : n);
+    const prod_vals  = Object.values(d.top_products);
+    Plotly.newPlot('chart-products', [{
+      x: prod_vals, y: prod_names, type: 'bar', orientation: 'h',
+      marker: { color: prod_vals, colorscale: [[0,'#21262d'],[1,'#8b5cf6']], showscale: false },
+      hovertemplate: '<b>%{y}</b><br>£%{x:,.0f}<extra></extra>',
+    }], { ...LAYOUT_BASE, title: { text: 'Top 8 Products by Revenue', font: { color: '#f0f6fc', size: 13 } },
+          xaxis: { ...LAYOUT_BASE.xaxis, tickprefix: '£' },
+          margin: { l: 10, r: 10, t: 40, b: 10 }, height: 320 }, CFG);
+
+    // Hourly Sales
+    const hours_raw = d.hourly_sales;
+    const hours = Object.keys(hours_raw).sort((a,b) => parseInt(a) - parseInt(b));
+    const h_vals = hours.map(h => hours_raw[h]);
+    Plotly.newPlot('chart-hourly', [{
+      x: hours, y: h_vals, type: 'bar',
+      marker: { color: h_vals, colorscale: [[0,'#21262d'],[1,'#3fb950']], showscale: false },
+      hovertemplate: '<b>%{x}</b><br>£%{y:,.0f}<extra></extra>',
+    }], { ...LAYOUT_BASE, title: { text: 'Sales by Hour of Day', font: { color: '#f0f6fc', size: 13 } },
+          yaxis: { ...LAYOUT_BASE.yaxis, tickprefix: '£' }, height: 320 }, CFG);
+  })
+  .catch(err => console.error('Charts error:', err));
+</script>
+{% endblock %}
