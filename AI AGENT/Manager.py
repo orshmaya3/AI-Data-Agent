@@ -154,8 +154,9 @@ class ManagerAgent:
         )
         self.customer_executor = create_react_agent(self.llm, tools=self.customer_tools, prompt=customer_prompt)
 
-    def _route_to_agent(self, user_text: str) -> str:
-        """Classifies the user's question into one of four buckets: sales, product, customer, or general."""
+    def _route_to_agent(self, user_text: str, history: list = None) -> str:
+        """Classifies the user's question into one of four buckets: sales, product, customer, or general.
+        Accepts recent history so pronouns and follow-up questions are resolved in context."""
         system_prompt = (
             "You are a routing assistant for a retail analytics system. "
             "Classify the question into EXACTLY ONE of these four categories:\n\n"
@@ -168,16 +169,25 @@ class ManagerAgent:
             "repeat purchase rates, country breakdowns, VIP segments, churn risk\n"
             "- general: questions that clearly span multiple domains, require joining insights from "
             "sales + products + customers together, or do not fit the above\n\n"
+            "IMPORTANT: The user may ask short follow-up questions using pronouns like 'him', 'her', "
+            "'it', 'them', 'that product', 'this customer', or 'tell me more'. "
+            "Use the conversation history provided to understand what they are referring to, "
+            "then classify based on the full context — not just the current message alone.\n\n"
             "Reply with ONLY one word: sales, product, customer, or general."
         )
+
+        # Build the messages list: inject last 4 history messages for context, then the current question
+        messages = [{"role": "system", "content": system_prompt}]
+        if history:
+            for msg in history[-4:]:
+                role = "user" if msg["role"] == "user" else "assistant"
+                messages.append({"role": role, "content": msg["content"]})
+        messages.append({"role": "user", "content": user_text})
 
         try:
             response = self.ai_client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_text}
-                ],
+                messages=messages,
                 temperature=0.0
             )
             result = response.choices[0].message.content.strip().lower()
@@ -200,7 +210,7 @@ class ManagerAgent:
 
     def handle_request(self, user_text: str, history: list = None) -> str:
         print(f"\n[Manager Agent] 🧠 Analyzing request: '{user_text}'")
-        agent_bucket = self._route_to_agent(user_text)
+        agent_bucket = self._route_to_agent(user_text, history or [])
         print(f"[Manager Agent] 🎯 Routing to: '{agent_bucket}' agent")
 
         if self.df is None:
