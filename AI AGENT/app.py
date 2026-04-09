@@ -103,7 +103,7 @@ def load_agents():
     from Manager import ManagerAgent
     from Sales_Analyst import SalesAnalyst
 
-    file_name = "online_retail_small.csv"
+    file_name = os.path.join(os.path.dirname(os.path.abspath(__file__)), "online_retail_small.csv")
     d_agent = DataAgent(file_name)
     df = d_agent.get_data()
 
