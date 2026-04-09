@@ -135,6 +135,7 @@ class ManagerAgent:
             self.customer_analyst.get_customer_profile,
             self.customer_analyst.get_new_customers_by_month,
             self.customer_analyst.get_churn_risk_customer_list,
+            self.customer_analyst.get_customer_orders,
         ]
 
         customer_prompt = (
@@ -166,13 +167,17 @@ class ManagerAgent:
             "- product: specific product performance — what sells most, revenue per item, "
             "return rates per product, product trends, lifecycle status, popularity scores, price analysis\n"
             "- customer: buyer behaviour — top spenders, customer profiles by ID, loyalty, "
-            "repeat purchase rates, country breakdowns, VIP segments, churn risk\n"
+            "repeat purchase rates, country breakdowns, VIP segments, churn risk, "
+            "ANY question that contains a specific customer ID number (e.g. 'customer 18102', "
+            "'ID 12345'), order history for a customer, highest/largest/biggest purchase by a customer, "
+            "spending patterns for a specific customer, when did customer X first/last buy\n"
             "- general: questions that clearly span multiple domains, require joining insights from "
             "sales + products + customers together, or do not fit the above\n\n"
             "IMPORTANT: The user may ask short follow-up questions using pronouns like 'him', 'her', "
             "'it', 'them', 'that product', 'this customer', or 'tell me more'. "
             "Use the conversation history provided to understand what they are referring to, "
             "then classify based on the full context — not just the current message alone.\n\n"
+            "RULE: If the question mentions a numeric customer ID, ALWAYS classify as 'customer'.\n\n"
             "Reply with ONLY one word: sales, product, customer, or general."
         )
 
@@ -223,7 +228,8 @@ class ManagerAgent:
             try:
                 response = self.sales_executor.invoke({"messages": messages})
                 return response["messages"][-1].content
-            except Exception:
+            except Exception as e:
+                print(f"[Manager Agent] ❌ Sales agent error: {e}")
                 return "I ran into an issue while pulling the sales data. Please try rephrasing your question or try again in a moment."
 
         elif agent_bucket == "product":
@@ -231,7 +237,8 @@ class ManagerAgent:
             try:
                 response = self.product_executor.invoke({"messages": messages})
                 return response["messages"][-1].content
-            except Exception:
+            except Exception as e:
+                print(f"[Manager Agent] ❌ Product agent error: {e}")
                 return "I ran into an issue while analyzing the product data. Please try rephrasing your question or try again in a moment."
 
         elif agent_bucket == "customer":
@@ -239,7 +246,8 @@ class ManagerAgent:
             try:
                 response = self.customer_executor.invoke({"messages": messages})
                 return response["messages"][-1].content
-            except Exception:
+            except Exception as e:
+                print(f"[Manager Agent] ❌ Customer agent error: {e}")
                 return "I ran into an issue while looking up the customer data. Please try rephrasing your question or try again in a moment."
 
         else:

@@ -218,6 +218,46 @@ class CustomerAnalyst:
         result.sort(key=lambda x: x['total_spend_gbp'], reverse=True)
         return result[:top_n]
 
+    def get_customer_orders(self, customer_id: int) -> list:
+        """Returns the full order history for a specific customer: invoice ID, date, total revenue, and item count.
+        Use this to answer questions like 'highest purchase', 'largest order', 'most recent order',
+        'how much did customer X spend in a single visit', or any order-level question for a customer.
+        Orders are sorted by total revenue descending so the highest purchase appears first.
+        Args:
+            customer_id: The numeric customer ID (e.g. 18102).
+        """
+        try:
+            customer_id_f = float(customer_id)
+        except (ValueError, TypeError):
+            return [{"error": f"Invalid customer ID: '{customer_id}'. Please provide a numeric ID."}]
+
+        cdf = self.df[self.df['Customer ID'] == customer_id_f]
+        if cdf.empty:
+            return [{"error": f"Customer ID {customer_id} not found in the dataset."}]
+
+        orders = (
+            cdf.groupby('Invoice')
+            .agg(
+                date=('InvoiceDate', 'min'),
+                total_revenue_gbp=('Revenue', 'sum'),
+                items_bought=('Quantity', 'sum')
+            )
+            .reset_index()
+        )
+        # Exclude pure-refund invoices (negative total)
+        orders = orders[orders['total_revenue_gbp'] > 0]
+        orders = orders.sort_values('total_revenue_gbp', ascending=False)
+
+        result = []
+        for _, row in orders.iterrows():
+            result.append({
+                "invoice": str(row['Invoice']),
+                "date": str(row['date'].date()) if pd.notna(row['date']) else None,
+                "total_revenue_gbp": round(float(row['total_revenue_gbp']), 2),
+                "items_bought": int(row['items_bought']),
+            })
+        return result
+
     def get_revenue_by_single_country(self, country: str) -> dict:
         """Returns the total revenue for a single named country.
         Args:
