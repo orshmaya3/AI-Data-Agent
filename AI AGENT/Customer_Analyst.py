@@ -48,11 +48,13 @@ class CustomerAnalyst:
 
     def get_top_spending_customers(self, top_n: int = 5) -> dict:
         """Gets a dictionary of the top N spending customers ranked by total revenue."""
+        top_n = min(top_n, 50)
         top_customers = self.df.groupby('Customer ID')['Revenue'].sum().nlargest(top_n)
         return {int(k): round(float(v), 2) for k, v in top_customers.items()}
 
     def get_revenue_by_country(self, top_n: int = 5) -> dict:
         """Gets a dictionary of the top N countries ranked by total revenue generated."""
+        top_n = min(top_n, 50)
         country_rev = self.df.groupby('Country')['Revenue'].sum().nlargest(top_n)
         return country_rev.round(2).to_dict()
 
@@ -62,11 +64,19 @@ class CustomerAnalyst:
         popular_product = self.df.groupby('Description')['Quantity'].sum().idxmax()
         return str(popular_product)
 
-    def get_refund_rate(self) -> float:
-        """Calculates the percentage of all transactions that were refunds (negative quantity)."""
-        total_rows = len(self.df)
+    def get_refund_rate(self, country: str = None) -> float:
+        """Calculates the percentage of all transactions that were refunds (negative quantity).
+        Args:
+            country: Optional. Filter to a specific country (e.g. 'Germany', 'France'). Leave empty for global rate.
+        """
+        data = self.df
+        if country:
+            data = self.df[self.df['Country'].str.lower() == country.lower()]
+            if data.empty:
+                return 0.0
+        total_rows = len(data)
         if total_rows == 0: return 0.0
-        refund_rows = len(self.df[self.df['Quantity'] < 0])
+        refund_rows = len(data[data['Quantity'] < 0])
         return float(round((refund_rows / total_rows) * 100, 2))
 
     # --- Advanced logic ---
@@ -106,7 +116,12 @@ class CustomerAnalyst:
 
     def get_customer_profile(self, customer_id: int) -> dict:
         """Returns a full profile for a specific customer ID: total spend, number of orders, items bought, favorite product, first and last purchase date, refund count, and country."""
-        cdf = self.df[self.df['Customer ID'] == customer_id]
+        # Cast to float to match pandas' float64 Customer ID storage (CSV reads produce float64 when NaNs exist)
+        try:
+            customer_id_f = float(customer_id)
+        except (ValueError, TypeError):
+            return {"error": f"Invalid customer ID: '{customer_id}'. Please provide a numeric ID."}
+        cdf = self.df[self.df['Customer ID'] == customer_id_f]
         if cdf.empty:
             return {"error": f"Customer ID {customer_id} not found in the dataset."}
 
@@ -153,7 +168,7 @@ class CustomerAnalyst:
         """
         if 'Description' not in self.df.columns:
             return []
-        mask = self.df['Description'].str.contains(query, case=False, na=False)
+        mask = self.df['Description'].str.contains(query, case=False, na=False, regex=False)
         return sorted(self.df[mask]['Description'].unique().tolist())[:10]
 
     def get_high_value_loyal_customers(self, order_threshold: int = 5, revenue_threshold: float = 1000.0) -> list:
@@ -168,3 +183,48 @@ class CustomerAnalyst:
             (customer_stats['Total_Spend'] >= revenue_threshold)
         ]
         return [int(cid) for cid in vips.index.tolist()]
+
+    def get_new_customers_by_month(self) -> dict:
+        """Counts customers who placed their very first order in each month.
+        Useful for tracking customer acquisition trends over time."""
+        if 'InvoiceDate' not in self.df.columns: return {}
+        first_order = self.df.groupby('Customer ID')['InvoiceDate'].min().reset_index()
+        first_order['Month'] = first_order['InvoiceDate'].dt.to_period('M').astype(str)
+        return first_order.groupby('Month').size().to_dict()
+
+    def get_churn_risk_customer_list(self, days_inactive: int = 90, top_n: int = 20) -> list:
+        """Returns a list of specific at-risk customers — their ID, days since last purchase, and total spend.
+        Useful for targeting retention campaigns. Sorted by total spend descending so you focus on the most valuable at-risk customers.
+        Args:
+            days_inactive: Number of days without a purchase to be considered at risk (default 90).
+            top_n: How many at-risk customers to return (default 20, max 50).
+        """
+        if 'InvoiceDate' not in self.df.columns: return []
+        top_n = min(top_n, 50)
+        reference_date = self.df['InvoiceDate'].max()
+        last_purchase = self.df.groupby('Customer ID')['InvoiceDate'].max()
+        total_spend   = self.df.groupby('Customer ID')['Revenue'].sum()
+
+        days_inactive_series = (reference_date - last_purchase).dt.days
+        at_risk = days_inactive_series[days_inactive_series >= days_inactive]
+
+        result = []
+        for cid in at_risk.index:
+            result.append({
+                "customer_id": int(cid),
+                "days_since_last_purchase": int(at_risk[cid]),
+                "total_spend_gbp": round(float(total_spend.get(cid, 0)), 2)
+            })
+        result.sort(key=lambda x: x['total_spend_gbp'], reverse=True)
+        return result[:top_n]
+
+    def get_revenue_by_single_country(self, country: str) -> dict:
+        """Returns the total revenue for a single named country.
+        Args:
+            country: The full country name (e.g. 'Germany', 'France', 'EIRE'). Case-insensitive.
+        """
+        data = self.df[self.df['Country'].str.lower() == country.lower()]
+        if data.empty:
+            return {"error": f"No data found for country: '{country}'. Check the spelling or try the full name."}
+        revenue = float(data['Revenue'].sum())
+        return {"country": country, "total_revenue_gbp": round(revenue, 2)}

@@ -20,6 +20,9 @@ def api_chat():
     if not message:
         return jsonify({'error': 'Empty message'}), 400
 
+    if len(message) > 2000:
+        return jsonify({'error': 'Message too long. Please keep questions under 2000 characters.'}), 400
+
     from flask_agents import get_agents
     df, manager, sales = get_agents()
 

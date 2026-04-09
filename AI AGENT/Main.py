@@ -9,7 +9,7 @@ def start_app():
     print("╚══════════════════════════════════════════╝")
 
     # Load the data
-    file_name = "online_retail_small.csv"
+    file_name = "online_retail_II.csv"
     print(f"\nLoading your data, just a moment...")
 
     d_agent = DataAgent(file_name)
@@ -47,6 +47,10 @@ def start_app():
                 break
 
             if not user_input:
+                continue
+
+            if len(user_input) > 2000:
+                print("⚠️  Your message is too long (max 2000 characters). Please shorten it.")
                 continue
 
             response = manager.handle_request(user_input, history=history)

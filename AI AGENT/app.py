@@ -444,8 +444,14 @@ with tab_dash:
 # ════════════════════════════════════════════════════════
 with tab_chat:
 
+    MAX_HISTORY = 50
+
     if "messages" not in st.session_state:
         st.session_state.messages = []
+
+    # Trim history to prevent unbounded memory growth in long sessions
+    if len(st.session_state.messages) > MAX_HISTORY:
+        st.session_state.messages = st.session_state.messages[-MAX_HISTORY:]
 
     # ── Suggestion chips ──────────────────────────────────────────────────────────
     if not st.session_state.messages:

@@ -33,6 +33,7 @@ class SalesAnalyst:
 
     def get_top_countries_by_revenue(self, limit: int = 5) -> dict:
         """Gets the top performing countries ranked by total sales revenue. Allows specifying a limit."""
+        limit = min(limit, 50)
         return self.df.groupby('Country')['Revenue'].sum().nlargest(limit).to_dict()
 
     # --- Grouped & filtered metrics ---
@@ -52,6 +53,7 @@ class SalesAnalyst:
             country: Optional. If the user asks for a specific country, pass the FULL COUNTRY NAME here.
                      IMPORTANT: Translate abbreviations (e.g., 'FR' -> 'France', 'UK' -> 'United Kingdom').
         """
+        limit = min(limit, 50)
         data = self.df
 
         if country:
@@ -61,17 +63,34 @@ class SalesAnalyst:
 
         return data.groupby('Description')['Revenue'].sum().nlargest(limit).to_dict()
 
-    def get_refund_rate(self) -> float:
-        """Calculates the percentage of transactions that were refunds or returns (negative quantity)."""
-        total_transactions = len(self.df)
-        returns = len(self.df[self.df['Quantity'] < 0])
+    def get_refund_rate(self, country: str = None) -> float:
+        """Calculates the percentage of transactions that were refunds or returns (negative quantity).
+        Args:
+            country: Optional. Filter to a specific country (e.g. 'Germany', 'France'). Leave empty for global rate.
+        """
+        data = self.df
+        if country:
+            data = self.df[self.df['Country'].str.lower() == country.lower()]
+            if data.empty:
+                return 0.0
+        total_transactions = len(data)
+        returns = len(data[data['Quantity'] < 0])
         return float((returns / total_transactions) * 100) if total_transactions > 0 else 0.0
 
-    def get_revenue_by_date_range(self, start_date: str, end_date: str) -> float:
-        """Calculates total revenue within a specific date range. Dates must be provided as strings in YYYY-MM-DD format."""
+    def get_revenue_by_date_range(self, start_date: str, end_date: str) -> dict:
+        """Calculates total revenue within a specific date range. Dates must be provided as strings in YYYY-MM-DD format.
+        Returns a dict with revenue and a note if the range falls outside the dataset's coverage."""
+        dataset_start = str(self.df['InvoiceDate'].min().date())
+        dataset_end   = str(self.df['InvoiceDate'].max().date())
         mask = (self.df['InvoiceDate'] >= start_date) & (self.df['InvoiceDate'] <= end_date)
         filtered_df = self.df.loc[mask]
-        return float(filtered_df['Revenue'].sum())
+        revenue = float(filtered_df['Revenue'].sum())
+        if filtered_df.empty:
+            return {
+                "revenue": 0.0,
+                "warning": f"No data found for {start_date} to {end_date}. Dataset covers {dataset_start} to {dataset_end}."
+            }
+        return {"revenue": revenue, "date_range": f"{start_date} to {end_date}"}
 
     def get_busiest_days_of_week(self) -> dict:
         """Counts the number of transactions for each day of the week to identify the busiest shopping days."""
@@ -81,20 +100,27 @@ class SalesAnalyst:
 
     # --- Advanced time-series & business logic ---
 
-    def get_mom_growth_rate(self) -> float:
-        """Calculates the Month-over-Month (MoM) sales revenue growth rate percentage."""
-        if 'InvoiceDate' not in self.df.columns: return 0.0
+    def get_mom_growth_rate(self) -> dict:
+        """Calculates Month-over-Month (MoM) sales revenue growth rate for every month in the dataset.
+        Returns a dict mapping each month to its growth rate percentage. The most recent month is labeled 'latest'.
+        Use this to assess trend consistency, not just the last month's change."""
+        if 'InvoiceDate' not in self.df.columns: return {}
         monthly_rev = self.df.set_index('InvoiceDate').resample('ME')['Revenue'].sum()
-        growth = monthly_rev.pct_change() * 100
-        return float(growth.iloc[-1]) if not pd.isna(growth.iloc[-1]) else 0.0
+        growth = (monthly_rev.pct_change() * 100).dropna()
+        result = {str(k.to_period('M')): round(float(v), 2) for k, v in growth.items()}
+        if result:
+            last_key = list(result)[-1]
+            result['latest'] = result[last_key]
+        return result
 
     def get_pareto_products_count(self) -> int:
         """Calculates how many top products make up 80% of the total revenue (Pareto principle / 80-20 rule)."""
         product_rev = self.df.groupby('Description')['Revenue'].sum().sort_values(ascending=False)
         total_rev = product_rev.sum()
         cumulative_rev = product_rev.cumsum() / total_rev
-        top_80_percent_products = cumulative_rev[cumulative_rev <= 0.8]
-        return int(len(top_80_percent_products))
+        # Use < 0.8 and add 1 to include the product that crosses the 80% threshold
+        top_80_percent_products = cumulative_rev[cumulative_rev < 0.8]
+        return int(len(top_80_percent_products)) + 1
 
     def get_sales_anomalies(self) -> dict:
         """Detects days with unusually high sales spikes (anomalies) based on standard deviation."""
@@ -107,18 +133,33 @@ class SalesAnalyst:
 
     def get_frequently_bought_together(self, product_desc: str, limit: int = 3) -> dict:
         """Finds other products that are most frequently bought in the same invoice as the specified product."""
-        invoices_with_product = self.df[self.df['Description'] == product_desc]['Invoice']
-        basket = self.df[self.df['Invoice'].isin(invoices_with_product)]
+        limit = min(limit, 50)
+        sales_only = self.df[self.df['Quantity'] > 0]
+        invoices_with_product = sales_only[sales_only['Description'] == product_desc]['Invoice']
+        basket = sales_only[sales_only['Invoice'].isin(invoices_with_product)]
         other_products = basket[basket['Description'] != product_desc]
         return other_products['Description'].value_counts().nlargest(limit).to_dict()
 
-    def get_simple_sales_forecast(self) -> float:
-        """Forecasts the expected sales revenue for the next 7 days based on the average of the last 14 days."""
-        if 'InvoiceDate' not in self.df.columns: return 0.0
+    def get_simple_sales_forecast(self) -> dict:
+        """Forecasts the expected sales revenue for the next 7 days based on the average of the last 14 days in the dataset.
+        IMPORTANT: Returns a warning if the baseline period falls in a seasonal peak (e.g. December) which may inflate the estimate."""
+        if 'InvoiceDate' not in self.df.columns: return {"forecast": 0.0, "warning": "No date data available."}
         daily_rev = self.df.set_index('InvoiceDate').resample('D')['Revenue'].sum()
-        last_14_days_avg = daily_rev.tail(14).mean()
-        forecast_next_7_days = last_14_days_avg * 7
-        return float(forecast_next_7_days)
+        last_14 = daily_rev.tail(14)
+        last_14_days_avg = last_14.mean()
+        forecast_next_7_days = float(last_14_days_avg * 7)
+        baseline_end = last_14.index[-1]
+        warning = None
+        if baseline_end.month == 12:
+            warning = (
+                f"Caution: The baseline period ends in December ({baseline_end.date()}), "
+                "which is a seasonal peak. This forecast may significantly overestimate normal trading periods."
+            )
+        return {
+            "forecast_7_day_gbp": round(forecast_next_7_days, 2),
+            "based_on": f"14-day average ending {baseline_end.date()}",
+            "warning": warning
+        }
 
     # --- Business strategy metrics ---
 
@@ -173,11 +214,10 @@ class SalesAnalyst:
         return {"Weekday Revenue": float(weekday_rev), "Weekend Revenue": float(weekend_rev)}
 
     def get_churn_risk_customers(self, days_inactive: int = 90) -> dict:
-        """Identifies the number of customers who are at risk of churning (have not purchased in the last X days, default 90)."""
+        """Identifies the number of customers who are at risk of churning (have not purchased in the last X days, default 90).
+        NOTE: Churn is calculated relative to the dataset's last date, not today's date, since the data is historical."""
         if 'InvoiceDate' not in self.df.columns: return {"error": "No date data"}
-        # Find the most recent purchase date per customer
         last_purchase = self.df.groupby('Customer ID')['InvoiceDate'].max()
-        # Use the last date in the dataset as the reference point
         dataset_end_date = self.df['InvoiceDate'].max()
 
         days_since_last_purchase = (dataset_end_date - last_purchase).dt.days
@@ -186,7 +226,9 @@ class SalesAnalyst:
         return {
             "total_customers": int(len(last_purchase)),
             "at_risk_customers": int(len(at_risk)),
-            "churn_risk_percentage": f"{(len(at_risk) / len(last_purchase)) * 100:.2f}%" if len(last_purchase) > 0 else "0%"
+            "churn_risk_percentage": f"{(len(at_risk) / len(last_purchase)) * 100:.2f}%" if len(last_purchase) > 0 else "0%",
+            "reference_date": str(dataset_end_date.date()),
+            "note": "Churn is measured relative to the dataset's last recorded date, not today."
         }
 
     def get_revenue_concentration_risk(self) -> str:
@@ -211,7 +253,7 @@ class SalesAnalyst:
         """
         if 'Description' not in self.df.columns:
             return []
-        mask = self.df['Description'].str.contains(query, case=False, na=False)
+        mask = self.df['Description'].str.contains(query, case=False, na=False, regex=False)
         return sorted(self.df[mask]['Description'].unique().tolist())[:10]
 
     def get_average_days_between_purchases(self) -> float:
@@ -229,3 +271,33 @@ class SalesAnalyst:
 
         avg_days = invoices['DaysBetween'].mean()
         return float(avg_days) if pd.notna(avg_days) else 0.0
+
+    def get_product_family_revenue(self, keyword: str) -> dict:
+        """Aggregates total revenue across ALL products whose name contains the given keyword.
+        Use this when the user asks about a category of products (e.g. 'candles', 'bags', 'heart').
+        Returns total revenue, unit count, and the individual products found.
+        Args:
+            keyword: A partial product name or category keyword (case-insensitive, e.g. 'candle', 'bag').
+        """
+        if 'Description' not in self.df.columns:
+            return {"error": "No product data available."}
+        mask = self.df['Description'].str.contains(keyword, case=False, na=False, regex=False)
+        family = self.df[mask]
+        if family.empty:
+            return {"error": f"No products found matching '{keyword}'."}
+        total_revenue = float(family['Revenue'].sum())
+        total_units   = int(family[family['Quantity'] > 0]['Quantity'].sum())
+        product_breakdown = (
+            family.groupby('Description')['Revenue'].sum()
+            .sort_values(ascending=False)
+            .head(10)
+            .round(2)
+            .to_dict()
+        )
+        return {
+            "keyword": keyword,
+            "matching_products_count": int(mask.sum() and family['Description'].nunique()),
+            "total_revenue_gbp": round(total_revenue, 2),
+            "total_units_sold": total_units,
+            "top_10_products": product_breakdown
+        }

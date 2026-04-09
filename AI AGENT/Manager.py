@@ -53,7 +53,8 @@ class ManagerAgent:
             self.sales_analyst.get_weekend_vs_weekday_sales,
             self.sales_analyst.get_churn_risk_customers,
             self.sales_analyst.get_revenue_concentration_risk,
-            self.sales_analyst.get_average_days_between_purchases
+            self.sales_analyst.get_average_days_between_purchases,
+            self.sales_analyst.get_product_family_revenue,
         ]
 
         sales_prompt = (
@@ -64,9 +65,12 @@ class ManagerAgent:
             "2. If the user mentions a product by name, call search_products first to find the exact "
             "product description, then use that exact string in any follow-up tool calls. "
             "3. Present numbers clearly — use bullet points, bold key figures, and add currency symbols (£) where relevant. "
-            "4. After the data, add one short business insight or recommendation (1-2 sentences). "
+            "4. Only add a business insight if the data clearly supports one. Do NOT speculate or invent benchmarks. "
+            "   If the data is ambiguous or incomplete, say so honestly instead of guessing. "
             "5. Keep a warm, professional tone — like a trusted analyst talking to a colleague. "
-            "6. Always respond in the same language the user wrote in (Hebrew or English)."
+            "6. Always respond in the same language the user wrote in (Hebrew or English). "
+            "7. If a question requires information not available in the dataset (e.g. cost data, profit margins, "
+            "   web traffic, marketing spend), clearly state that this data is not available rather than estimating."
         )
         self.sales_executor = create_react_agent(self.llm, tools=self.sales_tools, prompt=sales_prompt)
 
@@ -96,10 +100,14 @@ class ManagerAgent:
             "1. Always call the relevant tool first to get the real data before answering. "
             "2. If the user mentions a product by name, call search_products first to find the exact "
             "product description, then use that exact string in any follow-up tool calls. "
+            "   If multiple matches are found, list them and ask the user to clarify rather than silently picking one. "
             "3. Present product data in a clean, readable format — use bullet points and highlight top performers. "
-            "4. After the data, add one short insight about what the numbers mean for the business. "
+            "4. Only add a business insight if the data clearly supports one. Do NOT speculate or invent benchmarks. "
+            "   If the data is ambiguous or incomplete, say so honestly instead of guessing. "
             "5. Keep a warm, professional tone — like a trusted analyst talking to a colleague. "
-            "6. Always respond in the same language the user wrote in (Hebrew or English)."
+            "6. Always respond in the same language the user wrote in (Hebrew or English). "
+            "7. If a question requires information not available in the dataset (e.g. inventory, cost, supplier data), "
+            "   clearly state that this data is not available rather than estimating."
         )
         self.product_executor = create_react_agent(self.llm, tools=self.product_tools, prompt=product_prompt)
 
@@ -116,6 +124,7 @@ class ManagerAgent:
             self.customer_analyst.get_top_customer,
             self.customer_analyst.get_top_spending_customers,
             self.customer_analyst.get_revenue_by_country,
+            self.customer_analyst.get_revenue_by_single_country,
             self.customer_analyst.get_most_popular_product,
             self.customer_analyst.get_refund_rate,
             self.customer_analyst.get_repeat_customer_rate,
@@ -123,7 +132,9 @@ class ManagerAgent:
             self.customer_analyst.get_average_order_value,
             self.customer_analyst.get_monthly_revenue_trend,
             self.customer_analyst.get_high_value_loyal_customers,
-            self.customer_analyst.get_customer_profile
+            self.customer_analyst.get_customer_profile,
+            self.customer_analyst.get_new_customers_by_month,
+            self.customer_analyst.get_churn_risk_customer_list,
         ]
 
         customer_prompt = (
@@ -134,9 +145,12 @@ class ManagerAgent:
             "2. If the user mentions a product by name, call search_products first to find the exact "
             "product description, then use that exact string in any follow-up tool calls. "
             "3. Present customer data clearly — use bullet points, highlight key customer IDs or countries. "
-            "4. After the data, add one short insight about customer behavior or loyalty. "
+            "4. Only add a behavioral insight if the data clearly supports one. Do NOT speculate about why a customer "
+            "   stopped buying, changed habits, or churned — the dataset does not contain that information. "
             "5. Keep a warm, professional tone — like a trusted analyst talking to a colleague. "
-            "6. Always respond in the same language the user wrote in (Hebrew or English)."
+            "6. Always respond in the same language the user wrote in (Hebrew or English). "
+            "7. If a question requires information not available in the dataset (e.g. customer names, contact info, "
+            "   churn reasons, satisfaction scores), clearly state it is unavailable."
         )
         self.customer_executor = create_react_agent(self.llm, tools=self.customer_tools, prompt=customer_prompt)
 
@@ -231,16 +245,25 @@ class ManagerAgent:
                     allow_dangerous_code=True
                 )
 
-                # Inject recent history as plain-text context for the pandas agent
-                context = ""
+                # Inject recent history as a structured prefix so the agent has context
+                context_lines = []
                 if history:
-                    for msg in (history or [])[-4:]:
+                    for msg in (history or [])[-6:]:
                         role = "User" if msg["role"] == "user" else "Assistant"
-                        context += f"{role}: {msg['content']}\n"
-                    context += "\nCurrent question: "
+                        context_lines.append(f"{role}: {msg['content']}")
+                context_lines.append(f"User: {user_text}")
+                full_input = "\n".join(context_lines)
 
-                response = pandas_agent.invoke({"input": context + user_text})
+                response = pandas_agent.invoke({"input": full_input})
                 return response['output']
 
-            except Exception:
-                return "That's a great question, but I wasn't able to find a clear answer in the data. Could you try rephrasing it or be more specific?"
+            except KeyError:
+                return "I couldn't compute that — the data doesn't seem to contain the columns needed for this question. Could you rephrase or be more specific?"
+            except Exception as e:
+                error_msg = str(e).lower()
+                if "quota" in error_msg or "rate" in error_msg:
+                    return "I'm temporarily rate-limited. Please wait a moment and try again."
+                if "column" in error_msg or "key" in error_msg or "attribute" in error_msg:
+                    return "I ran into a data structure issue with that question. The dataset may not contain the required fields. Try rephrasing."
+                print(f"[Manager Agent] ❌ General agent error: {e}")
+                return "I ran into an unexpected error processing that question. Please try rephrasing or breaking it into smaller parts."
