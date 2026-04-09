@@ -8,8 +8,8 @@ LOCKOUT_TIME = timedelta(minutes=10)
 MAX_ATTEMPTS = 5
 
 USERS = {
-    "admin":   {"password": "admin123",   "role": "admin"},
-    "analyst": {"password": "analyst123", "role": "analyst"},
+    "Or":   {"password": "admin",   "role": "admin"},
+    "Taeir": {"password": "admin", "role": "admin"},
 }
 
 
