@@ -16,8 +16,8 @@ class CustomerAnalyst:
     # --- Basic metrics ---
 
     def get_total_revenue(self) -> float:
-        """Calculates and returns the total revenue generated across all customer transactions."""
-        return float(round(self.df['Revenue'].sum(), 2))
+        """Calculates and returns the total revenue generated across all customer transactions (sales only, excludes returns)."""
+        return float(round(self.df[self.df['Quantity'] > 0]['Revenue'].sum(), 2))
 
     def get_total_unique_customers(self) -> int:
         """Calculates the total number of unique customers in the dataset."""
@@ -47,9 +47,9 @@ class CustomerAnalyst:
         return int(top_customer)
 
     def get_top_spending_customers(self, top_n: int = 5) -> dict:
-        """Gets a dictionary of the top N spending customers ranked by total revenue."""
+        """Gets a dictionary of the top N spending customers ranked by total revenue (sales only, excludes returns)."""
         top_n = min(top_n, 50)
-        top_customers = self.df.groupby('Customer ID')['Revenue'].sum().nlargest(top_n)
+        top_customers = self.df[self.df['Quantity'] > 0].groupby('Customer ID')['Revenue'].sum().nlargest(top_n)
         return {int(k): round(float(v), 2) for k, v in top_customers.items()}
 
     def get_revenue_by_country(self, top_n: int = 5) -> dict:

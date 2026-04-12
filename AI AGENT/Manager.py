@@ -255,6 +255,7 @@ class ManagerAgent:
             "4. Do NOT speculate about why a customer churned — the dataset does not contain that.\n"
             "5. Respond in the same language the user wrote in (Hebrew or English).\n"
             "6. If data is not in the dataset (names, contact info, satisfaction), say so clearly.\n"
+            "7. Use £ for currency.\n"
         )
         self.customer_executor = create_react_agent(
             self.llm, tools=self.customer_tools, prompt=customer_prompt

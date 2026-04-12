@@ -24,7 +24,7 @@ import matplotlib.ticker as mticker
 
 logger = logging.getLogger("CodeExecutor")
 
-DEFAULT_TIMEOUT_SECONDS = 30
+DEFAULT_TIMEOUT_SECONDS = 120
 
 # ---------------------------------------------------------------------------
 # Module blocklist — checked via AST before any subprocess is spawned

@@ -14,8 +14,8 @@ class SalesAnalyst:
     # --- Basic metrics ---
 
     def get_total_revenue(self) -> float:
-        """Calculates and returns the total revenue from all transactions."""
-        return float(self.df['Revenue'].sum())
+        """Calculates and returns the total revenue from all transactions (sales only, excludes returns)."""
+        return float(self.df[self.df['Quantity'] > 0]['Revenue'].sum())
 
     def get_total_orders(self) -> int:
         """Calculates the total number of unique orders (invoices) placed."""
@@ -61,7 +61,7 @@ class SalesAnalyst:
             if data.empty:
                 return {"error": f"No sales data found for country: {country}"}
 
-        return data.groupby('Description')['Revenue'].sum().nlargest(limit).to_dict()
+        return data[data['Quantity'] > 0].groupby('Description')['Revenue'].sum().nlargest(limit).to_dict()
 
     def get_refund_rate(self, country: str = None) -> float:
         """Calculates the percentage of transactions that were refunds or returns (negative quantity).

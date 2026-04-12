@@ -28,6 +28,10 @@ class DataAgent:
             # Drop rows with zero or negative price
             df = df[df['Price'] > 0]
 
+            # Pre-parse InvoiceDate so the executor sandbox doesn't re-parse on every call
+            if 'InvoiceDate' in df.columns:
+                df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'], errors='coerce')
+
             rows_after = len(df)
             print(f"[Data Agent] 🧹 Cleaned data: {rows_before - rows_after} rows removed ({rows_after} remaining).")
 
