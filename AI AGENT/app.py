@@ -232,7 +232,7 @@ CHART_BASE = dict(
 # ── Load agents ─────────────────────────────────────────────────────────────────
 # Bump this string whenever Manager.py / analyst files change — forces Streamlit
 # to discard the cached ManagerAgent and rebuild from the current code.
-_AGENT_VERSION = "v9"  # bump when Manager.py / analyst files change
+_AGENT_VERSION = "v10"  # bump when Manager.py / analyst files change
 
 def _csv_mtime() -> float:
     """Return the modification time of the CSV so the cache key tracks file changes."""
@@ -297,7 +297,7 @@ with st.sidebar:
         ("Alex", "Sales Analyst", "💼"),
         ("Dana", "Product Analyst", "📦"),
         ("Maya", "Customer Analyst", "👤"),
-        ("Kai",  "Prediction Analyst", "🔮"),
+        ("Rey",  "Prediction Analyst", "🔮"),
         ("Aria", "General Analyst · Code", "🧠"),
     ]
     for name, role, icon in agents_info:
@@ -485,7 +485,7 @@ with tab_chat:
                 "- 💼 **Alex** — Sales Analyst *(revenue, orders, trends)*\n"
                 "- 📦 **Dana** — Product Analyst *(product performance, rankings, lifecycle)*\n"
                 "- 👤 **Maya** — Customer Analyst *(profiles, loyalty, segmentation)*\n"
-                "- 🔮 **Kai** — Prediction Analyst *(forecasts, churn risk, CLV, demand trends)*\n"
+                "- 🔮 **Rey** — Prediction Analyst *(forecasts, churn risk, CLV, demand trends)*\n"
                 "- 🧠 **Aria** — General Analyst *(cross-domain questions & custom code)*\n\n"
                 "What would you like to analyse today?"
             ),
@@ -590,7 +590,7 @@ with tab_chat:
 
 
 # ════════════════════════════════════════════════════════
-# TAB 3 — PREDICTION AGENT (Kai)
+# TAB 3 — PREDICTION AGENT (Rey)
 # ════════════════════════════════════════════════════════
 with tab_pred:
 
@@ -600,9 +600,9 @@ with tab_pred:
         st.session_state.pred_messages = []
         st.session_state.pred_messages.append({
             "role": "assistant",
-            "agent": "Prediction Agent (Kai)",
+            "agent": "Prediction Agent (Rey)",
             "content": (
-                "👋 Hi, I'm **Kai** — your Predictive Analytics Specialist.\n\n"
+                "👋 Hi, I'm **Rey** — your Predictive Analytics Specialist.\n\n"
                 "I can help you with:\n"
                 "- 📉 **Churn risk** — which customers are likely to leave\n"
                 "- 📈 **Revenue forecasts** — what the next months might look like\n"
@@ -639,7 +639,7 @@ with tab_pred:
 
     # ── Render helper ────────────────────────────────────────────────────────────
     def _render_pred_msg(msg: dict) -> None:
-        agent_label = msg.get("agent", "Prediction Agent (Kai)")
+        agent_label = msg.get("agent", "Prediction Agent (Rey)")
         with st.chat_message("assistant"):
             st.caption(f"🔮 {agent_label}")
             st.markdown(msg["content"])
@@ -655,13 +655,13 @@ with tab_pred:
         else:
             _render_pred_msg(msg)
 
-    # ── Shared helper: call Kai directly ─────────────────────────────────────────
+    # ── Shared helper: call Rey directly ─────────────────────────────────────────
     def _process_pred_request(user_input: str) -> None:
         history = st.session_state.pred_messages[:-1]
         response = ""
-        agent_label = "Prediction Agent (Kai)"
+        agent_label = "Prediction Agent (Rey)"
 
-        with st.status("🔮 Kai is analysing your request...", expanded=True) as status_box:
+        with st.status("🔮 Rey is analysing your request...", expanded=True) as status_box:
             for step in manager.handle_prediction_request(user_input, history=history):
                 if step["type"] == "status":
                     status_box.update(label=step["message"])
@@ -669,7 +669,7 @@ with tab_pred:
                     response = step["content"]
                     agent_label = step.get("agent_label", agent_label)
             status_box.update(
-                label="✅ Prediction Agent (Kai) responded",
+                label="✅ Prediction Agent (Rey) responded",
                 state="complete",
                 expanded=False,
             )
@@ -687,7 +687,7 @@ with tab_pred:
         st.rerun()
 
     # ── Chat input ────────────────────────────────────────────────────────────────
-    if prompt := st.chat_input("Ask Kai about forecasts, churn, CLV, product trends...", key="pred_input"):
+    if prompt := st.chat_input("Ask Rey about forecasts, churn, CLV, product trends...", key="pred_input"):
         st.session_state.pred_messages.append({"role": "user", "content": prompt})
         _process_pred_request(prompt)
         st.rerun()

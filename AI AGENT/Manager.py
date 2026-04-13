@@ -278,7 +278,7 @@ class ManagerAgent:
         ]
 
         prediction_prompt = (
-            "You are Kai, a Predictive Analytics Specialist for an e-commerce business.\n\n"
+            "You are Rey, a Predictive Analytics Specialist for an e-commerce business.\n\n"
             "You answer questions about forecasts, trends, churn risk, customer lifetime value, "
             "product growth and decline, and future-looking analysis.\n\n"
             "Use your pre-built tools for standard predictive questions. "
@@ -293,6 +293,12 @@ class ManagerAgent:
             "5. Respond in the same language the user wrote in (Hebrew or English).\n"
             "6. Use £ for currency. Present forecasts with confidence ranges where possible.\n"
             "7. If data is insufficient for a reliable forecast, say so — do not fabricate numbers.\n"
+            "8. ALWAYS present results visually — every response MUST include at least one of:\n"
+            "   - A markdown table summarising the key numbers\n"
+            "   - A chart generated via execute_python (bar, line, scatter, or heatmap)\n"
+            "   Choose whichever best fits the data: tables for rankings/lists, "
+            "line charts for trends/forecasts, bar charts for comparisons, "
+            "scatter plots for correlations. Never return plain prose alone.\n"
         )
         self.prediction_executor = create_react_agent(
             self.llm, tools=self.prediction_tools, prompt=prediction_prompt
@@ -491,7 +497,7 @@ class ManagerAgent:
 
     def handle_prediction_request(self, user_text: str, history: list = None):
         """
-        Generator that routes directly to Kai (Prediction Agent), bypassing the classifier.
+        Generator that routes directly to Rey (Prediction Agent), bypassing the classifier.
         Yields the same step shapes as handle_request.
         """
         logger.info("[ManagerAgent] Prediction request (direct): %r", user_text[:100])
@@ -500,11 +506,11 @@ class ManagerAgent:
             yield {
                 "type": "result",
                 "content": "I'm having trouble accessing the data. Please check the data file and try again.",
-                "agent_label": "Prediction Agent (Kai)",
+                "agent_label": "Prediction Agent (Rey)",
             }
             return
 
-        yield {"type": "status", "message": "🔮 Kai is analysing your request..."}
+        yield {"type": "status", "message": "🔮 Rey is analysing your request..."}
 
         messages = self._build_messages(user_text, history or [])
         invoke_config = {"recursion_limit": 30}
@@ -512,12 +518,12 @@ class ManagerAgent:
         try:
             response = self.prediction_executor.invoke({"messages": messages}, invoke_config)
             answer = response["messages"][-1].content
-            logger.info("[ManagerAgent] Prediction Agent (Kai) responded (%d chars)", len(answer))
-            yield {"type": "result", "content": answer, "agent_label": "Prediction Agent (Kai)"}
+            logger.info("[ManagerAgent] Prediction Agent (Rey) responded (%d chars)", len(answer))
+            yield {"type": "result", "content": answer, "agent_label": "Prediction Agent (Rey)"}
 
         except Exception as e:
             error_msg = str(e).lower()
-            logger.error("[ManagerAgent] Prediction Agent (Kai) error: %s", e)
+            logger.error("[ManagerAgent] Prediction Agent (Rey) error: %s", e)
 
             if "quota" in error_msg or "rate" in error_msg:
                 content = "I'm temporarily rate-limited. Please wait a moment and try again."
@@ -529,7 +535,7 @@ class ManagerAgent:
             else:
                 content = "I ran into an issue running the predictive analysis. Please try rephrasing."
 
-            yield {"type": "result", "content": content, "agent_label": "Prediction Agent (Kai)"}
+            yield {"type": "result", "content": content, "agent_label": "Prediction Agent (Rey)"}
 
     def handle_request(self, user_text: str, history: list = None):
         """
@@ -568,7 +574,7 @@ class ManagerAgent:
             "sales":      (self.sales_executor,      "Sales Agent (Alex)"),
             "product":    (self.product_executor,    "Product Agent (Dana)"),
             "customer":   (self.customer_executor,   "Customer Agent (Maya)"),
-            "prediction": (self.prediction_executor, "Prediction Agent (Kai)"),
+            "prediction": (self.prediction_executor, "Prediction Agent (Rey)"),
             "general":    (self.general_executor,    "General Agent (Aria)"),
         }
 
