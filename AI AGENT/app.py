@@ -234,8 +234,16 @@ CHART_BASE = dict(
 # to discard the cached ManagerAgent and rebuild from the current code.
 _AGENT_VERSION = "v5"  # bump when Manager.py / analyst files change
 
+def _csv_mtime() -> float:
+    """Return the modification time of the CSV so the cache key tracks file changes."""
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "online_retail_small.csv")
+    try:
+        return os.path.getmtime(p)
+    except OSError:
+        return 0.0
+
 @st.cache_resource(show_spinner=False)
-def load_agents(_version: str = _AGENT_VERSION):
+def load_agents(_version: str = _AGENT_VERSION, _mtime: float = 0.0):
     from Data_Agent import DataAgent
     from Manager import ManagerAgent
     from Sales_Analyst import SalesAnalyst
@@ -267,7 +275,7 @@ with st.sidebar:
     st.markdown("<hr>", unsafe_allow_html=True)
 
     with st.spinner("Initializing agents..."):
-        df, manager, sales = load_agents(_AGENT_VERSION)
+        df, manager, sales = load_agents(_AGENT_VERSION, _csv_mtime())
 
     if df is None:
         st.error("Could not load data. Check that `online_retail_small.csv` is in the project folder.")
