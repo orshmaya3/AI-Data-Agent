@@ -236,7 +236,7 @@ _AGENT_VERSION = "v5"  # bump when Manager.py / analyst files change
 
 def _csv_mtime() -> float:
     """Return the modification time of the CSV so the cache key tracks file changes."""
-    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "online_retail_small.csv")
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mixed_online_retail.csv")
     try:
         return os.path.getmtime(p)
     except OSError:
@@ -248,7 +248,7 @@ def load_agents(_version: str = _AGENT_VERSION, _mtime: float = 0.0):
     from Manager import ManagerAgent
     from Sales_Analyst import SalesAnalyst
 
-    file_name = os.path.join(os.path.dirname(os.path.abspath(__file__)), "online_retail_small.csv")
+    file_name = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mixed_online_retail.csv")
     d_agent = DataAgent(file_name)
     df = d_agent.get_data()
 
@@ -278,7 +278,7 @@ with st.sidebar:
         df, manager, sales = load_agents(_AGENT_VERSION, _csv_mtime())
 
     if df is None:
-        st.error("Could not load data. Check that `online_retail_small.csv` is in the project folder.")
+        st.error("Could not load data. Check that `mixed_online_retail.csv` is in the project folder.")
         st.stop()
 
     st.markdown('<div class="section-label">Active Agents</div>', unsafe_allow_html=True)
@@ -303,7 +303,7 @@ with st.sidebar:
     st.markdown('<div class="section-label">Dataset</div>', unsafe_allow_html=True)
     st.markdown(f"""
     <div style="color: #8b949e; font-size: 12px; line-height: 2;">
-        📄 &nbsp;online_retail_small.csv<br>
+        📄 &nbsp;mixed_online_retail.csv<br>
         🗂 &nbsp;{len(df):,} records loaded<br>
         🌍 &nbsp;UK Online Retail
     </div>""", unsafe_allow_html=True)
@@ -463,13 +463,29 @@ with tab_chat:
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
+        # Auto-greeting injected once when the chat is first opened
+        st.session_state.messages.append({
+            "role": "assistant",
+            "agent": "Manager Agent",
+            "content": (
+                "👋 Hello! I'm your **AI Data Department** — a team of specialised analysts "
+                "ready to dig into your retail data.\n\n"
+                "**Meet the team:**\n"
+                "- 💼 **Alex** — Sales Analyst *(revenue, orders, trends, forecasts)*\n"
+                "- 📦 **Dana** — Product Analyst *(product performance, rankings, lifecycle)*\n"
+                "- 👤 **Maya** — Customer Analyst *(profiles, loyalty, segmentation)*\n"
+                "- 🧠 **Aria** — General Analyst *(cross-domain questions & custom code)*\n\n"
+                "What would you like to analyse today?"
+            ),
+            "charts": [],
+        })
 
     # Trim history to prevent unbounded memory growth in long sessions
     if len(st.session_state.messages) > MAX_HISTORY:
         st.session_state.messages = st.session_state.messages[-MAX_HISTORY:]
 
-    # ── Suggestion chips ──────────────────────────────────────────────────────────
-    if not st.session_state.messages:
+    # ── Suggestion chips (shown until the first user message) ────────────────────
+    if not any(m["role"] == "user" for m in st.session_state.messages):
         st.markdown("""
         <div style="color: #8b949e; font-size: 13px; margin-bottom: 14px; line-height: 1.6;">
             Ask your AI analyst team anything about your data. Try one of these:
@@ -494,8 +510,9 @@ with tab_chat:
 
     # ── Helper: render one assistant message (text + any saved charts) ─────────
     def _render_assistant_msg(msg: dict) -> None:
+        agent_label = msg.get("agent", "AI Analyst")
         with st.chat_message("assistant"):
-            st.caption("🤖 AI Analyst")
+            st.caption(f"🤖 {agent_label}")
             st.markdown(msg["content"])
             for b64 in msg.get("charts", []):
                 img_bytes = base64.b64decode(b64)
@@ -509,31 +526,47 @@ with tab_chat:
         else:
             _render_assistant_msg(msg)
 
+    # ── Shared helper: run a request and show live routing steps ────────────────
+    def _process_request(user_input: str) -> None:
+        """Consume the handle_request generator, display routing steps via st.status,
+        then persist the assistant reply to session_state."""
+        response = ""
+        agent_label = "AI Analyst"
+        history = st.session_state.messages[:-1]  # exclude the just-appended user msg
+
+        with st.status("🧠 Manager Agent is analyzing your request...", expanded=True) as status_box:
+            for step in manager.handle_request(user_input, history=history):
+                if step["type"] == "status":
+                    status_box.update(label=step["message"])
+                elif step["type"] == "routing":
+                    st.write(step["message"])
+                    status_box.update(label=step["message"])
+                    agent_label = step["agent_label"]
+                elif step["type"] == "result":
+                    response = step["content"]
+                    agent_label = step.get("agent_label", agent_label)
+            status_box.update(
+                label=f"✅ {agent_label} responded",
+                state="complete",
+                expanded=False,
+            )
+
+        charts = manager.get_pending_charts()
+        st.session_state.messages.append(
+            {"role": "assistant", "content": response, "agent": agent_label, "charts": charts}
+        )
+
     # ── Handle suggestion click ───────────────────────────────────────────────────
     if "pending_input" in st.session_state:
         user_input = st.session_state.pop("pending_input")
         st.session_state.messages.append({"role": "user", "content": user_input})
-        with st.spinner("Analysing your data..."):
-            response = manager.handle_request(
-                user_input, history=st.session_state.messages[:-1]
-            )
-            charts = manager.get_pending_charts()
-        st.session_state.messages.append(
-            {"role": "assistant", "content": response, "agent": "AI Analyst", "charts": charts}
-        )
+        _process_request(user_input)
         st.rerun()
 
     # ── Chat input ────────────────────────────────────────────────────────────────
     if prompt := st.chat_input("Ask about your sales, products, customers, or request custom analysis..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.spinner("Analysing your data..."):
-            response = manager.handle_request(
-                prompt, history=st.session_state.messages[:-1]
-            )
-            charts = manager.get_pending_charts()
-        st.session_state.messages.append(
-            {"role": "assistant", "content": response, "agent": "AI Analyst", "charts": charts}
-        )
+        _process_request(prompt)
         st.rerun()
 
     # ── Clear button ──────────────────────────────────────────────────────────────

@@ -31,7 +31,7 @@ def get_agents():
             from Manager import ManagerAgent
             from Sales_Analyst import SalesAnalyst
 
-            csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "online_retail_small.csv")
+            csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mixed_online_retail.csv")
             d_agent = DataAgent(csv_path)
             _df = d_agent.get_data()
 

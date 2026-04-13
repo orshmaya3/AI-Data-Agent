@@ -442,17 +442,35 @@ class ManagerAgent:
         return messages
 
     # ------------------------------------------------------------------
-    # Main entry point
+    # Main entry point (generator — yields routing steps then the result)
     # ------------------------------------------------------------------
 
-    def handle_request(self, user_text: str, history: list = None) -> str:
+    def handle_request(self, user_text: str, history: list = None):
+        """
+        Generator that yields intermediate routing steps and the final answer.
+
+        Yield shapes:
+          {"type": "status",  "message": str}
+          {"type": "routing", "message": str, "agent_label": str}
+          {"type": "result",  "content": str, "agent_label": str}
+
+        The caller should iterate over the generator and act on each step.
+        The final "result" item always comes last.
+        """
         logger.info("[ManagerAgent] Incoming request: %r", user_text[:100])
 
         if self.df is None:
-            return (
-                "I'm having trouble accessing the data right now. "
-                "Please check that the data file is loaded correctly and try again."
-            )
+            yield {
+                "type": "result",
+                "content": (
+                    "I'm having trouble accessing the data right now. "
+                    "Please check that the data file is loaded correctly and try again."
+                ),
+                "agent_label": "Manager",
+            }
+            return
+
+        yield {"type": "status", "message": "🧠 Manager Agent is analyzing your request..."}
 
         agent_bucket = self._route_to_agent(user_text, history or [])
         messages = self._build_messages(user_text, history or [])
@@ -464,12 +482,14 @@ class ManagerAgent:
             "sales":    (self.sales_executor,    "Sales Agent (Alex)"),
             "product":  (self.product_executor,  "Product Agent (Dana)"),
             "customer": (self.customer_executor, "Customer Agent (Maya)"),
-            "general":  (self.general_executor,  "General Agent"),
+            "general":  (self.general_executor,  "General Agent (Aria)"),
         }
 
         agent_executor, agent_label = executor_map.get(
-            agent_bucket, (self.general_executor, "General Agent")
+            agent_bucket, (self.general_executor, "General Agent (Aria)")
         )
+
+        yield {"type": "routing", "message": f"🎯 Routing to {agent_label}...", "agent_label": agent_label}
 
         logger.info("[ManagerAgent] Invoking %s", agent_label)
 
@@ -479,32 +499,34 @@ class ManagerAgent:
             )
             answer = response["messages"][-1].content
             logger.info("[ManagerAgent] %s responded (%d chars)", agent_label, len(answer))
-            return answer
+            yield {"type": "result", "content": answer, "agent_label": agent_label}
 
         except Exception as e:
             error_msg = str(e).lower()
             logger.error("[ManagerAgent] %s error: %s", agent_label, e)
 
             if "quota" in error_msg or "rate" in error_msg:
-                return "I'm temporarily rate-limited. Please wait a moment and try again."
-            if "recursion" in error_msg:
-                return (
+                content = "I'm temporarily rate-limited. Please wait a moment and try again."
+            elif "recursion" in error_msg:
+                content = (
                     "This question required too many reasoning steps to answer reliably. "
                     "Try breaking it into smaller, more specific questions."
                 )
-            if "column" in error_msg or "key" in error_msg or "attribute" in error_msg:
-                return (
+            elif "column" in error_msg or "key" in error_msg or "attribute" in error_msg:
+                content = (
                     "I ran into a data structure issue. "
                     "The dataset may not contain the required fields — try rephrasing."
                 )
+            else:
+                bucket_errors = {
+                    "sales":    "I ran into an issue while pulling sales data.",
+                    "product":  "I ran into an issue while analysing product data.",
+                    "customer": "I ran into an issue while looking up customer data.",
+                    "general":  "I ran into an unexpected error processing that question.",
+                }
+                content = (
+                    bucket_errors.get(agent_bucket, "An unexpected error occurred.")
+                    + " Please try rephrasing or breaking it into smaller parts."
+                )
 
-            bucket_errors = {
-                "sales":    "I ran into an issue while pulling sales data.",
-                "product":  "I ran into an issue while analysing product data.",
-                "customer": "I ran into an issue while looking up customer data.",
-                "general":  "I ran into an unexpected error processing that question.",
-            }
-            return (
-                bucket_errors.get(agent_bucket, "An unexpected error occurred.")
-                + " Please try rephrasing or breaking it into smaller parts."
-            )
+            yield {"type": "result", "content": content, "agent_label": agent_label}
