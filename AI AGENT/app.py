@@ -611,6 +611,123 @@ with tab_pred:
         _AGENT_VERSION, _csv_mtime()
     )
 
+    # ── Ask Rey — Predictive AI Chat ────────────────────────────────────────────
+    st.markdown('<div class="section-label">Ask Rey — Predictive AI Chat</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div style="color: #8b949e; font-size: 12px; margin-bottom: 14px; line-height: 1.6;">
+        Ask deeper questions: CLV for a specific customer, product demand trends, custom forecasts, churn lists.
+    </div>""", unsafe_allow_html=True)
+
+    # ── Prediction chat state ────────────────────────────────────────────────────
+    MAX_PRED_HISTORY = 50
+
+    if "pred_messages" not in st.session_state:
+        st.session_state.pred_messages = []
+        st.session_state.pred_messages.append({
+            "role": "assistant",
+            "agent": "Prediction Agent (Rey)",
+            "content": (
+                "👋 Hi, I'm **Rey** — your Predictive Analytics Specialist.\n\n"
+                "I can help you with:\n"
+                "- 📉 **Churn risk** — which customers are likely to leave\n"
+                "- 📈 **Revenue forecasts** — what the next months might look like\n"
+                "- 🚀 **High-growth products** — what's taking off\n"
+                "- 🐢 **Slow movers** — what's declining and should be reviewed\n"
+                "- 💰 **Customer CLV** — projected lifetime value per customer\n"
+                "- 🔄 **Repeat purchase probability** — how sticky your buyers are\n\n"
+                "What would you like to predict today?"
+            ),
+            "charts": [],
+        })
+
+    if len(st.session_state.pred_messages) > MAX_PRED_HISTORY:
+        st.session_state.pred_messages = st.session_state.pred_messages[-MAX_PRED_HISTORY:]
+
+    # ── Suggestion chips (shown until first user message) ────────────────────────
+    if not any(m["role"] == "user" for m in st.session_state.pred_messages):
+        pred_suggestions = [
+            "Who are our top at-risk customers?",
+            "Which products are declining in demand?",
+            "Forecast revenue for the next 6 months",
+            "What is the CLV of customer 17850?",
+            "Show product demand trend for WHITE HANGING HEART T-LIGHT HOLDER",
+            "What is the repeat purchase probability?",
+        ]
+        c1, c2, c3 = st.columns(3)
+        cols_cycle = [c1, c2, c3]
+        for i, s in enumerate(pred_suggestions):
+            if cols_cycle[i % 3].button(s, key=f"pred_sugg_{i}"):
+                st.session_state.pred_pending = s
+                st.rerun()
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Render helper ────────────────────────────────────────────────────────────
+    def _render_pred_msg(msg: dict) -> None:
+        agent_label = msg.get("agent", "Prediction Agent (Rey)")
+        with st.chat_message("assistant"):
+            st.caption(f"🔮 {agent_label}")
+            st.markdown(msg["content"])
+            for b64 in msg.get("charts", []):
+                img_bytes = base64.b64decode(b64)
+                st.image(img_bytes, width='stretch')
+
+    # ── Chat history ─────────────────────────────────────────────────────────────
+    for msg in st.session_state.pred_messages:
+        if msg["role"] == "user":
+            with st.chat_message("user"):
+                st.write(msg["content"])
+        else:
+            _render_pred_msg(msg)
+
+    # ── Request handler ───────────────────────────────────────────────────────────
+    def _process_pred_request(user_input: str) -> None:
+        history = st.session_state.pred_messages[:-1]
+        response = ""
+        agent_label = "Prediction Agent (Rey)"
+
+        with st.status("🔮 Rey is analysing your request...", expanded=True) as status_box:
+            for step in manager.handle_prediction_request(user_input, history=history):
+                if step["type"] == "status":
+                    status_box.update(label=step["message"])
+                elif step["type"] == "result":
+                    response = step["content"]
+                    agent_label = step.get("agent_label", agent_label)
+            status_box.update(
+                label="✅ Prediction Agent (Rey) responded",
+                state="complete",
+                expanded=False,
+            )
+
+        charts = manager.get_pending_charts()
+        st.session_state.pred_messages.append(
+            {"role": "assistant", "content": response, "agent": agent_label, "charts": charts}
+        )
+
+    # ── Handle suggestion click ───────────────────────────────────────────────────
+    if "pred_pending" in st.session_state:
+        user_input = st.session_state.pop("pred_pending")
+        st.session_state.pred_messages.append({"role": "user", "content": user_input})
+        _process_pred_request(user_input)
+        st.rerun()
+
+    # ── Chat input ────────────────────────────────────────────────────────────────
+    if prompt := st.chat_input("Ask Rey about forecasts, churn, CLV, product trends...", key="pred_input"):
+        st.session_state.pred_messages.append({"role": "user", "content": prompt})
+        _process_pred_request(prompt)
+        st.rerun()
+
+    # ── Clear button ──────────────────────────────────────────────────────────────
+    if st.session_state.pred_messages:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🗑  Clear conversation", key="clear_pred"):
+            st.session_state.pred_messages = []
+            st.rerun()
+
+    # ── Divider between chat and metrics dashboard ────────────────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<hr>", unsafe_allow_html=True)
+
     # ── Section header ───────────────────────────────────────────────────────────
     st.markdown('<div class="section-label">Live Prediction Metrics</div>', unsafe_allow_html=True)
 
@@ -866,117 +983,3 @@ with tab_pred:
         elif slow_data and "error" in slow_data[0]:
             st.info(slow_data[0]["error"], icon="ℹ️")
 
-    # ── Divider between dashboard and chat ───────────────────────────────────────
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown('<div class="section-label">Ask Rey — Predictive AI Chat</div>', unsafe_allow_html=True)
-    st.markdown("""
-    <div style="color: #8b949e; font-size: 12px; margin-bottom: 14px; line-height: 1.6;">
-        Ask deeper questions: CLV for a specific customer, product demand trends, custom forecasts, churn lists.
-    </div>""", unsafe_allow_html=True)
-
-    # ── Prediction chat state ────────────────────────────────────────────────────
-    MAX_PRED_HISTORY = 50
-
-    if "pred_messages" not in st.session_state:
-        st.session_state.pred_messages = []
-        st.session_state.pred_messages.append({
-            "role": "assistant",
-            "agent": "Prediction Agent (Rey)",
-            "content": (
-                "👋 Hi, I'm **Rey** — your Predictive Analytics Specialist.\n\n"
-                "I can help you with:\n"
-                "- 📉 **Churn risk** — which customers are likely to leave\n"
-                "- 📈 **Revenue forecasts** — what the next months might look like\n"
-                "- 🚀 **High-growth products** — what's taking off\n"
-                "- 🐢 **Slow movers** — what's declining and should be reviewed\n"
-                "- 💰 **Customer CLV** — projected lifetime value per customer\n"
-                "- 🔄 **Repeat purchase probability** — how sticky your buyers are\n\n"
-                "What would you like to predict today?"
-            ),
-            "charts": [],
-        })
-
-    if len(st.session_state.pred_messages) > MAX_PRED_HISTORY:
-        st.session_state.pred_messages = st.session_state.pred_messages[-MAX_PRED_HISTORY:]
-
-    # ── Suggestion chips (shown until first user message) ────────────────────────
-    if not any(m["role"] == "user" for m in st.session_state.pred_messages):
-        pred_suggestions = [
-            "Who are our top at-risk customers?",
-            "Which products are declining in demand?",
-            "Forecast revenue for the next 6 months",
-            "What is the CLV of customer 17850?",
-            "Show product demand trend for WHITE HANGING HEART T-LIGHT HOLDER",
-            "What is the repeat purchase probability?",
-        ]
-        c1, c2, c3 = st.columns(3)
-        cols_cycle = [c1, c2, c3]
-        for i, s in enumerate(pred_suggestions):
-            if cols_cycle[i % 3].button(s, key=f"pred_sugg_{i}"):
-                st.session_state.pred_pending = s
-                st.rerun()
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-    # ── Render helper ────────────────────────────────────────────────────────────
-    def _render_pred_msg(msg: dict) -> None:
-        agent_label = msg.get("agent", "Prediction Agent (Rey)")
-        with st.chat_message("assistant"):
-            st.caption(f"🔮 {agent_label}")
-            st.markdown(msg["content"])
-            for b64 in msg.get("charts", []):
-                img_bytes = base64.b64decode(b64)
-                st.image(img_bytes, width='stretch')
-
-    # ── Chat history ─────────────────────────────────────────────────────────────
-    for msg in st.session_state.pred_messages:
-        if msg["role"] == "user":
-            with st.chat_message("user"):
-                st.write(msg["content"])
-        else:
-            _render_pred_msg(msg)
-
-    # ── Request handler ───────────────────────────────────────────────────────────
-    def _process_pred_request(user_input: str) -> None:
-        history = st.session_state.pred_messages[:-1]
-        response = ""
-        agent_label = "Prediction Agent (Rey)"
-
-        with st.status("🔮 Rey is analysing your request...", expanded=True) as status_box:
-            for step in manager.handle_prediction_request(user_input, history=history):
-                if step["type"] == "status":
-                    status_box.update(label=step["message"])
-                elif step["type"] == "result":
-                    response = step["content"]
-                    agent_label = step.get("agent_label", agent_label)
-            status_box.update(
-                label="✅ Prediction Agent (Rey) responded",
-                state="complete",
-                expanded=False,
-            )
-
-        charts = manager.get_pending_charts()
-        st.session_state.pred_messages.append(
-            {"role": "assistant", "content": response, "agent": agent_label, "charts": charts}
-        )
-
-    # ── Handle suggestion click ───────────────────────────────────────────────────
-    if "pred_pending" in st.session_state:
-        user_input = st.session_state.pop("pred_pending")
-        st.session_state.pred_messages.append({"role": "user", "content": user_input})
-        _process_pred_request(user_input)
-        st.rerun()
-
-    # ── Chat input ────────────────────────────────────────────────────────────────
-    if prompt := st.chat_input("Ask Rey about forecasts, churn, CLV, product trends...", key="pred_input"):
-        st.session_state.pred_messages.append({"role": "user", "content": prompt})
-        _process_pred_request(prompt)
-        st.rerun()
-
-    # ── Clear button ──────────────────────────────────────────────────────────────
-    if st.session_state.pred_messages:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🗑  Clear conversation", key="clear_pred"):
-            st.session_state.pred_messages = []
-            st.rerun()
