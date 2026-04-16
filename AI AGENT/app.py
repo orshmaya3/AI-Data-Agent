@@ -1062,7 +1062,8 @@ elif st.session_state.page == "🔮 Prediction":
 
                     fcast_dict = forecast_data.get("forecast", {})
                     fcast_df = pd.DataFrame(
-                        [{"month": m, "revenue": float(v)} for m, v in fcast_dict.items()]
+                        [{"month": m, "revenue": float(v["predicted_gbp"] if isinstance(v, dict) else v)}
+                         for m, v in fcast_dict.items()]
                     ).sort_values("month")
 
                     bridge = hist_df.iloc[[-1]].copy()
