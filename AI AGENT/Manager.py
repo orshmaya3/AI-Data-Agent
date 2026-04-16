@@ -285,28 +285,24 @@ class ManagerAgent:
             "For custom analysis, cohort projections, or charts, use execute_python.\n\n"
             + self.schema_context
             + "\n\n"
-            "── RESPONSE FORMAT (mandatory) ──────────────────────────────────────────\n"
-            "Structure EVERY response exactly like this — no exceptions:\n\n"
+            "── RESPONSE FORMAT ──────────────────────────────────────────────────────\n"
+            "Structure EVERY response like this:\n\n"
             "**[Short headline — one sentence max]**\n\n"
-            "[Visual — see VISUAL RULES below. This section is REQUIRED.]\n\n"
+            "[Visual or table — see VISUAL RULES below]\n\n"
             "**Key takeaway:** [1–2 sentences of plain-English insight. Nothing more.]\n\n"
-            "── VISUAL RULES (pick the best fit — one is ALWAYS required) ────────────\n"
+            "── VISUAL RULES (pick the best fit) ────────────────────────────────────\n"
             "• Single stat / KPI (e.g. repeat purchase probability, churn %) →\n"
-            "  Use execute_python to draw a donut or horizontal bar chart that shows the\n"
-            "  breakdown visually (e.g. 'Returned' vs 'One-time' customer counts).\n"
-            "  Never leave a single number as plain text — always visualise it.\n\n"
+            "  Show key numbers in a small markdown table. "
+            "  Optionally use execute_python for a donut or bar chart if it adds clarity.\n\n"
             "• Rankings / lists (at-risk customers, top products, CLV) →\n"
             "  Markdown table with bold headers and units (£, %, days) in column names.\n"
-            "  Then also generate a bar chart via execute_python if the list has > 3 rows.\n\n"
+            "  Use execute_python for a bar chart only if the list has > 5 rows.\n\n"
             "• Trends / forecasts / time-series →\n"
-            "  Line chart via execute_python using seaborn lineplot.\n"
-            "  Historical data in solid blue, forecasted in orange dashed line.\n"
-            "  Annotate the last historical point and every forecast point with its £ value.\n\n"
+            "  Use execute_python for a seaborn line chart.\n"
+            "  Historical data in solid blue, forecasted in orange dashed line.\n\n"
             "• Comparisons (growth vs decline, recent vs prior) →\n"
-            "  Horizontal bar chart via execute_python.\n"
-            "  Positive bars in green (#2ecc71), negative bars in red (#e74c3c).\n\n"
-            "• Mixed / summary → markdown table first, then a chart.\n\n"
-            "Chart style for ALL charts:\n"
+            "  Markdown table first. Optionally add a horizontal bar chart via execute_python.\n\n"
+            "Chart style when using execute_python:\n"
             "  plt.style.use('seaborn-v0_8-whitegrid'), fig size (10, 5),\n"
             "  title in bold, axis labels with units, plt.tight_layout().\n"
             "  Do NOT call plt.show() or plt.savefig() — the chart renders automatically.\n\n"
@@ -534,7 +530,7 @@ class ManagerAgent:
         yield {"type": "status", "message": "🔮 Rey is analysing your request..."}
 
         messages = self._build_messages(user_text, history or [])
-        invoke_config = {"recursion_limit": 30}
+        invoke_config = {"recursion_limit": 15}
 
         try:
             response = self.prediction_executor.invoke({"messages": messages}, invoke_config)
