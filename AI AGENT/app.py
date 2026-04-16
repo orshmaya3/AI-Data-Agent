@@ -386,7 +386,7 @@ with tab_dash:
                 fillcolor="rgba(31,111,235,0.10)",
                 hovertemplate="<b>%{x}</b><br>£%{y:,.0f}<extra></extra>",
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
     with col2:
         top_countries = sales.get_top_countries_by_revenue(limit=5)
@@ -407,7 +407,7 @@ with tab_dash:
                 coloraxis_showscale=False,
             )
             fig2.update_traces(hovertemplate="<b>%{y}</b><br>£%{x:,.0f}<extra></extra>")
-            st.plotly_chart(fig2, use_container_width=True)
+            st.plotly_chart(fig2, width='stretch')
 
     # ── Charts row 2 ─────────────────────────────────────────────────────────────
     col3, col4 = st.columns([2, 3])
@@ -433,7 +433,7 @@ with tab_dash:
                 coloraxis_showscale=False,
             )
             fig3.update_traces(hovertemplate="<b>%{y}</b><br>£%{x:,.0f}<extra></extra>")
-            st.plotly_chart(fig3, use_container_width=True)
+            st.plotly_chart(fig3, width='stretch')
 
     with col4:
         hourly = sales.get_hourly_sales_distribution()
@@ -462,7 +462,7 @@ with tab_dash:
                 coloraxis_showscale=False,
             )
             fig4.update_traces(hovertemplate="<b>%{x}</b><br>£%{y:,.0f}<extra></extra>")
-            st.plotly_chart(fig4, use_container_width=True)
+            st.plotly_chart(fig4, width='stretch')
 
 
 # ════════════════════════════════════════════════════════
@@ -528,7 +528,7 @@ with tab_chat:
             st.markdown(msg["content"])
             for b64 in msg.get("charts", []):
                 img_bytes = base64.b64decode(b64)
-                st.image(img_bytes, use_container_width=True)
+                st.image(img_bytes, width='stretch')
 
     # ── Chat history ──────────────────────────────────────────────────────────────
     for msg in st.session_state.messages:
@@ -707,13 +707,24 @@ with tab_pred:
                     )
 
                 # Vertical divider between historical and forecast
+                # add_vline chokes on string/category axes (tries int+str arithmetic
+                # internally), so use add_shape + add_annotation instead.
                 last_hist_month = hist_df["month"].iloc[-1]
-                fig_fc.add_vline(
-                    x=last_hist_month,
-                    line_dash="dot", line_color="#484f58", line_width=1.5,
-                    annotation_text="Forecast →",
-                    annotation_position="top right",
-                    annotation_font=dict(size=10, color="#8b949e"),
+                fig_fc.add_shape(
+                    type="line",
+                    xref="x", yref="paper",
+                    x0=last_hist_month, x1=last_hist_month,
+                    y0=0, y1=1,
+                    line=dict(dash="dot", color="#484f58", width=1.5),
+                )
+                fig_fc.add_annotation(
+                    x=last_hist_month, y=1,
+                    xref="x", yref="paper",
+                    text="Forecast →",
+                    showarrow=False,
+                    xanchor="left",
+                    yanchor="top",
+                    font=dict(size=10, color="#8b949e"),
                 )
 
                 slope = forecast_data.get("monthly_slope_gbp", 0)
@@ -736,7 +747,7 @@ with tab_pred:
                     yaxis=dict(gridcolor="#21262d", tickprefix="£", tickfont=dict(size=10), title=""),
                     title=dict(text=f"Last 12 months + 3-month linear forecast  ·  {trend_label}", font=dict(size=11, color="#8b949e")),
                 )
-                st.plotly_chart(fig_fc, use_container_width=True)
+                st.plotly_chart(fig_fc, width='stretch')
 
                 if forecast_data.get("outlier_warning"):
                     st.warning(forecast_data["outlier_warning"], icon="⚠️")
@@ -780,7 +791,7 @@ with tab_pred:
                     font=dict(size=11, color="#8b949e"),
                 ),
             )
-            st.plotly_chart(fig_donut, use_container_width=True)
+            st.plotly_chart(fig_donut, width='stretch')
         else:
             st.info(churn_data.get("error", "Churn data unavailable."), icon="ℹ️")
 
@@ -818,7 +829,7 @@ with tab_pred:
                 xaxis=dict(gridcolor="#21262d", ticksuffix="%", tickfont=dict(size=10), title=""),
                 yaxis=dict(gridcolor="#21262d", tickfont=dict(size=9), title=""),
             )
-            st.plotly_chart(fig_growth, use_container_width=True)
+            st.plotly_chart(fig_growth, width='stretch')
         elif growth_data and "error" in growth_data[0]:
             st.info(growth_data[0]["error"], icon="ℹ️")
 
@@ -853,7 +864,7 @@ with tab_pred:
                 xaxis=dict(gridcolor="#21262d", ticksuffix="%", tickfont=dict(size=10), title=""),
                 yaxis=dict(gridcolor="#21262d", tickfont=dict(size=9), title=""),
             )
-            st.plotly_chart(fig_slow, use_container_width=True)
+            st.plotly_chart(fig_slow, width='stretch')
         elif slow_data and "error" in slow_data[0]:
             st.info(slow_data[0]["error"], icon="ℹ️")
 
@@ -918,7 +929,7 @@ with tab_pred:
             st.markdown(msg["content"])
             for b64 in msg.get("charts", []):
                 img_bytes = base64.b64decode(b64)
-                st.image(img_bytes, use_container_width=True)
+                st.image(img_bytes, width='stretch')
 
     # ── Chat history ─────────────────────────────────────────────────────────────
     for msg in st.session_state.pred_messages:
