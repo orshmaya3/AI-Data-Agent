@@ -539,8 +539,8 @@ elif st.session_state.page == "💬 AI Chat":
                 "- 💼 **Alex** — Sales Analyst *(revenue, orders, trends)*\n"
                 "- 📦 **Dana** — Product Analyst *(product performance, rankings, lifecycle)*\n"
                 "- 👤 **Maya** — Customer Analyst *(profiles, loyalty, segmentation)*\n"
-                "- 🔮 **Rey** — Prediction Analyst *(forecasts, churn risk, CLV, demand trends)*\n"
                 "- 🧠 **Aria** — General Analyst *(cross-domain questions & custom code)*\n\n"
+                "For predictions, forecasts, and churn analysis — visit the **🔮 Prediction** page to chat with Rey directly.\n\n"
                 "What would you like to analyse today?"
             ),
             "charts": [],
