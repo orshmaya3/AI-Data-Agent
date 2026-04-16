@@ -17,14 +17,99 @@ st.set_page_config(
 # ── Custom CSS ──────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+    /* ── Hide Streamlit chrome ── */
+    #MainMenu { visibility: hidden; }
+    header    { visibility: hidden; }
+    footer    { visibility: hidden; }
+
     /* ── Base ── */
     .stApp { background-color: #0d1117; }
-    .block-container { padding-top: 1.5rem !important; }
+    .block-container {
+        padding-top: 0.5rem !important;
+        padding-bottom: 1rem !important;
+        max-width: 100% !important;
+    }
 
     /* ── Sidebar ── */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #0d1117 0%, #161b22 100%);
         border-right: 1px solid #21262d;
+    }
+
+    /* ── Split-pane: chat column ── */
+    div[data-testid="stHorizontalBlock"]
+      > div[data-testid="stColumn"]:first-child
+      > div[data-testid="stVerticalBlock"] {
+        background: #0d1117;
+        border-right: 1px solid #21262d;
+        min-height: calc(100vh - 60px);
+        padding-right: 8px !important;
+    }
+
+    /* ── Split-pane: canvas column ── */
+    div[data-testid="stHorizontalBlock"]
+      > div[data-testid="stColumn"]:last-child
+      > div[data-testid="stVerticalBlock"] {
+        background: #0d1117;
+        min-height: calc(100vh - 60px);
+        padding-left: 12px !important;
+    }
+
+    /* ── Artifact canvas card ── */
+    .canvas-card {
+        background: #161b22;
+        border: 1px solid #21262d;
+        border-radius: 14px;
+        padding: 20px 24px;
+        min-height: calc(100vh - 120px);
+        position: sticky;
+        top: 0.5rem;
+    }
+    .canvas-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #21262d;
+    }
+    .canvas-title {
+        color: #f0f6fc;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: -0.2px;
+    }
+    .canvas-badge {
+        background: rgba(31,111,235,0.15);
+        border: 1px solid rgba(31,111,235,0.3);
+        color: #79c0ff;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        border-radius: 20px;
+        padding: 3px 10px;
+    }
+    .canvas-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: calc(100vh - 250px);
+        color: #484f58;
+        text-align: center;
+        gap: 12px;
+    }
+    .canvas-empty-icon { font-size: 48px; opacity: 0.4; }
+    .canvas-empty-text { font-size: 13px; line-height: 1.6; max-width: 260px; }
+
+    /* ── Chat pane scroll container ── */
+    .chat-scroll {
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+        padding-right: 4px;
+        scrollbar-width: thin;
+        scrollbar-color: #30363d transparent;
     }
 
     /* ── Tabs ── */
@@ -97,13 +182,34 @@ st.markdown("""
     .agent-name { color: #e6edf3; font-size: 13px; font-weight: 500; }
     .agent-role { color: #8b949e; font-size: 11px; }
 
-    /* ── Header ── */
+    /* ── Compact page header ── */
+    .page-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0 14px 0;
+        border-bottom: 1px solid #21262d;
+        margin-bottom: 16px;
+    }
+    .page-header-title {
+        color: #f0f6fc;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+    }
+    .page-header-sub {
+        color: #8b949e;
+        font-size: 11px;
+        margin-top: 1px;
+    }
+
+    /* ── Main header (dashboard only) ── */
     .main-header {
         background: linear-gradient(135deg, #0d1117 0%, #161b22 60%, #1c2128 100%);
         border: 1px solid #30363d;
         border-radius: 16px;
-        padding: 24px 32px;
-        margin-bottom: 24px;
+        padding: 20px 28px;
+        margin-bottom: 20px;
         position: relative;
         overflow: hidden;
     }
@@ -140,7 +246,6 @@ st.markdown("""
         padding: 14px 18px !important;
         margin-bottom: 10px !important;
     }
-    /* Force all text inside chat bubbles to be fully visible */
     [data-testid="stChatMessage"] p,
     [data-testid="stChatMessage"] li,
     [data-testid="stChatMessage"] span,
@@ -150,17 +255,14 @@ st.markdown("""
     [data-testid="stChatMessage"] code {
         color: #e6edf3 !important;
     }
-    /* User bubble: distinct blue tint */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
         background: #1a2d4a !important;
         border-color: #1f6feb !important;
     }
-    /* AI bubble: neutral dark card */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
         background: #1c2128 !important;
         border-color: #30363d !important;
     }
-    /* Caption / agent badge */
     [data-testid="stChatMessage"] .stCaption,
     [data-testid="stChatMessage"] [data-testid="stCaptionContainer"] p {
         color: #3fb950 !important;
@@ -255,12 +357,26 @@ st.markdown("""
     [data-testid="stExpander"] [data-testid="stExpanderDetails"] {
         border-top: 1px solid #21262d !important; padding-top: 12px !important;
     }
+
+    /* ── Dataframe inside canvas ── */
+    [data-testid="stDataFrame"] {
+        border: 1px solid #21262d !important;
+        border-radius: 10px !important;
+        overflow: hidden;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # ── Page navigation state ─────────────────────────────────────────────────────
 if "page" not in st.session_state:
     st.session_state.page = "📊 Dashboard"
+
+# ── Artifact canvas state ──────────────────────────────────────────────────────
+if "current_artifact" not in st.session_state:
+    st.session_state.current_artifact = None
+
+if "pred_artifact" not in st.session_state:
+    st.session_state.pred_artifact = None
 
 # ── Shared chart style ──────────────────────────────────────────────────────────
 CHART_BASE = dict(
@@ -276,12 +392,9 @@ CHART_BASE = dict(
 
 
 # ── Load agents ─────────────────────────────────────────────────────────────────
-# Bump this string whenever Manager.py / analyst files change — forces Streamlit
-# to discard the cached ManagerAgent and rebuild from the current code.
-_AGENT_VERSION = "v18"  # bump when Manager.py / analyst files change
+_AGENT_VERSION = "v18"
 
 def _csv_mtime() -> float:
-    """Return the modification time of the CSV so the cache key tracks file changes."""
     p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mixed_online_retail.csv")
     try:
         return os.path.getmtime(p)
@@ -293,8 +406,6 @@ def load_agents(_version: str = _AGENT_VERSION, _mtime: float = 0.0):
     import importlib
     import sys
 
-    # Force-reload all agent modules so Streamlit's soft-reload (which keeps
-    # sys.modules alive between script reruns) never serves stale bytecode.
     for mod_name in ("Manager", "Data_Agent", "Sales_Analyst", "Product_Analyst",
                      "Customer_Analyst", "Prediction_Analyst", "Code_Executor"):
         if mod_name in sys.modules:
@@ -377,25 +488,95 @@ with st.sidebar:
     </div>""", unsafe_allow_html=True)
 
 
-# ── Header ───────────────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="main-header">
-    <div style="position: relative; z-index: 1;">
-        <div style="color: #f0f6fc; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 4px;">
-            AI Data Department
+# ════════════════════════════════════════════════════════
+# CANVAS RENDER HELPER
+# ════════════════════════════════════════════════════════
+
+def _render_canvas(artifact: dict | None, empty_hint: str = "Ask a question to generate an artifact") -> None:
+    """Render the right-hand Artifact Canvas."""
+
+    # ── Empty state ──────────────────────────────────────────────────────────
+    if artifact is None:
+        st.markdown(f"""
+        <div class="canvas-card">
+            <div class="canvas-header">
+                <span class="canvas-title">Artifact Canvas</span>
+                <span class="canvas-badge">READY</span>
+            </div>
+            <div class="canvas-empty">
+                <div class="canvas-empty-icon">✦</div>
+                <div class="canvas-empty-text">{empty_hint}</div>
+            </div>
         </div>
-        <div style="color: #8b949e; font-size: 12px; letter-spacing: 0.2px;">
-            Real-time retail analytics powered by autonomous AI agents
+        """, unsafe_allow_html=True)
+        return
+
+    agent  = artifact.get("agent", "AI Analyst")
+    query  = artifact.get("query", "")
+    charts = artifact.get("charts", [])
+    content = artifact.get("content", "")
+
+    # ── Canvas header ─────────────────────────────────────────────────────────
+    st.markdown(f"""
+    <div style="
+        background: #161b22;
+        border: 1px solid #21262d;
+        border-radius: 14px;
+        padding: 20px 24px 0 24px;
+        min-height: calc(100vh - 120px);
+        position: sticky;
+        top: 0.5rem;
+    ">
+        <div class="canvas-header">
+            <div>
+                <div class="canvas-title">🤖 {agent}</div>
+                <div style="color: #484f58; font-size: 11px; margin-top: 3px; font-style: italic;">
+                    "{query[:80]}{'…' if len(query) > 80 else ''}"
+                </div>
+            </div>
+            <span class="canvas-badge">ARTIFACT</span>
         </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+
+    # ── Charts (rendered as interactive Plotly or image) ─────────────────────
+    if charts:
+        for b64 in charts:
+            img_bytes = base64.b64decode(b64)
+            st.image(img_bytes, use_container_width=True)
+
+    # ── Text / markdown response ──────────────────────────────────────────────
+    if content:
+        st.markdown(f"""
+        <div style="
+            color: #e6edf3;
+            font-size: 14px;
+            line-height: 1.7;
+            padding: 12px 0 20px 0;
+        ">
+        """, unsafe_allow_html=True)
+        st.markdown(content)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ════════════════════════════════════════════════════════
 # PAGE 1 — DASHBOARD
 # ════════════════════════════════════════════════════════
 if st.session_state.page == "📊 Dashboard":
+
+    st.markdown("""
+    <div class="main-header">
+        <div style="position: relative; z-index: 1;">
+            <div style="color: #f0f6fc; font-size: 20px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 3px;">
+                📊 Dashboard
+            </div>
+            <div style="color: #8b949e; font-size: 12px; letter-spacing: 0.2px;">
+                Real-time retail analytics powered by autonomous AI agents
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # ── KPI row ──────────────────────────────────────────────────────────────────
     total_rev   = sales.get_total_revenue()
@@ -442,7 +623,7 @@ if st.session_state.page == "📊 Dashboard":
                 fillcolor="rgba(31,111,235,0.10)",
                 hovertemplate="<b>%{x}</b><br>£%{y:,.0f}<extra></extra>",
             )
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, use_container_width=True)
 
     with dash_t2:
         top_countries = sales.get_top_countries_by_revenue(limit=5)
@@ -464,7 +645,7 @@ if st.session_state.page == "📊 Dashboard":
                 coloraxis_showscale=False,
             )
             fig2.update_traces(hovertemplate="<b>%{y}</b><br>£%{x:,.0f}<extra></extra>")
-            st.plotly_chart(fig2, width='stretch')
+            st.plotly_chart(fig2, use_container_width=True)
 
     with dash_t3:
         top_products = sales.get_top_products_by_revenue(limit=8)
@@ -487,7 +668,7 @@ if st.session_state.page == "📊 Dashboard":
                 coloraxis_showscale=False,
             )
             fig3.update_traces(hovertemplate="<b>%{y}</b><br>£%{x:,.0f}<extra></extra>")
-            st.plotly_chart(fig3, width='stretch')
+            st.plotly_chart(fig3, use_container_width=True)
 
     with dash_t4:
         hourly = sales.get_hourly_sales_distribution()
@@ -516,11 +697,11 @@ if st.session_state.page == "📊 Dashboard":
                 coloraxis_showscale=False,
             )
             fig4.update_traces(hovertemplate="<b>%{x}</b><br>£%{y:,.0f}<extra></extra>")
-            st.plotly_chart(fig4, width='stretch')
+            st.plotly_chart(fig4, use_container_width=True)
 
 
 # ════════════════════════════════════════════════════════
-# PAGE 2 — AI CHAT
+# PAGE 2 — AI CHAT  (split-pane)
 # ════════════════════════════════════════════════════════
 elif st.session_state.page == "💬 AI Chat":
 
@@ -528,7 +709,6 @@ elif st.session_state.page == "💬 AI Chat":
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
-        # Auto-greeting injected once when the chat is first opened
         st.session_state.messages.append({
             "role": "assistant",
             "agent": "Manager Agent",
@@ -540,65 +720,27 @@ elif st.session_state.page == "💬 AI Chat":
                 "- 📦 **Dana** — Product Analyst *(product performance, rankings, lifecycle)*\n"
                 "- 👤 **Maya** — Customer Analyst *(profiles, loyalty, segmentation)*\n"
                 "- 🧠 **Aria** — General Analyst *(cross-domain questions & custom code)*\n\n"
-                "For predictions, forecasts, and churn analysis — visit the **🔮 Prediction** page to chat with Rey directly.\n\n"
+                "For predictions, forecasts, and churn analysis — visit the **🔮 Prediction** page.\n\n"
                 "What would you like to analyse today?"
             ),
             "charts": [],
         })
 
-    # Trim history to prevent unbounded memory growth in long sessions
     if len(st.session_state.messages) > MAX_HISTORY:
         st.session_state.messages = st.session_state.messages[-MAX_HISTORY:]
 
-    # ── Suggestion chips (shown until the first user message) ────────────────────
-    if not any(m["role"] == "user" for m in st.session_state.messages):
-        st.markdown("""
-        <div style="color: #8b949e; font-size: 13px; margin-bottom: 14px; line-height: 1.6;">
-            Ask your AI analyst team anything about your data. Try one of these:
-        </div>""", unsafe_allow_html=True)
-
-        suggestions = [
-            "Who is my top customer?",
-            "Top 5 products by revenue",
-            "Show monthly revenue trend",
-            "What is the refund rate?",
-            "Which country earns the most?",
-            "Weekend vs weekday sales",
-        ]
-        c1, c2, c3 = st.columns(3)
-        cols_cycle = [c1, c2, c3]
-        for i, s in enumerate(suggestions):
-            if cols_cycle[i % 3].button(s, key=f"sugg_{i}"):
-                st.session_state.pending_input = s
-                st.rerun()
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-    # ── Helper: render one assistant message (text + any saved charts) ─────────
+    # ── Helper: render one assistant message (text only — charts go to canvas) ─
     def _render_assistant_msg(msg: dict) -> None:
         agent_label = msg.get("agent", "AI Analyst")
         with st.chat_message("assistant"):
             st.caption(f"🤖 {agent_label}")
             st.markdown(msg["content"])
-            for b64 in msg.get("charts", []):
-                img_bytes = base64.b64decode(b64)
-                st.image(img_bytes, width='stretch')
 
-    # ── Chat history ──────────────────────────────────────────────────────────────
-    for msg in st.session_state.messages:
-        if msg["role"] == "user":
-            with st.chat_message("user"):
-                st.write(msg["content"])
-        else:
-            _render_assistant_msg(msg)
-
-    # ── Shared helper: run a request and show live routing steps ────────────────
+    # ── Shared helper: run a request and push result to canvas ──────────────────
     def _process_request(user_input: str) -> None:
-        """Consume the handle_request generator, display routing steps via st.status,
-        then persist the assistant reply to session_state."""
         response = ""
         agent_label = "AI Analyst"
-        history = st.session_state.messages[:-1]  # exclude the just-appended user msg
+        history = st.session_state.messages[:-1]
 
         with st.status("🧠 Manager Agent is analyzing your request...", expanded=False) as status_box:
             for step in manager.handle_request(user_input, history=history):
@@ -621,39 +763,93 @@ elif st.session_state.page == "💬 AI Chat":
         st.session_state.messages.append(
             {"role": "assistant", "content": response, "agent": agent_label, "charts": charts}
         )
+        # Push to Artifact Canvas
+        st.session_state.current_artifact = {
+            "agent":   agent_label,
+            "query":   user_input,
+            "content": response,
+            "charts":  charts,
+        }
 
-    # ── Handle suggestion click ───────────────────────────────────────────────────
-    if "pending_input" in st.session_state:
-        user_input = st.session_state.pop("pending_input")
-        st.session_state.messages.append({"role": "user", "content": user_input})
-        _process_request(user_input)
-        st.rerun()
+    # ── Split-pane layout ─────────────────────────────────────────────────────
+    col_chat, col_canvas = st.columns([1, 2.5], gap="small")
 
-    # ── Chat input ────────────────────────────────────────────────────────────────
+    with col_chat:
+        st.markdown("""
+        <div class="page-header">
+            <div>
+                <div class="page-header-title">💬 AI Chat</div>
+                <div class="page-header-sub">Ask your analyst team anything</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── Suggestion chips ──────────────────────────────────────────────────
+        if not any(m["role"] == "user" for m in st.session_state.messages):
+            st.markdown("""
+            <div style="color: #8b949e; font-size: 12px; margin-bottom: 10px; line-height: 1.6;">
+                Try a suggestion:
+            </div>""", unsafe_allow_html=True)
+            suggestions = [
+                "Who is my top customer?",
+                "Top 5 products by revenue",
+                "Show monthly revenue trend",
+                "What is the refund rate?",
+                "Which country earns the most?",
+                "Weekend vs weekday sales",
+            ]
+            c1, c2 = st.columns(2)
+            cols_cycle = [c1, c2]
+            for i, s in enumerate(suggestions):
+                if cols_cycle[i % 2].button(s, key=f"sugg_{i}"):
+                    st.session_state.pending_input = s
+                    st.rerun()
+            st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Chat history ──────────────────────────────────────────────────────
+        for msg in st.session_state.messages:
+            if msg["role"] == "user":
+                with st.chat_message("user"):
+                    st.write(msg["content"])
+            else:
+                _render_assistant_msg(msg)
+
+        # ── Handle suggestion click ───────────────────────────────────────────
+        if "pending_input" in st.session_state:
+            user_input = st.session_state.pop("pending_input")
+            st.session_state.messages.append({"role": "user", "content": user_input})
+            _process_request(user_input)
+            st.rerun()
+
+        # ── Clear button ──────────────────────────────────────────────────────
+        if len(st.session_state.messages) > 1:
+            if st.button("🗑  Clear conversation", key="clear_chat"):
+                st.session_state.messages = []
+                st.session_state.current_artifact = None
+                st.rerun()
+
+    # ── Chat input is page-level so it sticks to the bottom ───────────────────
     if prompt := st.chat_input("Ask about your sales, products, customers, or request custom analysis..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         _process_request(prompt)
         st.rerun()
 
-    # ── Clear button ──────────────────────────────────────────────────────────────
-    if st.session_state.messages:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🗑  Clear conversation", key="clear_chat"):
-            st.session_state.messages = []
-            st.rerun()
+    with col_canvas:
+        _render_canvas(
+            st.session_state.current_artifact,
+            empty_hint="Ask your analyst team a question.<br><br>Charts and detailed outputs will appear here as an interactive artifact.",
+        )
 
 
 # ════════════════════════════════════════════════════════
-# PAGE 3 — PREDICTION AGENT (Rey)
+# PAGE 3 — PREDICTION AGENT (Rey)  (split-pane chat)
 # ════════════════════════════════════════════════════════
 elif st.session_state.page == "🔮 Prediction":
 
-    # ── Pre-compute all prediction data once per session ─────────────────────────
     pa = manager.prediction_analyst
 
     @st.cache_data(show_spinner=False)
     def _pred_data(_version: str, _mtime: float):
-        """Cached computation of all prediction dashboard data including ML models."""
         churn     = pa.get_churn_risk_summary(days_inactive=90)
         repeat    = pa.get_repeat_purchase_probability()
         forecast  = pa.get_revenue_forecast(horizon_months=3)
@@ -669,16 +865,11 @@ elif st.session_state.page == "🔮 Prediction":
 
     pred_t1, pred_t2, pred_t3 = st.tabs(["💬 Ask Rey", "📊 Live Metrics", "🤖 Live ML Models"])
 
+    # ════════════════════════
+    # TAB 1 — Ask Rey (split-pane)
+    # ════════════════════════
     with pred_t1:
 
-        # ── Ask Rey — Predictive AI Chat ────────────────────────────────────────
-        st.markdown('<div class="section-label">Ask Rey — Predictive AI Chat</div>', unsafe_allow_html=True)
-        st.markdown("""
-        <div style="color: #8b949e; font-size: 12px; margin-bottom: 14px; line-height: 1.6;">
-            Ask deeper questions: CLV for a specific customer, product demand trends, custom forecasts, churn lists.
-        </div>""", unsafe_allow_html=True)
-
-        # ── Prediction chat state ────────────────────────────────────────────────
         MAX_PRED_HISTORY = 50
 
         if "pred_messages" not in st.session_state:
@@ -703,44 +894,12 @@ elif st.session_state.page == "🔮 Prediction":
         if len(st.session_state.pred_messages) > MAX_PRED_HISTORY:
             st.session_state.pred_messages = st.session_state.pred_messages[-MAX_PRED_HISTORY:]
 
-        # ── Suggestion chips (shown until first user message) ────────────────────
-        if not any(m["role"] == "user" for m in st.session_state.pred_messages):
-            pred_suggestions = [
-                "Who are our top at-risk customers?",
-                "Which products are declining in demand?",
-                "Forecast revenue for the next 6 months",
-                "What is the CLV of customer 17850?",
-                "Show product demand trend for WHITE HANGING HEART T-LIGHT HOLDER",
-                "What is the repeat purchase probability?",
-            ]
-            c1, c2, c3 = st.columns(3)
-            cols_cycle = [c1, c2, c3]
-            for i, s in enumerate(pred_suggestions):
-                if cols_cycle[i % 3].button(s, key=f"pred_sugg_{i}"):
-                    st.session_state.pred_pending = s
-                    st.rerun()
-
-            st.markdown("<br>", unsafe_allow_html=True)
-
-        # ── Render helper ────────────────────────────────────────────────────────
         def _render_pred_msg(msg: dict) -> None:
             agent_label = msg.get("agent", "Prediction Agent (Rey)")
             with st.chat_message("assistant"):
                 st.caption(f"🔮 {agent_label}")
                 st.markdown(msg["content"])
-                for b64 in msg.get("charts", []):
-                    img_bytes = base64.b64decode(b64)
-                    st.image(img_bytes, width='stretch')
 
-        # ── Chat history ─────────────────────────────────────────────────────────
-        for msg in st.session_state.pred_messages:
-            if msg["role"] == "user":
-                with st.chat_message("user"):
-                    st.write(msg["content"])
-            else:
-                _render_pred_msg(msg)
-
-        # ── Request handler ───────────────────────────────────────────────────────
         def _process_pred_request(user_input: str) -> None:
             history = st.session_state.pred_messages[:-1]
             response = ""
@@ -763,30 +922,83 @@ elif st.session_state.page == "🔮 Prediction":
             st.session_state.pred_messages.append(
                 {"role": "assistant", "content": response, "agent": agent_label, "charts": charts}
             )
+            st.session_state.pred_artifact = {
+                "agent":   agent_label,
+                "query":   user_input,
+                "content": response,
+                "charts":  charts,
+            }
 
-        # ── Handle suggestion click ───────────────────────────────────────────────
-        if "pred_pending" in st.session_state:
-            user_input = st.session_state.pop("pred_pending")
-            st.session_state.pred_messages.append({"role": "user", "content": user_input})
-            _process_pred_request(user_input)
-            st.rerun()
+        # ── Split-pane layout ─────────────────────────────────────────────────
+        col_pchat, col_pcanvas = st.columns([1, 2.5], gap="small")
 
-        # ── Chat input ────────────────────────────────────────────────────────────
+        with col_pchat:
+            st.markdown("""
+            <div class="page-header">
+                <div>
+                    <div class="page-header-title">🔮 Ask Rey</div>
+                    <div class="page-header-sub">Predictive AI Chat</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # ── Suggestion chips ──────────────────────────────────────────────
+            if not any(m["role"] == "user" for m in st.session_state.pred_messages):
+                pred_suggestions = [
+                    "Who are our top at-risk customers?",
+                    "Which products are declining?",
+                    "Forecast next 6 months",
+                    "CLV of customer 17850",
+                    "Repeat purchase probability",
+                    "High-growth products",
+                ]
+                c1, c2 = st.columns(2)
+                cols_cycle = [c1, c2]
+                for i, s in enumerate(pred_suggestions):
+                    if cols_cycle[i % 2].button(s, key=f"pred_sugg_{i}"):
+                        st.session_state.pred_pending = s
+                        st.rerun()
+                st.markdown("<br>", unsafe_allow_html=True)
+
+            # ── Chat history ──────────────────────────────────────────────────
+            for msg in st.session_state.pred_messages:
+                if msg["role"] == "user":
+                    with st.chat_message("user"):
+                        st.write(msg["content"])
+                else:
+                    _render_pred_msg(msg)
+
+            # ── Handle suggestion click ───────────────────────────────────────
+            if "pred_pending" in st.session_state:
+                user_input = st.session_state.pop("pred_pending")
+                st.session_state.pred_messages.append({"role": "user", "content": user_input})
+                _process_pred_request(user_input)
+                st.rerun()
+
+            # ── Clear button ──────────────────────────────────────────────────
+            if len(st.session_state.pred_messages) > 1:
+                if st.button("🗑  Clear conversation", key="clear_pred"):
+                    st.session_state.pred_messages = []
+                    st.session_state.pred_artifact = None
+                    st.rerun()
+
+        # ── Chat input (page-level, sticks to bottom) ─────────────────────────
         if prompt := st.chat_input("Ask Rey about forecasts, churn, CLV, product trends...", key="pred_input"):
             st.session_state.pred_messages.append({"role": "user", "content": prompt})
             _process_pred_request(prompt)
             st.rerun()
 
-        # ── Clear button ──────────────────────────────────────────────────────────
-        if st.session_state.pred_messages:
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("🗑  Clear conversation", key="clear_pred"):
-                st.session_state.pred_messages = []
-                st.rerun()
+        with col_pcanvas:
+            _render_canvas(
+                st.session_state.pred_artifact,
+                empty_hint="Ask Rey a predictive question.<br><br>Forecasts, churn scores, and CLV outputs will appear here as an interactive artifact.",
+            )
 
+    # ════════════════════════
+    # TAB 2 — Live Metrics
+    # ════════════════════════
     with pred_t2:
 
-        # ── KPI row ──────────────────────────────────────────────────────────────
         churn_pct    = churn_data.get("churn_risk_pct", 0.0) if "error" not in churn_data else None
         at_risk_n    = churn_data.get("at_risk_customers", 0)  if "error" not in churn_data else None
         healthy_n    = churn_data.get("healthy_customers", 0)  if "error" not in churn_data else None
@@ -818,34 +1030,27 @@ elif st.session_state.page == "🔮 Prediction":
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # ── Charts row 1: Revenue Forecast + Churn Donut ─────────────────────────
         col_a, col_b = st.columns([3, 2])
 
         with col_a:
             st.markdown('<div class="chart-title">Revenue Forecast</div>', unsafe_allow_html=True)
             if "error" not in forecast_data:
-                # Historical monthly revenue (all months)
                 hist_raw = sales.get_monthly_revenue()
                 if isinstance(hist_raw, dict) and "error" not in hist_raw:
                     hist_df = (
                         pd.DataFrame(list(hist_raw.items()), columns=["month", "revenue"])
                         .sort_values("month")
                     )
-                    # Keep last 12 months for readability
                     hist_df = hist_df.tail(12).copy()
 
-                    # Build forecast rows
                     fcast_dict = forecast_data.get("forecast", {})
                     fcast_df = pd.DataFrame(
-                        [{"month": m, "revenue": v} for m, v in fcast_dict.items()]
+                        [{"month": m, "revenue": float(v)} for m, v in fcast_dict.items()]
                     ).sort_values("month")
 
-                    # Bridge point: duplicate last historical point into forecast series
                     bridge = hist_df.iloc[[-1]].copy()
 
                     fig_fc = go.Figure()
-
-                    # Historical area trace
                     fig_fc.add_trace(go.Scatter(
                         x=hist_df["month"], y=hist_df["revenue"],
                         mode="lines",
@@ -856,7 +1061,6 @@ elif st.session_state.page == "🔮 Prediction":
                         hovertemplate="<b>%{x}</b><br>£%{y:,.0f}<extra>Historical</extra>",
                     ))
 
-                    # Forecast dashed trace (bridge → forecast months)
                     fcast_x = pd.concat([bridge["month"], fcast_df["month"]])
                     fcast_y = pd.concat([bridge["revenue"], fcast_df["revenue"]])
                     fig_fc.add_trace(go.Scatter(
@@ -868,7 +1072,6 @@ elif st.session_state.page == "🔮 Prediction":
                         hovertemplate="<b>%{x}</b><br>£%{y:,.0f}<extra>Forecast</extra>",
                     ))
 
-                    # Annotate each forecast point with its value
                     for _, row in fcast_df.iterrows():
                         fig_fc.add_annotation(
                             x=row["month"], y=row["revenue"],
@@ -878,9 +1081,6 @@ elif st.session_state.page == "🔮 Prediction":
                             font=dict(size=10, color="#c9d1d9"),
                         )
 
-                    # Vertical divider between historical and forecast
-                    # add_vline chokes on string/category axes (tries int+str arithmetic
-                    # internally), so use add_shape + add_annotation instead.
                     last_hist_month = hist_df["month"].iloc[-1]
                     fig_fc.add_shape(
                         type="line",
@@ -918,7 +1118,7 @@ elif st.session_state.page == "🔮 Prediction":
                         yaxis=dict(gridcolor="#21262d", tickprefix="£", tickfont=dict(size=10), title=""),
                         title=dict(text=f"Last 12 months + 3-month linear forecast  ·  {trend_label}", font=dict(size=11, color="#8b949e")),
                     )
-                    st.plotly_chart(fig_fc, width='stretch')
+                    st.plotly_chart(fig_fc, use_container_width=True)
 
                     if forecast_data.get("outlier_warning"):
                         st.warning(forecast_data["outlier_warning"], icon="⚠️")
@@ -961,11 +1161,10 @@ elif st.session_state.page == "🔮 Prediction":
                         font=dict(size=11, color="#8b949e"),
                     ),
                 )
-                st.plotly_chart(fig_donut, width='stretch')
+                st.plotly_chart(fig_donut, use_container_width=True)
             else:
                 st.info(churn_data.get("error", "Churn data unavailable."), icon="ℹ️")
 
-        # ── Charts row 2: High-Growth + Slow Movers ───────────────────────────────
         col_c, col_d = st.columns(2)
 
         with col_c:
@@ -999,7 +1198,7 @@ elif st.session_state.page == "🔮 Prediction":
                     xaxis=dict(gridcolor="#21262d", ticksuffix="%", tickfont=dict(size=10), title=""),
                     yaxis=dict(gridcolor="#21262d", tickfont=dict(size=9), title=""),
                 )
-                st.plotly_chart(fig_growth, width='stretch')
+                st.plotly_chart(fig_growth, use_container_width=True)
             elif growth_data and "error" in growth_data[0]:
                 st.info(growth_data[0]["error"], icon="ℹ️")
 
@@ -1034,13 +1233,15 @@ elif st.session_state.page == "🔮 Prediction":
                     xaxis=dict(gridcolor="#21262d", ticksuffix="%", tickfont=dict(size=10), title=""),
                     yaxis=dict(gridcolor="#21262d", tickfont=dict(size=9), title=""),
                 )
-                st.plotly_chart(fig_slow, width='stretch')
+                st.plotly_chart(fig_slow, use_container_width=True)
             elif slow_data and "error" in slow_data[0]:
                 st.info(slow_data[0]["error"], icon="ℹ️")
 
+    # ════════════════════════
+    # TAB 3 — Live ML Models
+    # ════════════════════════
     with pred_t3:
 
-        # ── Section A: Model Metadata Cards ──────────────────────────────────────
         st.markdown('<div class="section-label">Live ML Model Status</div>', unsafe_allow_html=True)
         col_m1, col_m2, col_m3 = st.columns(3)
 
@@ -1081,7 +1282,6 @@ elif st.session_state.page == "🔮 Prediction":
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # ── Section B: Prophet Forecast Chart with Confidence Intervals ───────────
         st.markdown('<div class="chart-title">Prophet Revenue Forecast — 3-Month Horizon with 95% Confidence Intervals</div>', unsafe_allow_html=True)
 
         if "error" not in forecast_data and "forecast" in forecast_data:
@@ -1096,7 +1296,6 @@ elif st.session_state.page == "🔮 Prediction":
                         "upper":     vals.get("upper_bound_gbp", 0),
                     })
                 else:
-                    # Linear fallback — no CI, synthesise narrow band
                     rows.append({
                         "month":     month_str,
                         "predicted": float(vals),
@@ -1115,8 +1314,6 @@ elif st.session_state.page == "🔮 Prediction":
                     )
 
                     fig_prophet = go.Figure()
-
-                    # Historical line
                     fig_prophet.add_trace(go.Scatter(
                         x=hist_df_ml["month"], y=hist_df_ml["revenue"],
                         mode="lines",
@@ -1133,7 +1330,6 @@ elif st.session_state.page == "🔮 Prediction":
                     fcast_lo    = pd.concat([bridge_ml["revenue"], fcast_df_ml["lower"]])
                     fcast_hi    = pd.concat([bridge_ml["revenue"], fcast_df_ml["upper"]])
 
-                    # Confidence band (filled polygon: upper + reversed lower)
                     fig_prophet.add_trace(go.Scatter(
                         x=pd.concat([fcast_x_all, fcast_x_all.iloc[::-1]]),
                         y=pd.concat([fcast_hi, fcast_lo.iloc[::-1]]),
@@ -1144,7 +1340,6 @@ elif st.session_state.page == "🔮 Prediction":
                         hoverinfo="skip",
                     ))
 
-                    # Forecast line
                     fig_prophet.add_trace(go.Scatter(
                         x=fcast_x_all, y=fcast_y_all,
                         mode="lines+markers",
@@ -1169,13 +1364,12 @@ elif st.session_state.page == "🔮 Prediction":
                             font=dict(size=11, color="#8b949e"),
                         ),
                     )
-                    st.plotly_chart(fig_prophet, width='stretch')
+                    st.plotly_chart(fig_prophet, use_container_width=True)
         else:
             st.info(forecast_data.get("error", "Forecast unavailable."), icon="ℹ️")
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # ── Section C: Churn Distribution + Segmentation ─────────────────────────
         col_c1, col_c2 = st.columns(2)
 
         with col_c1:
@@ -1202,9 +1396,8 @@ elif st.session_state.page == "🔮 Prediction":
                         font=dict(size=11, color="#8b949e"),
                     ),
                 )
-                st.plotly_chart(fig_hist, width='stretch')
+                st.plotly_chart(fig_hist, use_container_width=True)
 
-                # Feature importance bar chart
                 fi = ml_churn_data.get("feature_importances", [])
                 if fi:
                     fi_df = pd.DataFrame(fi).sort_values("importance_pct")
@@ -1229,7 +1422,7 @@ elif st.session_state.page == "🔮 Prediction":
                         yaxis=dict(gridcolor="#21262d", tickfont=dict(size=10), title=""),
                         title=dict(text="Feature Importance", font=dict(size=11, color="#8b949e")),
                     )
-                    st.plotly_chart(fig_fi, width='stretch')
+                    st.plotly_chart(fig_fi, use_container_width=True)
             else:
                 st.info(ml_churn_data.get("error", "Churn ML model unavailable"), icon="ℹ️")
 
@@ -1287,9 +1480,8 @@ elif st.session_state.page == "🔮 Prediction":
                         font=dict(size=11, color="#8b949e"),
                     ),
                 )
-                st.plotly_chart(fig_seg, width='stretch')
+                st.plotly_chart(fig_seg, use_container_width=True)
 
-                # Segment summary table
                 st.markdown('<div class="chart-title">Segment Summary</div>', unsafe_allow_html=True)
                 display_seg = seg_df[["label", "customer_count", "pct_of_total",
                                       "avg_recency_days", "avg_frequency", "avg_monetary_gbp"]].rename(columns={
@@ -1302,10 +1494,10 @@ elif st.session_state.page == "🔮 Prediction":
                 })
                 st.dataframe(
                     display_seg.style.format({
-                        "% of Base":         "{:.1f}%",
-                        "Avg Recency (days)": "{:.0f}",
-                        "Avg Orders":         "{:.1f}",
-                        "Avg Spend (£)":      "£{:,.0f}",
+                        "% of Base":          "{:.1f}%",
+                        "Avg Recency (days)":  "{:.0f}",
+                        "Avg Orders":          "{:.1f}",
+                        "Avg Spend (£)":       "£{:,.0f}",
                     }),
                     use_container_width=True,
                     hide_index=True,
