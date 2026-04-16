@@ -37,25 +37,7 @@ st.markdown("""
     }
     [data-testid="stSidebar"] * { color: #4C1D95 !important; }
 
-    /* ── Split-pane: chat column ── */
-    div[data-testid="stHorizontalBlock"]
-      > div[data-testid="stColumn"]:first-child
-      > div[data-testid="stVerticalBlock"] {
-        background: #FFFFFF;
-        border-right: 1px solid #E5E7EB;
-        min-height: calc(100vh - 60px);
-        padding-right: 10px !important;
-        border-radius: 12px 0 0 12px;
-    }
-
-    /* ── Split-pane: canvas column ── */
-    div[data-testid="stHorizontalBlock"]
-      > div[data-testid="stColumn"]:last-child
-      > div[data-testid="stVerticalBlock"] {
-        background: #F7F5FF;
-        min-height: calc(100vh - 60px);
-        padding-left: 12px !important;
-    }
+    /* ── Split-pane columns: let Streamlit handle spacing natively ── */
 
     /* ── Artifact canvas card ── */
     .canvas-card {
@@ -226,21 +208,21 @@ st.markdown("""
         border-radius: 16px 16px 0 0;
     }
 
-    /* ── Suggestion buttons ── */
+    /* ── Buttons ── */
     .stButton > button {
         border-radius: 8px !important;
         border: 1px solid #DDD6FE !important;
         background: #FFFFFF !important;
         color: #4C1D95 !important;
-        font-size: 12px !important;
+        font-size: 13px !important;
         font-weight: 500 !important;
-        padding: 8px 16px !important;
-        width: 100% !important;
+        padding: 10px 16px !important;
         white-space: normal !important;
-        word-break: normal !important;
+        word-break: break-word !important;
+        overflow-wrap: anywhere !important;
         text-align: left !important;
         line-height: 1.5 !important;
-        height: auto !important;
+        min-height: 40px !important;
         transition: all 0.15s ease !important;
         box-shadow: 0 1px 2px rgba(109,40,217,0.06) !important;
     }
@@ -794,7 +776,7 @@ elif st.session_state.page == "💬 AI Chat":
         }
 
     # ── Split-pane layout ─────────────────────────────────────────────────────
-    col_chat, col_canvas = st.columns([2, 3], gap="medium")
+    col_chat, col_canvas = st.columns([4, 6], gap="large")
 
     with col_chat:
         st.markdown("""
@@ -821,7 +803,7 @@ elif st.session_state.page == "💬 AI Chat":
                 "Weekend vs weekday sales",
             ]
             for i, s in enumerate(suggestions):
-                if st.button(s, key=f"sugg_{i}"):
+                if st.button(s, key=f"sugg_{i}", use_container_width=True):
                     st.session_state.pending_input = s
                     st.rerun()
             st.markdown("<br>", unsafe_allow_html=True)
@@ -950,7 +932,7 @@ elif st.session_state.page == "🔮 Prediction":
             }
 
         # ── Split-pane layout ─────────────────────────────────────────────────
-        col_pchat, col_pcanvas = st.columns([2, 3], gap="medium")
+        col_pchat, col_pcanvas = st.columns([4, 6], gap="large")
 
         with col_pchat:
             st.markdown("""
@@ -973,7 +955,7 @@ elif st.session_state.page == "🔮 Prediction":
                     "High-growth products",
                 ]
                 for i, s in enumerate(pred_suggestions):
-                    if st.button(s, key=f"pred_sugg_{i}"):
+                    if st.button(s, key=f"pred_sugg_{i}", use_container_width=True):
                         st.session_state.pred_pending = s
                         st.rerun()
                 st.markdown("<br>", unsafe_allow_html=True)
