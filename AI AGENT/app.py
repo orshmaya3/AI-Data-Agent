@@ -300,27 +300,33 @@ st.markdown("""
     [data-testid="stChatInput"] textarea {
         background: transparent !important;
         border: none !important;
+        /* -webkit-text-fill-color overrides Streamlit's CSS variable for actual rendering */
         color: #1E1B4B !important;
+        -webkit-text-fill-color: #1E1B4B !important;
+        caret-color: #7C3AED !important;
         font-size: 14px !important;
         font-family: inherit !important;
         line-height: 1.5 !important;
     }
     [data-testid="stChatInput"] textarea::placeholder {
         color: #9CA3AF !important;
+        -webkit-text-fill-color: #9CA3AF !important;
         font-size: 14px !important;
     }
-    /* Send button */
-    [data-testid="stChatInput"] button {
+    /* Send button only — identified by aria-label, not all buttons */
+    [data-testid="stChatInput"] button[aria-label="Submit message"],
+    [data-testid="stChatInputSubmitButton"] {
         background: #7C3AED !important;
         border: none !important;
         border-radius: 8px !important;
-        color: #FFFFFF !important;
         transition: background 0.15s !important;
     }
-    [data-testid="stChatInput"] button:hover {
+    [data-testid="stChatInput"] button[aria-label="Submit message"]:hover,
+    [data-testid="stChatInputSubmitButton"]:hover {
         background: #6D28D9 !important;
     }
-    [data-testid="stChatInput"] button svg path {
+    [data-testid="stChatInput"] button[aria-label="Submit message"] svg path,
+    [data-testid="stChatInputSubmitButton"] svg path {
         fill: #FFFFFF !important;
         stroke: #FFFFFF !important;
     }
