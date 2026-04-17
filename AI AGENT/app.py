@@ -277,25 +277,52 @@ st.markdown("""
         margin-bottom: 6px !important;
     }
 
-    /* ── Chat input ── */
+    /* ── Chat input bottom bar ── */
+    [data-testid="stBottom"],
+    [data-testid="stBottom"] > div,
+    [data-testid="stBottom"] > div > div {
+        background: #F7F5FF !important;
+        border-top: 1px solid #E5E7EB !important;
+    }
+
+    /* ── Chat input container ── */
     [data-testid="stChatInput"] {
-        background-color: #FFFFFF !important;
+        background: #FFFFFF !important;
         border: 1.5px solid #DDD6FE !important;
-        border-radius: 12px !important;
-    }
-    [data-testid="stChatInput"] textarea {
-        background-color: #FFFFFF !important;
-        border: none !important;
-        color: #1E1B4B !important;
-        border-radius: 12px !important;
-        font-size: 14px !important;
-    }
-    [data-testid="stChatInput"] textarea::placeholder {
-        color: #9CA3AF !important;
+        border-radius: 14px !important;
+        box-shadow: 0 1px 4px rgba(109,40,217,0.07) !important;
+        transition: border-color 0.15s, box-shadow 0.15s !important;
     }
     [data-testid="stChatInput"]:focus-within {
         border-color: #7C3AED !important;
         box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important;
+    }
+    [data-testid="stChatInput"] textarea {
+        background: transparent !important;
+        border: none !important;
+        color: #1E1B4B !important;
+        font-size: 14px !important;
+        font-family: inherit !important;
+        line-height: 1.5 !important;
+    }
+    [data-testid="stChatInput"] textarea::placeholder {
+        color: #9CA3AF !important;
+        font-size: 14px !important;
+    }
+    /* Send button */
+    [data-testid="stChatInput"] button {
+        background: #7C3AED !important;
+        border: none !important;
+        border-radius: 8px !important;
+        color: #FFFFFF !important;
+        transition: background 0.15s !important;
+    }
+    [data-testid="stChatInput"] button:hover {
+        background: #6D28D9 !important;
+    }
+    [data-testid="stChatInput"] button svg path {
+        fill: #FFFFFF !important;
+        stroke: #FFFFFF !important;
     }
 
     /* ── Section headers ── */
@@ -337,6 +364,11 @@ st.markdown("""
         cursor: pointer;
         transition: background 0.15s, border-color 0.15s, color 0.15s;
         display: flex; align-items: center; gap: 6px;
+    }
+    /* Hide the radio circle indicator */
+    [data-testid="stSidebar"] [data-testid="stRadio"] > div > label > div:first-child,
+    [data-testid="stSidebar"] [data-testid="stRadio"] input[type="radio"] {
+        display: none !important;
     }
     [data-testid="stSidebar"] [data-testid="stRadio"] > div > label:hover {
         background: rgba(124,58,237,0.10);
