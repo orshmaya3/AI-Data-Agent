@@ -387,13 +387,6 @@ st.markdown("""
 if "page" not in st.session_state:
     st.session_state.page = "📊 Dashboard"
 
-# ── Artifact canvas state ──────────────────────────────────────────────────────
-if "current_artifact" not in st.session_state:
-    st.session_state.current_artifact = None
-
-if "pred_artifact" not in st.session_state:
-    st.session_state.pred_artifact = None
-
 # ── Shared chart style ──────────────────────────────────────────────────────────
 CHART_BASE = dict(
     paper_bgcolor="#FFFFFF",
@@ -514,73 +507,6 @@ with st.sidebar:
 
 # ════════════════════════════════════════════════════════
 # CANVAS RENDER HELPER
-# ════════════════════════════════════════════════════════
-
-def _render_canvas(artifact: dict | None, empty_hint: str = "Ask a question to generate an artifact") -> None:
-    """Render the right-hand Artifact Canvas."""
-
-    # ── Empty state ──────────────────────────────────────────────────────────
-    if artifact is None:
-        st.markdown(f"""
-        <div class="canvas-card">
-            <div class="canvas-header">
-                <span class="canvas-title">Results Panel</span>
-                <span class="canvas-badge">READY</span>
-            </div>
-            <div class="canvas-empty">
-                <div class="canvas-empty-icon">
-                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="48" height="48" rx="24" fill="#EDE9FE"/>
-                        <path d="M24 16v16M16 24h16" stroke="#7C3AED" stroke-width="2.5" stroke-linecap="round"/>
-                    </svg>
-                </div>
-                <div class="canvas-empty-text">{empty_hint}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        return
-
-    agent  = artifact.get("agent", "AI Analyst")
-    query  = artifact.get("query", "")
-    charts = artifact.get("charts", [])
-    content = artifact.get("content", "")
-
-    # ── Canvas header ─────────────────────────────────────────────────────────
-    st.markdown(f"""
-    <div class="canvas-card">
-        <div class="canvas-header">
-            <div>
-                <div class="canvas-title">🤖 {agent}</div>
-                <div style="color: #9CA3AF; font-size: 11px; margin-top: 3px; font-style: italic;">
-                    "{query[:80]}{'…' if len(query) > 80 else ''}"
-                </div>
-            </div>
-            <span class="canvas-badge">ARTIFACT</span>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # ── Charts (rendered as interactive Plotly or image) ─────────────────────
-    if charts:
-        for b64 in charts:
-            img_bytes = base64.b64decode(b64)
-            st.image(img_bytes, use_container_width=True)
-
-    # ── Text / markdown response ──────────────────────────────────────────────
-    if content:
-        st.markdown(f"""
-        <div style="
-            color: #1E1B4B;
-            font-size: 14px;
-            line-height: 1.7;
-            padding: 12px 0 20px 0;
-        ">
-        """, unsafe_allow_html=True)
-        st.markdown(content)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
 # ════════════════════════════════════════════════════════
 # PAGE 1 — DASHBOARD
 # ════════════════════════════════════════════════════════
@@ -736,12 +662,15 @@ elif st.session_state.page == "💬 AI Chat":
     if len(st.session_state.messages) > MAX_HISTORY:
         st.session_state.messages = st.session_state.messages[-MAX_HISTORY:]
 
-    # ── Helper: render one assistant message (text only — charts go to canvas) ─
+    # ── Helper: render one assistant message with inline charts ─────────────────
     def _render_assistant_msg(msg: dict) -> None:
         agent_label = msg.get("agent", "AI Analyst")
         with st.chat_message("assistant"):
             st.caption(f"🤖 {agent_label}")
             st.markdown(msg["content"])
+            for b64 in msg.get("charts", []):
+                img_bytes = base64.b64decode(b64)
+                st.image(img_bytes, use_container_width=True)
 
     # ── Shared helper: run a request and push result to canvas ──────────────────
     def _process_request(user_input: str) -> None:
@@ -770,82 +699,63 @@ elif st.session_state.page == "💬 AI Chat":
         st.session_state.messages.append(
             {"role": "assistant", "content": response, "agent": agent_label, "charts": charts}
         )
-        # Push to Artifact Canvas
-        st.session_state.current_artifact = {
-            "agent":   agent_label,
-            "query":   user_input,
-            "content": response,
-            "charts":  charts,
-        }
 
-    # ── Split-pane layout ─────────────────────────────────────────────────────
-    col_chat, col_canvas = st.columns([4, 6], gap="large")
-
-    with col_chat:
-        st.markdown("""
-        <div class="page-header">
-            <div>
-                <div class="page-header-title">💬 AI Chat</div>
-                <div class="page-header-sub">Ask your analyst team anything</div>
-            </div>
+    st.markdown("""
+    <div class="page-header">
+        <div>
+            <div class="page-header-title">💬 AI Chat</div>
+            <div class="page-header-sub">Ask your analyst team anything about your retail data</div>
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
-        # ── Suggestion chips ──────────────────────────────────────────────────
-        if not any(m["role"] == "user" for m in st.session_state.messages):
-            st.markdown("""
-            <div style="color: #6B7280; font-size: 12px; margin-bottom: 10px; line-height: 1.6;">
-                Try a suggestion:
-            </div>""", unsafe_allow_html=True)
-            suggestions = [
-                "Who is my top customer?",
-                "Top 5 products by revenue",
-                "Show monthly revenue trend",
-                "What is the refund rate?",
-                "Which country earns the most?",
-                "Weekend vs weekday sales",
-            ]
-            chip_cols = st.columns(2)
-            for i, s in enumerate(suggestions):
-                if chip_cols[i % 2].button(s, key=f"sugg_{i}"):
-                    st.session_state.pending_input = s
-                    st.rerun()
-
-        # ── Chat history ──────────────────────────────────────────────────────
-        st.markdown('<div class="chat-scroll">', unsafe_allow_html=True)
-        for msg in st.session_state.messages:
-            if msg["role"] == "user":
-                with st.chat_message("user"):
-                    st.write(msg["content"])
-            else:
-                _render_assistant_msg(msg)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # ── Handle suggestion click ───────────────────────────────────────────
-        if "pending_input" in st.session_state:
-            user_input = st.session_state.pop("pending_input")
-            st.session_state.messages.append({"role": "user", "content": user_input})
-            _process_request(user_input)
-            st.rerun()
-
-        # ── Clear button ──────────────────────────────────────────────────────
-        if len(st.session_state.messages) > 1:
-            if st.button("🗑  Clear conversation", key="clear_chat"):
-                st.session_state.messages = []
-                st.session_state.current_artifact = None
+    # ── Suggestion chips ──────────────────────────────────────────────────────
+    if not any(m["role"] == "user" for m in st.session_state.messages):
+        st.markdown("""
+        <div style="color: #6B7280; font-size: 12px; margin-bottom: 10px; line-height: 1.6;">
+            Try a suggestion:
+        </div>""", unsafe_allow_html=True)
+        suggestions = [
+            "Who is my top customer?",
+            "Top 5 products by revenue",
+            "Show monthly revenue trend",
+            "What is the refund rate?",
+            "Which country earns the most?",
+            "Weekend vs weekday sales",
+        ]
+        chip_cols = st.columns(3)
+        for i, s in enumerate(suggestions):
+            if chip_cols[i % 3].button(s, key=f"sugg_{i}"):
+                st.session_state.pending_input = s
                 st.rerun()
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        # ── Chat input anchored inside chat pane ─────────────────────────────
-        if prompt := st.chat_input("Ask about your sales, products, customers, or request custom analysis..."):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            _process_request(prompt)
+    # ── Chat history ──────────────────────────────────────────────────────────
+    for msg in st.session_state.messages:
+        if msg["role"] == "user":
+            with st.chat_message("user"):
+                st.write(msg["content"])
+        else:
+            _render_assistant_msg(msg)
+
+    # ── Handle suggestion click ───────────────────────────────────────────────
+    if "pending_input" in st.session_state:
+        user_input = st.session_state.pop("pending_input")
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        _process_request(user_input)
+        st.rerun()
+
+    # ── Clear button ──────────────────────────────────────────────────────────
+    if len(st.session_state.messages) > 1:
+        if st.button("🗑  Clear conversation", key="clear_chat"):
+            st.session_state.messages = []
             st.rerun()
 
-    with col_canvas:
-        _render_canvas(
-            st.session_state.current_artifact,
-            empty_hint="Ask your analyst team a question.<br><br>Charts and detailed outputs will appear here as an interactive artifact.",
-        )
+    # ── Chat input ────────────────────────────────────────────────────────────
+    if prompt := st.chat_input("Ask about your sales, products, customers, or request custom analysis..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        _process_request(prompt)
+        st.rerun()
 
 
 # ════════════════════════════════════════════════════════
@@ -906,6 +816,9 @@ elif st.session_state.page == "🔮 Prediction":
             with st.chat_message("assistant"):
                 st.caption(f"🔮 {agent_label}")
                 st.markdown(msg["content"])
+                for b64 in msg.get("charts", []):
+                    img_bytes = base64.b64decode(b64)
+                    st.image(img_bytes, use_container_width=True)
 
         def _process_pred_request(user_input: str) -> None:
             history = st.session_state.pred_messages[:-1]
@@ -929,77 +842,59 @@ elif st.session_state.page == "🔮 Prediction":
             st.session_state.pred_messages.append(
                 {"role": "assistant", "content": response, "agent": agent_label, "charts": charts}
             )
-            st.session_state.pred_artifact = {
-                "agent":   agent_label,
-                "query":   user_input,
-                "content": response,
-                "charts":  charts,
-            }
 
-        # ── Split-pane layout ─────────────────────────────────────────────────
-        col_pchat, col_pcanvas = st.columns([4, 6], gap="large")
-
-        with col_pchat:
-            st.markdown("""
-            <div class="page-header">
-                <div>
-                    <div class="page-header-title">🔮 Ask Rey</div>
-                    <div class="page-header-sub">Predictive AI Chat</div>
-                </div>
+        st.markdown("""
+        <div class="page-header">
+            <div>
+                <div class="page-header-title">🔮 Ask Rey</div>
+                <div class="page-header-sub">Predictive AI — forecasts, churn, segmentation, CLV</div>
             </div>
-            """, unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
 
-            # ── Suggestion chips ──────────────────────────────────────────────
-            if not any(m["role"] == "user" for m in st.session_state.pred_messages):
-                pred_suggestions = [
-                    "Who are our top at-risk customers?",
-                    "Which products are declining?",
-                    "Forecast next 6 months",
-                    "CLV of customer 17850",
-                    "Repeat purchase probability",
-                    "High-growth products",
-                ]
-                pred_chip_cols = st.columns(2)
-                for i, s in enumerate(pred_suggestions):
-                    if pred_chip_cols[i % 2].button(s, key=f"pred_sugg_{i}"):
-                        st.session_state.pred_pending = s
-                        st.rerun()
-
-            # ── Chat history ──────────────────────────────────────────────────
-            st.markdown('<div class="chat-scroll">', unsafe_allow_html=True)
-            for msg in st.session_state.pred_messages:
-                if msg["role"] == "user":
-                    with st.chat_message("user"):
-                        st.write(msg["content"])
-                else:
-                    _render_pred_msg(msg)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-            # ── Handle suggestion click ───────────────────────────────────────
-            if "pred_pending" in st.session_state:
-                user_input = st.session_state.pop("pred_pending")
-                st.session_state.pred_messages.append({"role": "user", "content": user_input})
-                _process_pred_request(user_input)
-                st.rerun()
-
-            # ── Clear button ──────────────────────────────────────────────────
-            if len(st.session_state.pred_messages) > 1:
-                if st.button("🗑  Clear conversation", key="clear_pred"):
-                    st.session_state.pred_messages = []
-                    st.session_state.pred_artifact = None
+        # ── Suggestion chips ──────────────────────────────────────────────────
+        if not any(m["role"] == "user" for m in st.session_state.pred_messages):
+            pred_suggestions = [
+                "Who are our top at-risk customers?",
+                "Which products are declining?",
+                "Forecast next 6 months",
+                "CLV of customer 17850",
+                "Repeat purchase probability",
+                "Show customer segments",
+            ]
+            pred_chip_cols = st.columns(3)
+            for i, s in enumerate(pred_suggestions):
+                if pred_chip_cols[i % 3].button(s, key=f"pred_sugg_{i}"):
+                    st.session_state.pred_pending = s
                     st.rerun()
+            st.markdown("<br>", unsafe_allow_html=True)
 
-            # ── Chat input anchored inside chat pane ─────────────────────────
-            if prompt := st.chat_input("Ask Rey about forecasts, churn, CLV, product trends...", key="pred_input"):
-                st.session_state.pred_messages.append({"role": "user", "content": prompt})
-                _process_pred_request(prompt)
+        # ── Chat history ──────────────────────────────────────────────────────
+        for msg in st.session_state.pred_messages:
+            if msg["role"] == "user":
+                with st.chat_message("user"):
+                    st.write(msg["content"])
+            else:
+                _render_pred_msg(msg)
+
+        # ── Handle suggestion click ───────────────────────────────────────────
+        if "pred_pending" in st.session_state:
+            user_input = st.session_state.pop("pred_pending")
+            st.session_state.pred_messages.append({"role": "user", "content": user_input})
+            _process_pred_request(user_input)
+            st.rerun()
+
+        # ── Clear button ──────────────────────────────────────────────────────
+        if len(st.session_state.pred_messages) > 1:
+            if st.button("🗑  Clear conversation", key="clear_pred"):
+                st.session_state.pred_messages = []
                 st.rerun()
 
-        with col_pcanvas:
-            _render_canvas(
-                st.session_state.pred_artifact,
-                empty_hint="Ask Rey a predictive question.<br><br>Forecasts, churn scores, and CLV outputs will appear here as an interactive artifact.",
-            )
+        # ── Chat input ────────────────────────────────────────────────────────
+        if prompt := st.chat_input("Ask Rey about forecasts, churn, CLV, product trends...", key="pred_input"):
+            st.session_state.pred_messages.append({"role": "user", "content": prompt})
+            _process_pred_request(prompt)
+            st.rerun()
 
     # ════════════════════════
     # TAB 1 — Live Metrics
