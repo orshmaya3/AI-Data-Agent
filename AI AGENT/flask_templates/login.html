@@ -4,124 +4,246 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login — AI Data Department</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      background-color: #0d1117;
-      color: #f0f6fc;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── Left panel ── */
+    .left-panel {
+      width: 420px;
+      background: #1a1f5e;
+      display: flex;
+      flex-direction: column;
+      padding: 48px 40px;
+      flex-shrink: 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 60px;
+    }
+    .brand-icon {
+      width: 44px; height: 44px;
+      background: #6c5ce7;
+      border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .brand-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,0.45);
+    }
+
+    .left-headline {
+      flex: 1;
+    }
+    .left-headline h2 {
+      font-size: 30px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.25;
+      margin-bottom: 16px;
+    }
+    .left-headline h2 span { color: #a29bfe; }
+    .left-headline p {
+      font-size: 14px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.7;
+      max-width: 320px;
+    }
+
+    /* Agent chips on left panel */
+    .agent-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 40px;
+    }
+    .agent-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px;
+      padding: 5px 12px 5px 6px;
+      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+    }
+    .agent-chip img {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: center 12%;
+    }
+
+    .left-footer {
+      font-size: 11px;
+      color: rgba(255,255,255,0.25);
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin-top: 32px;
+    }
+
+    /* ── Right panel ── */
+    .right-panel {
+      flex: 1;
+      background: #f4f5f9;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 40px;
     }
-    .login-box {
-      background: #161b22;
-      border: 1px solid #30363d;
+
+    .login-card {
+      background: #fff;
       border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
       padding: 40px 36px;
       width: 100%;
       max-width: 380px;
-      position: relative;
-      overflow: hidden;
     }
-    .login-box::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, #1f6feb 0%, #8b5cf6 50%, #3fb950 100%);
-    }
-    .login-logo {
-      text-align: center;
-      margin-bottom: 28px;
-    }
-    .login-logo .icon {
-      font-size: 36px;
-      display: block;
-      margin-bottom: 8px;
-    }
-    .login-logo h1 {
-      font-size: 18px;
+
+    .login-card h3 {
+      font-size: 20px;
       font-weight: 700;
-      color: #f0f6fc;
-      margin: 0 0 4px 0;
-    }
-    .login-logo p {
-      font-size: 12px;
-      color: #8b949e;
-      margin: 0;
-    }
-    label {
-      color: #8b949e;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
+      color: #1a1a2e;
       margin-bottom: 6px;
     }
+    .login-card .subtitle {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 28px;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #374151;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .form-group { margin-bottom: 18px; }
     .form-control {
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      color: #f0f6fc;
+      width: 100%;
+      background: #f9fafb;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 9px;
+      color: #1a1a2e;
+      font-family: 'Inter', sans-serif;
       font-size: 14px;
-      padding: 10px 14px;
+      padding: 11px 14px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
     .form-control:focus {
-      background: #0d1117;
-      border-color: #1f6feb;
-      box-shadow: 0 0 0 3px rgba(31,111,235,0.15);
-      color: #f0f6fc;
+      border-color: #6c5ce7;
+      box-shadow: 0 0 0 3px rgba(108,92,231,0.12);
+      background: #fff;
     }
-    .form-control::placeholder { color: #484f58; }
+    .form-control::placeholder { color: #9ca3af; }
+
     .btn-login {
-      background: #1f6feb;
+      width: 100%;
+      background: #6c5ce7;
       border: none;
-      border-radius: 8px;
+      border-radius: 9px;
       color: #fff;
+      font-family: 'Inter', sans-serif;
       font-size: 14px;
       font-weight: 600;
-      padding: 10px;
-      width: 100%;
+      padding: 12px;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background 0.15s, transform 0.1s;
+      margin-top: 8px;
     }
-    .btn-login:hover { background: #388bfd; }
+    .btn-login:hover { background: #5a4bd1; }
+    .btn-login:active { transform: scale(0.99); }
+
     .alert-error {
-      background: rgba(248,81,73,0.12);
-      border: 1px solid rgba(248,81,73,0.3);
+      background: rgba(231,76,60,0.08);
+      border: 1px solid rgba(231,76,60,0.25);
       border-radius: 8px;
-      color: #f85149;
+      color: #e74c3c;
       font-size: 13px;
       padding: 10px 14px;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 700px) {
+      .left-panel { display: none; }
+      .right-panel { padding: 24px; }
     }
   </style>
 </head>
 <body>
-  <div class="login-box">
-    <div class="login-logo">
-      <span class="icon">📊</span>
-      <h1>AI Data Department</h1>
-      <p>Retail Intelligence Platform</p>
+  <div class="left-panel">
+    <div class="brand">
+      <div class="brand-icon">📊</div>
+      <div>
+        <div class="brand-name">AI Data Dept.</div>
+        <div class="brand-sub">Retail Intelligence Platform</div>
+      </div>
     </div>
 
-    {% if error %}
-    <div class="alert-error">⚠️ {{ error }}</div>
-    {% endif %}
+    <div class="left-headline">
+      <h2>Your retail data,<br><span>analysed by AI.</span></h2>
+      <p>Autonomous agents handle sales, customer, product, and predictive analytics — so you can focus on decisions, not spreadsheets.</p>
 
-    <form method="POST" action="{{ url_for('auth.login') }}">
-      <div class="mb-3">
-        <label for="username">USERNAME</label>
-        <input type="text" id="username" name="username" class="form-control"
-               placeholder="Enter username" autocomplete="username" required>
+      <div class="agent-chips">
+        <div class="agent-chip"><img src="/static/avatars/alex.png" alt="Alex"> Alex · Sales</div>
+        <div class="agent-chip"><img src="/static/avatars/dana.png" alt="Dana"> Dana · Products</div>
+        <div class="agent-chip"><img src="/static/avatars/maya.png" alt="Maya"> Maya · Customers</div>
+        <div class="agent-chip"><img src="/static/avatars/rey.png" alt="Rey"> Rey · Prediction</div>
+        <div class="agent-chip"><img src="/static/avatars/aria.png" alt="Aria"> Aria · General</div>
       </div>
-      <div class="mb-4">
-        <label for="password">PASSWORD</label>
-        <input type="password" id="password" name="password" class="form-control"
-               placeholder="Enter password" autocomplete="current-password" required>
-      </div>
-      <button type="submit" class="btn-login">Sign In →</button>
-    </form>
+    </div>
+
+    <div class="left-footer">
+      AI Data Department &copy; 2025 · Powered by Claude
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="login-card">
+      <h3>Welcome back</h3>
+      <p class="subtitle">Sign in to your analytics dashboard</p>
+
+      {% if error %}
+      <div class="alert-error">⚠️ {{ error }}</div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('auth.login') }}">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" class="form-control"
+                 placeholder="Enter your username" autocomplete="username" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" class="form-control"
+                 placeholder="Enter your password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn-login">Sign In →</button>
+      </form>
+    </div>
   </div>
 </body>
 </html>

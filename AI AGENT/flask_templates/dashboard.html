@@ -3,51 +3,39 @@
 
 {% block content %}
 <div class="page-header">
-  <h1>AI Data Department</h1>
+  <h1>Dashboard</h1>
   <p>Real-time retail analytics powered by autonomous AI agents</p>
 </div>
 
-<!-- KPI Row -->
-<div class="row g-3 mb-4" id="kpi-row">
-  <div class="col-12 text-center py-4">
-    <div class="spinner-border" role="status"></div>
-    <p class="mt-2" style="color:#8b949e;font-size:13px;">Loading metrics...</p>
+<!-- KPI Grid -->
+<div class="grid-4 mb-kpi" id="kpi-row" style="margin-bottom:20px;">
+  <div class="kpi-card">
+    <div class="loader-center" style="padding:20px">
+      <div class="spinner spinner-sm"></div>
+    </div>
   </div>
+  <div class="kpi-card"><div class="loader-center" style="padding:20px"><div class="spinner spinner-sm"></div></div></div>
+  <div class="kpi-card"><div class="loader-center" style="padding:20px"><div class="spinner spinner-sm"></div></div></div>
+  <div class="kpi-card"><div class="loader-center" style="padding:20px"><div class="spinner spinner-sm"></div></div></div>
 </div>
 
 <!-- Charts Row 1 -->
-<div class="row g-3 mb-3">
-  <div class="col-md-8">
-    <div class="chart-panel" id="chart-monthly" style="min-height:300px;">
-      <div class="d-flex justify-content-center align-items-center h-100 py-5">
-        <div class="spinner-border spinner-border-sm" role="status"></div>
-      </div>
-    </div>
+<div class="grid-5-3" style="margin-bottom:16px;">
+  <div class="chart-panel" style="min-height:300px;" id="chart-monthly">
+    <div class="loader-center"><div class="spinner"></div><span>Loading chart...</span></div>
   </div>
-  <div class="col-md-4">
-    <div class="chart-panel" id="chart-countries" style="min-height:300px;">
-      <div class="d-flex justify-content-center align-items-center h-100 py-5">
-        <div class="spinner-border spinner-border-sm" role="status"></div>
-      </div>
-    </div>
+  <div class="chart-panel" style="min-height:300px;" id="chart-countries">
+    <div class="loader-center"><div class="spinner"></div></div>
   </div>
 </div>
 
 <!-- Charts Row 2 -->
-<div class="row g-3">
-  <div class="col-md-5">
-    <div class="chart-panel" id="chart-products" style="min-height:320px;">
-      <div class="d-flex justify-content-center align-items-center h-100 py-5">
-        <div class="spinner-border spinner-border-sm" role="status"></div>
-      </div>
-    </div>
+<div class="grid-3-2">
+  <div class="chart-panel" style="min-height:320px;" id="chart-hourly">
+    <div class="loader-center"><div class="spinner"></div></div>
   </div>
-  <div class="col-md-7">
-    <div class="chart-panel" id="chart-hourly" style="min-height:320px;">
-      <div class="d-flex justify-content-center align-items-center h-100 py-5">
-        <div class="spinner-border spinner-border-sm" role="status"></div>
-      </div>
-    </div>
+  <div class="chart-panel" style="min-height:320px;" id="chart-products">
+    <div class="loader-center"><div class="spinner"></div></div>
   </div>
 </div>
 {% endblock %}
@@ -55,47 +43,60 @@
 {% block scripts %}
 <script>
 const LAYOUT_BASE = {
-  paper_bgcolor: '#161b22',
-  plot_bgcolor:  '#161b22',
-  font:  { color: '#8b949e', size: 11 },
-  title: { font: { color: '#f0f6fc', size: 13 } },
-  margin: { l: 10, r: 10, t: 40, b: 10 },
+  paper_bgcolor: '#ffffff',
+  plot_bgcolor:  '#ffffff',
+  font:  { family: 'Inter, sans-serif', color: '#6b7280', size: 11 },
+  title: { font: { family: 'Inter, sans-serif', color: '#1a1a2e', size: 13, weight: 600 } },
+  margin: { l: 10, r: 10, t: 44, b: 10 },
   showlegend: false,
-  hoverlabel: { bgcolor: '#21262d', font: { color: '#e6edf3' }, bordercolor: '#30363d' },
-  xaxis: { gridcolor: '#21262d', linecolor: '#21262d', zerolinecolor: '#21262d' },
-  yaxis: { gridcolor: '#21262d', linecolor: '#21262d', zerolinecolor: '#21262d' },
+  hoverlabel: { bgcolor: '#1a1f5e', font: { color: '#fff', family: 'Inter, sans-serif' }, bordercolor: '#1a1f5e' },
+  xaxis: { gridcolor: '#f0f0f4', linecolor: '#e5e7eb', zerolinecolor: '#e5e7eb' },
+  yaxis: { gridcolor: '#f0f0f4', linecolor: '#e5e7eb', zerolinecolor: '#e5e7eb' },
 };
-
 const CFG = { responsive: true, displayModeBar: false };
 
-// ── Load KPIs ──
+const KPI_ICONS = ['💰', '📦', '🛍️', '🧾', '↩️'];
+const KPI_COLORS = [
+  { icon_bg: 'rgba(108,92,231,0.10)', icon_color: '#6c5ce7' },
+  { icon_bg: 'rgba(0,184,148,0.10)',  icon_color: '#00b894' },
+  { icon_bg: 'rgba(243,156,18,0.10)', icon_color: '#f39c12' },
+  { icon_bg: 'rgba(52,152,219,0.10)', icon_color: '#3498db' },
+  { icon_bg: 'rgba(231,76,60,0.10)',  icon_color: '#e74c3c' },
+];
+
 fetch('/api/kpis')
   .then(r => r.json())
   .then(d => {
     const mom = d.mom_growth;
-    const trend = mom > 0 ? `↑ ${mom.toFixed(1)}% MoM` : mom < 0 ? `↓ ${Math.abs(mom).toFixed(1)}% MoM` : 'Stable MoM';
+    const trendBadge = mom > 0
+      ? `<span class="kpi-badge badge-up">↑ ${mom.toFixed(1)}% MoM</span>`
+      : mom < 0
+        ? `<span class="kpi-badge badge-down">↓ ${Math.abs(mom).toFixed(1)}% MoM</span>`
+        : `<span class="kpi-badge badge-flat">Stable MoM</span>`;
+
     const kpis = [
-      { label: 'Total Revenue',   value: `£${d.total_revenue.toLocaleString('en-GB', {maximumFractionDigits:0})}`, sub: trend },
+      { label: 'Total Revenue',   value: `£${d.total_revenue.toLocaleString('en-GB', {maximumFractionDigits:0})}`, sub: trendBadge },
       { label: 'Total Orders',    value: d.total_orders.toLocaleString(), sub: 'Unique invoices' },
       { label: 'Items Sold',      value: d.total_items.toLocaleString(), sub: 'Units dispatched' },
       { label: 'Avg Order Value', value: `£${d.aov.toFixed(2)}`, sub: 'Per invoice' },
       { label: 'Refund Rate',     value: `${d.refund_rate.toFixed(1)}%`, sub: 'Of all transactions' },
     ];
-    document.getElementById('kpi-row').innerHTML = kpis.map(k => `
-      <div class="col">
-        <div class="kpi-card">
-          <div class="kpi-label">${k.label}</div>
-          <div class="kpi-value">${k.value}</div>
-          <div class="kpi-sub">${k.sub}</div>
-        </div>
-      </div>`).join('');
+
+    document.getElementById('kpi-row').innerHTML = kpis.slice(0, 4).map((k, i) => {
+      const c = KPI_COLORS[i];
+      return `<div class="kpi-card">
+        <div class="kpi-card-icon" style="background:${c.icon_bg};color:${c.icon_color}">${KPI_ICONS[i]}</div>
+        <div class="kpi-label">${k.label}</div>
+        <div class="kpi-value">${k.value}</div>
+        <div class="kpi-sub" style="margin-top:6px">${k.sub}</div>
+      </div>`;
+    }).join('');
   })
   .catch(() => {
     document.getElementById('kpi-row').innerHTML =
-      '<div class="col-12"><div class="alert-error p-3 rounded">Failed to load KPIs.</div></div>';
+      '<div style="grid-column:1/-1"><div class="alert-error">Failed to load KPIs.</div></div>';
   });
 
-// ── Load Charts ──
 fetch('/api/charts')
   .then(r => r.json())
   .then(d => {
@@ -105,10 +106,11 @@ fetch('/api/charts')
     Plotly.newPlot('chart-monthly', [{
       x: months, y: revs, type: 'scatter', mode: 'lines',
       fill: 'tozeroy',
-      line: { color: '#1f6feb', width: 2 },
-      fillcolor: 'rgba(31,111,235,0.10)',
+      line: { color: '#6c5ce7', width: 2.5 },
+      fillcolor: 'rgba(108,92,231,0.08)',
       hovertemplate: '<b>%{x}</b><br>£%{y:,.0f}<extra></extra>',
-    }], { ...LAYOUT_BASE, title: { text: 'Monthly Revenue', font: { color: '#f0f6fc', size: 13 } },
+    }], { ...LAYOUT_BASE,
+          title: { text: 'Monthly Revenue', font: { color: '#1a1a2e', size: 13 } },
           yaxis: { ...LAYOUT_BASE.yaxis, tickprefix: '£' } }, CFG);
 
     // Top Countries
@@ -116,32 +118,36 @@ fetch('/api/charts')
     const ctry_vals  = Object.values(d.top_countries);
     Plotly.newPlot('chart-countries', [{
       x: ctry_vals, y: ctry_names, type: 'bar', orientation: 'h',
-      marker: { color: ctry_vals, colorscale: [[0,'#21262d'],[1,'#1f6feb']], showscale: false },
+      marker: { color: '#6c5ce7', opacity: 0.85 },
       hovertemplate: '<b>%{y}</b><br>£%{x:,.0f}<extra></extra>',
-    }], { ...LAYOUT_BASE, title: { text: 'Top 5 Countries', font: { color: '#f0f6fc', size: 13 } },
+    }], { ...LAYOUT_BASE,
+          title: { text: 'Top 5 Countries', font: { color: '#1a1a2e', size: 13 } },
           xaxis: { ...LAYOUT_BASE.xaxis, tickprefix: '£' } }, CFG);
-
-    // Top Products
-    const prod_names = Object.keys(d.top_products).map(n => n.length > 28 ? n.slice(0,28)+'…' : n);
-    const prod_vals  = Object.values(d.top_products);
-    Plotly.newPlot('chart-products', [{
-      x: prod_vals, y: prod_names, type: 'bar', orientation: 'h',
-      marker: { color: prod_vals, colorscale: [[0,'#21262d'],[1,'#8b5cf6']], showscale: false },
-      hovertemplate: '<b>%{y}</b><br>£%{x:,.0f}<extra></extra>',
-    }], { ...LAYOUT_BASE, title: { text: 'Top 8 Products by Revenue', font: { color: '#f0f6fc', size: 13 } },
-          xaxis: { ...LAYOUT_BASE.xaxis, tickprefix: '£' },
-          margin: { l: 10, r: 10, t: 40, b: 10 }, height: 320 }, CFG);
 
     // Hourly Sales
     const hours_raw = d.hourly_sales;
-    const hours = Object.keys(hours_raw).sort((a,b) => parseInt(a) - parseInt(b));
+    const hours = Object.keys(hours_raw).sort((a,b) => parseInt(a)-parseInt(b));
     const h_vals = hours.map(h => hours_raw[h]);
+    const maxH = Math.max(...h_vals);
     Plotly.newPlot('chart-hourly', [{
       x: hours, y: h_vals, type: 'bar',
-      marker: { color: h_vals, colorscale: [[0,'#21262d'],[1,'#3fb950']], showscale: false },
-      hovertemplate: '<b>%{x}</b><br>£%{y:,.0f}<extra></extra>',
-    }], { ...LAYOUT_BASE, title: { text: 'Sales by Hour of Day', font: { color: '#f0f6fc', size: 13 } },
+      marker: { color: h_vals.map(v => v === maxH ? '#6c5ce7' : 'rgba(108,92,231,0.35)') },
+      hovertemplate: '<b>%{x}:00</b><br>£%{y:,.0f}<extra></extra>',
+    }], { ...LAYOUT_BASE,
+          title: { text: 'Sales by Hour of Day', font: { color: '#1a1a2e', size: 13 } },
           yaxis: { ...LAYOUT_BASE.yaxis, tickprefix: '£' }, height: 320 }, CFG);
+
+    // Top Products
+    const prod_names = Object.keys(d.top_products).map(n => n.length > 26 ? n.slice(0,26)+'…' : n);
+    const prod_vals  = Object.values(d.top_products);
+    Plotly.newPlot('chart-products', [{
+      x: prod_vals, y: prod_names, type: 'bar', orientation: 'h',
+      marker: { color: '#00b894', opacity: 0.85 },
+      hovertemplate: '<b>%{y}</b><br>£%{x:,.0f}<extra></extra>',
+    }], { ...LAYOUT_BASE,
+          title: { text: 'Top Products by Revenue', font: { color: '#1a1a2e', size: 13 } },
+          xaxis: { ...LAYOUT_BASE.xaxis, tickprefix: '£' },
+          margin: { l: 10, r: 10, t: 44, b: 10 }, height: 320 }, CFG);
   })
   .catch(err => console.error('Charts error:', err));
 </script>

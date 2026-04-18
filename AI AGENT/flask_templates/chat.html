@@ -2,156 +2,160 @@
 {% block title %}AI Chat — AI Data Department{% endblock %}
 
 {% block extra_head %}
-<!-- Markdown renderer -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
   .chat-wrap {
-    max-width: 860px;
+    max-width: 820px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 160px);
+    height: calc(100vh - 120px);
   }
+
   .chat-history {
     flex: 1;
     overflow-y: auto;
-    padding: 8px 4px;
+    padding: 4px 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
   }
   .chat-history::-webkit-scrollbar { width: 4px; }
   .chat-history::-webkit-scrollbar-track { background: transparent; }
-  .chat-history::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+  .chat-history::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
 
   /* Bubbles */
-  .msg { display: flex; gap: 10px; align-items: flex-start; }
+  .msg { display: flex; gap: 12px; align-items: flex-start; }
   .msg.user { flex-direction: row-reverse; }
+
   .msg-avatar {
-    width: 40px; height: 40px; border-radius: 50%;
+    width: 38px; height: 38px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: 14px; flex-shrink: 0;
-    background: #21262d; border: 1px solid #30363d;
+    background: #f3f4f6; border: 1.5px solid #e5e7eb;
     overflow: hidden;
   }
   .msg-avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center 12%; border-radius: 50%; }
-  .msg.user .msg-avatar { background: rgba(31,111,235,0.2); border-color: #1f6feb; }
+  .msg.user .msg-avatar { background: rgba(108,92,231,0.12); border-color: #6c5ce7; }
+
   .msg-body { max-width: 78%; }
   .msg-label {
-    font-size: 10px; font-weight: 600; letter-spacing: 0.5px;
-    margin-bottom: 4px; color: #8b949e;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+    margin-bottom: 4px; color: #9ca3af; text-transform: uppercase;
   }
-  .msg.user .msg-label { text-align: right; color: #388bfd; }
+  .msg.user .msg-label { text-align: right; color: #6c5ce7; }
+
   .msg-bubble {
-    background: #1c2128;
-    border: 1px solid #30363d;
-    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
     padding: 12px 16px;
-    color: #e6edf3;
+    color: #1a1a2e;
     font-size: 14px;
     line-height: 1.7;
     word-break: break-word;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
   .msg.user .msg-bubble {
-    background: #1a2d4a;
-    border-color: #1f6feb;
+    background: #6c5ce7;
+    border-color: #6c5ce7;
+    color: #fff;
     white-space: pre-wrap;
   }
 
-  /* Markdown styles inside AI bubbles */
+  /* Markdown inside AI bubbles */
   .msg-bubble p  { margin: 0 0 8px 0; }
   .msg-bubble p:last-child { margin-bottom: 0; }
-  .msg-bubble strong { color: #f0f6fc; }
-  .msg-bubble em { color: #c9d1d9; }
-  .msg-bubble ul, .msg-bubble ol {
-    margin: 6px 0 8px 0; padding-left: 20px;
-  }
+  .msg-bubble strong { color: #1a1a2e; }
+  .msg-bubble em { color: #374151; }
+  .msg-bubble ul, .msg-bubble ol { margin: 6px 0 8px 0; padding-left: 20px; }
   .msg-bubble li { margin-bottom: 4px; }
   .msg-bubble code {
-    background: #0d1117; border: 1px solid #30363d;
+    background: #f3f4f6; border: 1px solid #e5e7eb;
     border-radius: 4px; padding: 1px 6px;
-    font-size: 12px; color: #79c0ff;
+    font-size: 12px; color: #6c5ce7;
     font-family: 'Consolas', monospace;
   }
   .msg-bubble pre {
-    background: #0d1117; border: 1px solid #21262d;
-    border-radius: 8px; padding: 12px;
-    overflow-x: auto; margin: 8px 0;
+    background: #1a1a2e; border-radius: 8px;
+    padding: 12px; overflow-x: auto; margin: 8px 0;
   }
-  .msg-bubble pre code {
-    background: none; border: none; padding: 0;
-    color: #e6edf3; font-size: 12px;
-  }
+  .msg-bubble pre code { background: none; border: none; padding: 0; color: #e6edf3; font-size: 12px; }
   .msg-bubble h1, .msg-bubble h2, .msg-bubble h3 {
-    color: #f0f6fc; margin: 10px 0 6px 0;
+    color: #1a1a2e; margin: 10px 0 6px 0;
     font-size: 14px; font-weight: 700;
   }
-  .msg-bubble hr { border-color: #21262d; margin: 10px 0; }
+  .msg-bubble hr { border: none; border-top: 1px solid #e5e7eb; margin: 10px 0; }
 
   /* Typing indicator */
   .typing-dots span {
     display: inline-block; width: 6px; height: 6px;
-    background: #8b949e; border-radius: 50%; margin: 0 2px;
+    background: #9ca3af; border-radius: 50%; margin: 0 2px;
     animation: bounce 1.2s infinite;
   }
   .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
   .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes bounce {
-    0%,60%,100% { transform: translateY(0); }
-    30% { transform: translateY(-6px); }
-  }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
 
   /* Suggestion chips */
   .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
   .chip {
-    background: #21262d; border: 1px solid #30363d;
-    border-radius: 20px; color: #c9d1d9;
+    background: #fff; border: 1.5px solid #e5e7eb;
+    border-radius: 20px; color: #374151;
     font-size: 12px; padding: 5px 14px;
     cursor: pointer; transition: all 0.15s;
+    font-family: 'Inter', sans-serif;
   }
-  .chip:hover { border-color: #1f6feb; color: #79c0ff; background: rgba(31,111,235,0.10); }
+  .chip:hover { border-color: #6c5ce7; color: #6c5ce7; background: rgba(108,92,231,0.05); }
 
   /* Input bar */
   .chat-input-bar {
     margin-top: 12px;
-    display: flex; gap: 10px; align-items: flex-end;
+    display: flex; gap: 8px; align-items: flex-end;
   }
   .chat-input-bar textarea {
-    flex: 1; background: #161b22; border: 1.5px solid #484f58;
-    border-radius: 12px; color: #e6edf3; font-size: 14px;
-    padding: 10px 14px; resize: none; outline: none;
-    transition: border-color 0.15s; min-height: 44px; max-height: 120px;
+    flex: 1; background: #fff; border: 1.5px solid #e5e7eb;
+    border-radius: 12px; color: #1a1a2e;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px; padding: 10px 14px;
+    resize: none; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    min-height: 44px; max-height: 120px;
     overflow-y: auto; line-height: 1.5;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
   .chat-input-bar textarea:focus {
-    border-color: #1f6feb;
-    box-shadow: 0 0 0 2px rgba(31,111,235,0.2);
+    border-color: #6c5ce7;
+    box-shadow: 0 0 0 3px rgba(108,92,231,0.12);
   }
-  .chat-input-bar textarea::placeholder { color: #484f58; }
+  .chat-input-bar textarea::placeholder { color: #9ca3af; }
+
   .btn-send {
-    background: #1f6feb; border: none; border-radius: 10px;
+    background: #6c5ce7; border: none; border-radius: 10px;
     color: #fff; font-size: 18px; width: 44px; height: 44px;
     cursor: pointer; transition: background 0.15s;
     display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
   }
-  .btn-send:hover { background: #388bfd; }
-  .btn-send:disabled { background: #21262d; cursor: not-allowed; }
+  .btn-send:hover { background: #5a4bd1; }
+  .btn-send:disabled { background: #e5e7eb; cursor: not-allowed; }
+
   .btn-clear {
-    background: transparent; border: 1px solid #30363d;
-    border-radius: 8px; color: #8b949e; font-size: 12px;
+    background: transparent; border: 1.5px solid #e5e7eb;
+    border-radius: 8px; color: #9ca3af; font-size: 12px;
     padding: 6px 12px; cursor: pointer; transition: all 0.15s;
-    white-space: nowrap;
+    white-space: nowrap; font-family: 'Inter', sans-serif;
   }
-  .btn-clear:hover { border-color: #f85149; color: #f85149; }
+  .btn-clear:hover { border-color: #e74c3c; color: #e74c3c; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="chat-wrap">
 
-  <div class="page-header" style="margin-bottom:16px; padding:16px 22px;">
-    <h1 style="font-size:17px;">💬 AI Analyst Chat</h1>
-    <p>Ask Alex, Dana, or Maya anything about your retail data</p>
+  <div class="page-header" style="margin-bottom:16px;">
+    <h1>AI Analyst Chat</h1>
+    <p>Ask Alex, Dana, Maya or Aria anything about your retail data</p>
   </div>
 
   <div class="suggestions" id="suggestions">
@@ -182,12 +186,11 @@
 
 {% block scripts %}
 <script>
-// Configure marked for safe rendering
 marked.setOptions({ breaks: true, gfm: true });
 
 const STORAGE_KEY = 'ai_chat_history';
 let history  = [];
-let messages = []; // [{role, content}]
+let messages = [];
 let isLoading = false;
 
 const chatEl  = document.getElementById('chat-history');
@@ -195,7 +198,6 @@ const inputEl = document.getElementById('chat-input');
 const sendBtn = document.getElementById('btn-send');
 const suggsEl = document.getElementById('suggestions');
 
-// ── Restore session on load ──────────────────────────────────────────────────
 (function restoreSession() {
   try {
     const saved = sessionStorage.getItem(STORAGE_KEY);
@@ -208,7 +210,6 @@ const suggsEl = document.getElementById('suggestions');
   } catch (_) {}
 })();
 
-// ── Utils ────────────────────────────────────────────────────────────────────
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
@@ -230,18 +231,17 @@ function clearChat() {
   sessionStorage.removeItem(STORAGE_KEY);
 }
 
-// ── Agent avatar map ─────────────────────────────────────────────────────────
 const AGENT_AVATARS = {
-  'Sales Agent (Alex)':      { img: '/static/avatars/alex.png',  label: 'Alex · Sales Agent' },
-  'Product Agent (Dana)':    { img: '/static/avatars/dana.png',  label: 'Dana · Product Agent' },
-  'Customer Agent (Maya)':   { img: '/static/avatars/maya.png',  label: 'Maya · Customer Agent' },
-  'Prediction Agent (Rey)':  { img: '/static/avatars/rey.png',   label: 'Rey · Prediction Agent' },
-  'General Agent (Aria)':    { img: '/static/avatars/aria.png',  label: 'Aria · General Agent' },
+  'Sales Agent (Alex)':     { img: '{{ url_for("static", filename="avatars/alex.png") }}',  label: 'Alex · Sales Agent' },
+  'Product Agent (Dana)':   { img: '{{ url_for("static", filename="avatars/dana.png") }}',  label: 'Dana · Product Agent' },
+  'Customer Agent (Maya)':  { img: '{{ url_for("static", filename="avatars/maya.png") }}',  label: 'Maya · Customer Agent' },
+  'Prediction Agent (Rey)': { img: '{{ url_for("static", filename="avatars/rey.png") }}',   label: 'Rey · Prediction Agent' },
+  'General Agent (Aria)':   { img: '{{ url_for("static", filename="avatars/aria.png") }}',  label: 'Aria · General Agent' },
 };
 
 function agentAvatar(agentLabel) {
   const a = AGENT_AVATARS[agentLabel];
-  if (a) return `<img src="${a.img}" alt="${a.label}">`;
+  if (a) return `<img src="${a.img}" alt="${a.label}" onerror="this.replaceWith('🤖')">`;
   return '🤖';
 }
 
@@ -250,7 +250,6 @@ function agentName(agentLabel) {
   return a ? a.label : 'AI Analyst';
 }
 
-// ── Render a bubble (no side effects) ───────────────────────────────────────
 function renderBubble(role, content, agentLabel = '', scroll = true) {
   const isUser = role === 'user';
   suggsEl.style.display = 'none';
@@ -284,7 +283,7 @@ function showTyping() {
   const div = document.createElement('div');
   div.className = 'msg ai'; div.id = 'typing-indicator';
   div.innerHTML = `
-    <div class="msg-avatar"><img src="/static/avatars/aria.png" alt="Thinking..."></div>
+    <div class="msg-avatar"><img src="{{ url_for('static', filename='avatars/aria.png') }}" alt="Thinking..." onerror="this.replaceWith('🤖')"></div>
     <div class="msg-body">
       <div class="msg-label">Thinking...</div>
       <div class="msg-bubble typing-dots"><span></span><span></span><span></span></div>
@@ -298,7 +297,6 @@ function removeTyping() {
   if (el) el.remove();
 }
 
-// ── Send ─────────────────────────────────────────────────────────────────────
 async function sendMessage() {
   if (isLoading) return;
   const text = inputEl.value.trim();
@@ -312,7 +310,6 @@ async function sendMessage() {
   renderBubble('user', text);
   messages.push({ role: 'user', content: text });
 
-  // history for API = all messages before current one
   const apiHistory = history.slice();
   history.push({ role: 'user', content: text });
 
@@ -329,7 +326,7 @@ async function sendMessage() {
 
     const reply = data.error ? `⚠️ Error: ${data.error}` : data.response;
     renderBubble('assistant', reply, data.agent || '');
-    messages.push({ role: 'assistant', content: reply });
+    messages.push({ role: 'assistant', content: reply, agent: data.agent || '' });
     history.push({ role: 'assistant', content: reply });
 
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));

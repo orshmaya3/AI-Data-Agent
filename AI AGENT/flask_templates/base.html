@@ -4,194 +4,407 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}AI Data Department{% endblock %}</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
-      --bg-base:    #0d1117;
-      --bg-card:    #161b22;
-      --bg-card2:   #1c2128;
-      --border:     #21262d;
-      --border2:    #30363d;
-      --text-pri:   #f0f6fc;
-      --text-sec:   #8b949e;
-      --blue:       #1f6feb;
-      --blue-dim:   rgba(31,111,235,0.12);
-      --green:      #3fb950;
-      --purple:     #8b5cf6;
+      --sidebar-bg:    #1a1f5e;
+      --sidebar-hover: rgba(255,255,255,0.08);
+      --sidebar-active:rgba(108,92,231,0.25);
+      --accent:        #6c5ce7;
+      --accent-light:  rgba(108,92,231,0.12);
+      --bg:            #f4f5f9;
+      --card:          #ffffff;
+      --text:          #1a1a2e;
+      --text-muted:    #6b7280;
+      --border:        #e5e7eb;
+      --green:         #00b894;
+      --orange:        #f39c12;
+      --red:           #e74c3c;
+      --sidebar-w:     240px;
+      --radius:        12px;
+      --shadow:        0 1px 4px rgba(0,0,0,0.08);
+      --shadow-md:     0 4px 16px rgba(0,0,0,0.10);
     }
 
     body {
-      background-color: var(--bg-base);
-      color: var(--text-pri);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
+      display: flex;
     }
 
-    /* ── Navbar ── */
-    .navbar {
-      background: var(--bg-card) !important;
-      border-bottom: 1px solid var(--border);
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-height: 100vh;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0;
+      z-index: 100;
+      overflow-y: auto;
     }
-    .navbar-brand {
-      color: var(--text-pri) !important;
-      font-weight: 700;
-      font-size: 16px;
+
+    .sidebar-logo {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-    .navbar-brand span {
-      color: var(--blue);
+    .sidebar-logo .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
     }
-    .nav-link {
-      color: var(--text-sec) !important;
+    .sidebar-logo .brand-icon {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .sidebar-logo .brand-name {
       font-size: 14px;
-      font-weight: 500;
-      padding: 6px 14px !important;
-      border-radius: 6px;
-      transition: all 0.15s;
-    }
-    .nav-link:hover, .nav-link.active {
-      color: var(--text-pri) !important;
-      background: var(--border) !important;
-    }
-    .nav-link.active {
-      border-bottom: 2px solid var(--blue);
-      border-radius: 0;
-    }
-    .nav-user {
-      color: var(--text-sec);
-      font-size: 13px;
-    }
-    .btn-logout {
-      background: transparent;
-      border: 1px solid var(--border2);
-      color: var(--text-sec);
-      font-size: 12px;
-      padding: 4px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-logout:hover {
-      border-color: #f85149;
-      color: #f85149;
-    }
-
-    /* ── Cards ── */
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border2);
-      border-radius: 12px;
-    }
-
-    /* ── KPI cards ── */
-    .kpi-card {
-      background: linear-gradient(135deg, var(--bg-card), var(--bg-card2));
-      border: 1px solid var(--border2);
-      border-radius: 12px;
-      padding: 18px 20px;
-    }
-    .kpi-label {
-      color: var(--text-sec);
-      font-size: 10px;
       font-weight: 700;
-      letter-spacing: 1px;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .sidebar-logo .brand-sub {
+      font-size: 10px;
+      color: rgba(255,255,255,0.45);
+      font-weight: 400;
+      letter-spacing: 0.3px;
+    }
+
+    .sidebar-section {
+      padding: 20px 12px 8px;
+    }
+    .sidebar-section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.2px;
       text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      padding: 0 8px;
       margin-bottom: 6px;
     }
-    .kpi-value {
-      color: var(--text-pri);
-      font-size: 22px;
-      font-weight: 700;
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      color: rgba(255,255,255,0.65);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.15s;
+      cursor: pointer;
       margin-bottom: 2px;
     }
-    .kpi-sub {
-      color: var(--text-sec);
-      font-size: 11px;
+    .nav-item:hover {
+      background: var(--sidebar-hover);
+      color: #fff;
     }
+    .nav-item.active {
+      background: var(--sidebar-active);
+      color: #fff;
+      border-left: 3px solid var(--accent);
+      padding-left: 9px;
+    }
+    .nav-item .nav-icon { width: 18px; text-align: center; font-size: 15px; flex-shrink: 0; }
 
-    /* ── Chart panels ── */
-    .chart-panel {
-      background: var(--bg-card);
-      border: 1px solid var(--border2);
-      border-radius: 12px;
-      padding: 16px;
+    /* Agent roster in sidebar */
+    .agent-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 12px;
+      border-radius: 8px;
+      color: rgba(255,255,255,0.55);
+      font-size: 12px;
+      transition: all 0.15s;
+    }
+    .agent-row:hover { background: var(--sidebar-hover); color: rgba(255,255,255,0.9); }
+    .agent-ava {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      flex-shrink: 0;
+    }
+    .agent-ava img { width: 100%; height: 100%; object-fit: cover; object-position: center 12%; }
+    .agent-info { line-height: 1.3; }
+    .agent-name { font-weight: 600; font-size: 12px; color: rgba(255,255,255,0.8); }
+    .agent-role { font-size: 10px; color: rgba(255,255,255,0.35); }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 16px 12px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .user-panel {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+    }
+    .user-ava {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.85); }
+    .btn-logout {
+      margin-left: auto;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 6px;
+      color: rgba(255,255,255,0.5);
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .btn-logout:hover { border-color: #e74c3c; color: #e74c3c; }
+
+    /* ── Main content ── */
+    .main-content {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      padding: 28px 32px;
+      min-height: 100vh;
     }
 
     /* ── Page header ── */
     .page-header {
-      background: linear-gradient(135deg, var(--bg-base), var(--bg-card) 60%, var(--bg-card2));
-      border: 1px solid var(--border2);
-      border-radius: 16px;
-      padding: 22px 28px;
       margin-bottom: 24px;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .page-header p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    /* ── KPI cards ── */
+    .kpi-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
       position: relative;
       overflow: hidden;
     }
-    .page-header::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, var(--blue) 0%, var(--purple) 50%, var(--green) 100%);
-    }
-    .page-header h1 {
+    .kpi-card-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
       font-size: 20px;
+      margin-bottom: 12px;
+    }
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .kpi-value {
+      font-size: 26px;
       font-weight: 700;
-      color: var(--text-pri);
-      margin: 0 0 4px 0;
+      color: var(--text);
+      margin-bottom: 4px;
+      line-height: 1;
     }
-    .page-header p {
-      color: var(--text-sec);
+    .kpi-sub {
       font-size: 12px;
-      margin: 0;
+      color: var(--text-muted);
     }
+    .kpi-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-up   { background: rgba(0,184,148,0.12); color: #00b894; }
+    .badge-down { background: rgba(231,76,60,0.12);  color: #e74c3c; }
+    .badge-flat { background: rgba(107,114,128,0.10); color: var(--text-muted); }
+
+    /* ── Chart panels ── */
+    .chart-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .chart-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    /* ── Grid helpers ── */
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .grid-5-3 { display: grid; grid-template-columns: 5fr 3fr; gap: 16px; }
+    .grid-3-2 { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; }
 
     /* ── Loading spinner ── */
-    .spinner-border {
-      border-color: var(--blue);
-      border-right-color: transparent;
+    .spinner {
+      width: 24px; height: 24px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .spinner-sm { width: 16px; height: 16px; border-width: 2px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-center {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px; padding: 40px;
+      color: var(--text-muted); font-size: 13px;
     }
 
-    hr { border-color: var(--border) !important; }
+    /* ── Alert ── */
+    .alert-error {
+      background: rgba(231,76,60,0.08);
+      border: 1px solid rgba(231,76,60,0.25);
+      border-radius: 8px;
+      color: #e74c3c;
+      padding: 10px 14px;
+      font-size: 13px;
+    }
+
+    hr { border: none; border-top: 1px solid var(--border); }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
 <body>
 
 {% if session.get('username') %}
-<nav class="navbar navbar-expand-md px-4 py-2">
-  <a class="navbar-brand" href="{{ url_for('dashboard.main') }}">
-    📊 <span>AI</span> Data Dept.
-  </a>
-  <div class="collapse navbar-collapse">
-    <ul class="navbar-nav me-auto ms-3 gap-1">
-      <li class="nav-item">
-        <a class="nav-link {% if request.endpoint == 'dashboard.main' %}active{% endif %}"
-           href="{{ url_for('dashboard.main') }}">📈 Dashboard</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link {% if request.endpoint == 'chat.chat' %}active{% endif %}"
-           href="{{ url_for('chat.chat') }}">💬 AI Chat</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link {% if request.endpoint == 'prediction.prediction' %}active{% endif %}"
-           href="{{ url_for('prediction.prediction') }}">🔮 Prediction</a>
-      </li>
-    </ul>
-    <div class="d-flex align-items-center gap-3">
-      <span class="nav-user">👤 {{ session.get('username') }}</span>
-      <a href="{{ url_for('auth.logout') }}">
-        <button class="btn-logout">Logout</button>
-      </a>
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a class="brand" href="{{ url_for('dashboard.main') }}">
+      <div class="brand-icon">📊</div>
+      <div>
+        <div class="brand-name">AI Data Dept.</div>
+        <div class="brand-sub">Retail Intelligence</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Menu</div>
+    <a class="nav-item {% if request.endpoint == 'dashboard.main' %}active{% endif %}"
+       href="{{ url_for('dashboard.main') }}">
+      <span class="nav-icon">📈</span> Dashboard
+    </a>
+    <a class="nav-item {% if request.endpoint == 'chat.chat' %}active{% endif %}"
+       href="{{ url_for('chat.chat') }}">
+      <span class="nav-icon">💬</span> AI Chat
+    </a>
+    <a class="nav-item {% if request.endpoint == 'prediction.prediction' %}active{% endif %}"
+       href="{{ url_for('prediction.prediction') }}">
+      <span class="nav-icon">🔮</span> Prediction
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Agents</div>
+    <div class="agent-row">
+      <div class="agent-ava"><img src="{{ url_for('static', filename='avatars/alex.png') }}" alt="Alex"></div>
+      <div class="agent-info">
+        <div class="agent-name">Alex</div>
+        <div class="agent-role">Sales Agent</div>
+      </div>
+    </div>
+    <div class="agent-row">
+      <div class="agent-ava"><img src="{{ url_for('static', filename='avatars/dana.png') }}" alt="Dana"></div>
+      <div class="agent-info">
+        <div class="agent-name">Dana</div>
+        <div class="agent-role">Product Agent</div>
+      </div>
+    </div>
+    <div class="agent-row">
+      <div class="agent-ava"><img src="{{ url_for('static', filename='avatars/maya.png') }}" alt="Maya"></div>
+      <div class="agent-info">
+        <div class="agent-name">Maya</div>
+        <div class="agent-role">Customer Agent</div>
+      </div>
+    </div>
+    <div class="agent-row">
+      <div class="agent-ava"><img src="{{ url_for('static', filename='avatars/rey.png') }}" alt="Rey"></div>
+      <div class="agent-info">
+        <div class="agent-name">Rey</div>
+        <div class="agent-role">Prediction Agent</div>
+      </div>
+    </div>
+    <div class="agent-row">
+      <div class="agent-ava"><img src="{{ url_for('static', filename='avatars/aria.png') }}" alt="Aria"></div>
+      <div class="agent-info">
+        <div class="agent-name">Aria</div>
+        <div class="agent-role">General Agent</div>
+      </div>
     </div>
   </div>
-</nav>
+
+  <div class="sidebar-footer">
+    <div class="user-panel">
+      <div class="user-ava">{{ session.get('username', 'U')[0].upper() }}</div>
+      <div class="user-name">{{ session.get('username') }}</div>
+      <a href="{{ url_for('auth.logout') }}" class="btn-logout">Logout</a>
+    </div>
+  </div>
+</aside>
 {% endif %}
 
-<div class="container-fluid px-4 py-4">
+<div class="main-content {% if not session.get('username') %}no-sidebar{% endif %}">
   {% block content %}{% endblock %}
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% if not session.get('username') %}
+<style>
+  .main-content.no-sidebar { margin-left: 0; padding: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+</style>
+{% endif %}
+
 {% block scripts %}{% endblock %}
 </body>
 </html>
