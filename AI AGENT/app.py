@@ -19,8 +19,10 @@ st.markdown("""
 <style>
     /* ── Hide Streamlit chrome ── */
     #MainMenu { visibility: hidden; }
-    header    { visibility: hidden; }
     footer    { visibility: hidden; }
+    /* Hide header content but keep the sidebar toggle button visible */
+    header { visibility: hidden; }
+    [data-testid="stSidebarCollapsedControl"] { visibility: visible !important; }
 
     /* ── Base ── */
     .stApp { background-color: #F7F5FF; }
