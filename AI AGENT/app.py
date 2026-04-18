@@ -41,19 +41,10 @@ st.markdown("""
         max-width: 100% !important;
     }
 
-    /* ── Sidebar — force visible across all browsers (Chrome, Firefox, Safari, Edge).
-       Streamlit uses transform/margin to slide the sidebar off-screen when collapsed,
-       so we override both display AND transform/margin to ensure it stays on-screen. ── */
+    /* ── Sidebar ── */
     [data-testid="stSidebar"] {
-        display: block !important;
-        visibility: visible !important;
-        transform: none !important;
-        position: relative !important;
-        z-index: 999 !important;
-        margin-left: 0 !important;
-        left: 0 !important;
         background: #EDE9FE !important;
-        border-right: 1px solid #DDD6FE;
+        border-right: 1px solid #DDD6FE !important;
     }
     [data-testid="stSidebar"] p,
     [data-testid="stSidebar"] span,
