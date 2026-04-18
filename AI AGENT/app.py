@@ -38,6 +38,8 @@ st.markdown("""
     [data-testid="stSidebar"] {
         background: #EDE9FE !important;
         border-right: 1px solid #DDD6FE !important;
+        min-height: 100vh !important;
+        will-change: transform;
     }
     [data-testid="stSidebar"] p,
     [data-testid="stSidebar"] span,
