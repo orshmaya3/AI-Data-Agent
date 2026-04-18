@@ -34,7 +34,7 @@
     background: #21262d; border: 1px solid #30363d;
     overflow: hidden;
   }
-  .msg-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .msg-avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center 12%; border-radius: 50%; }
   .msg.user .msg-avatar { background: rgba(31,111,235,0.2); border-color: #1f6feb; }
   .msg-body { max-width: 78%; }
   .msg-label {
@@ -201,7 +201,7 @@ const suggsEl = document.getElementById('suggestions');
     const saved = sessionStorage.getItem(STORAGE_KEY);
     if (!saved) return;
     messages = JSON.parse(saved);
-    messages.forEach(m => renderBubble(m.role, m.content, false));
+    messages.forEach(m => renderBubble(m.role, m.content, m.agent || '', false));
     history = messages.map(m => ({ role: m.role, content: m.content }));
     if (messages.length > 0) suggsEl.style.display = 'none';
     chatEl.scrollTop = chatEl.scrollHeight;
