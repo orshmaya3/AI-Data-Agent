@@ -29,8 +29,17 @@ st.markdown("""
         visibility: hidden;
     }
 
-    /* Hide the sidebar collapse button so users can't accidentally close the nav */
-    [data-testid="stSidebarCollapseButton"] { display: none !important; }
+    /* Hide the collapse button visually but keep it in the DOM so all browsers
+       can still manage sidebar state via JavaScript */
+    [data-testid="stSidebarCollapseButton"] {
+        visibility: hidden !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+    }
 
     /* ── Base ── */
     .stApp { background-color: #F7F5FF; }
@@ -40,10 +49,15 @@ st.markdown("""
         max-width: 100% !important;
     }
 
-    /* ── Sidebar ── */
+    /* ── Sidebar — force visible across all browsers (Chrome, Firefox, Safari, Edge).
+       Streamlit uses transform/margin to slide the sidebar off-screen when collapsed,
+       so we override both display AND transform/margin to ensure it stays on-screen. ── */
     [data-testid="stSidebar"] {
         display: block !important;
         visibility: visible !important;
+        transform: translateX(0) !important;
+        margin-left: 0 !important;
+        left: 0 !important;
         background: #EDE9FE !important;
         border-right: 1px solid #DDD6FE;
     }
