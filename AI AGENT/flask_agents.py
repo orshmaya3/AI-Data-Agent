@@ -7,7 +7,9 @@ import os
 import sys
 import threading
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_BASE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _BASE)
+sys.path.insert(0, os.path.join(_BASE, 'agents'))
 
 _df      = None
 _manager = None
@@ -31,7 +33,7 @@ def get_agents():
             from Manager import ManagerAgent
             from Sales_Analyst import SalesAnalyst
 
-            csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mixed_online_retail.csv")
+            csv_path = os.path.join(_BASE, "data", "mixed_online_retail.csv")
             d_agent = DataAgent(csv_path)
             _df = d_agent.get_data()
 
