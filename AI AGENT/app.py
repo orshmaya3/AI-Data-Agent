@@ -22,7 +22,11 @@ st.markdown("""
     footer    { visibility: hidden; }
     /* Hide header content but keep the sidebar toggle button visible */
     header { visibility: hidden; }
-    [data-testid="stSidebarCollapsedControl"] { visibility: visible !important; }
+    [data-testid="stSidebarCollapsedControl"] {
+        visibility: visible !important;
+        pointer-events: auto !important;
+        z-index: 999999 !important;
+    }
 
     /* ── Base ── */
     .stApp { background-color: #F7F5FF; }
