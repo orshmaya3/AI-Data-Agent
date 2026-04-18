@@ -11,7 +11,7 @@ st.set_page_config(
     page_title="AI Data Department",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ── Custom CSS  (Monday.com light theme) ───────────────────────────────────────
@@ -23,9 +23,6 @@ st.markdown("""
     /* Collapse header to zero height so it takes no space and blocks nothing */
     header { visibility: hidden; }
 
-    /* Single rule is enough and avoids Chrome layout recalculation side-effects */
-    [data-testid="stSidebarCollapseButton"] { display: none !important; }
-
     /* ── Base ── */
     .stApp { background-color: #F7F5FF; }
     .block-container {
@@ -34,17 +31,6 @@ st.markdown("""
         max-width: 100% !important;
     }
 
-    /* ── Sidebar ── */
-    [data-testid="stSidebar"] {
-        background: #EDE9FE !important;
-        border-right: 1px solid #DDD6FE !important;
-        min-height: 100vh !important;
-        will-change: transform;
-    }
-    [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] .stMarkdown p { color: #4C1D95 !important; }
 
     /* ── Split-pane columns: let Streamlit handle spacing natively ── */
 
@@ -366,42 +352,6 @@ st.markdown("""
     hr { border-color: #E5E7EB !important; }
     .stSpinner > div { border-top-color: #7C3AED !important; }
 
-    /* ── Sidebar navigation radio ── */
-    [data-testid="stSidebar"] [data-testid="stRadio"] > label { display: none; }
-    [data-testid="stSidebar"] [data-testid="stRadio"] > div {
-        gap: 2px; flex-direction: column;
-    }
-    [data-testid="stSidebar"] [data-testid="stRadio"] > div > label {
-        background: transparent;
-        border: 1px solid transparent;
-        border-radius: 8px;
-        color: #5B21B6 !important;
-        font-size: 13px;
-        font-weight: 500;
-        padding: 8px 12px;
-        cursor: pointer;
-        transition: background 0.15s, border-color 0.15s, color 0.15s;
-        display: flex; align-items: center; gap: 6px;
-    }
-    /* Hide the radio circle indicator */
-    [data-testid="stSidebar"] [data-testid="stRadio"] > div > label > div:first-child,
-    [data-testid="stSidebar"] [data-testid="stRadio"] input[type="radio"] {
-        display: none !important;
-    }
-    [data-testid="stSidebar"] [data-testid="stRadio"] > div > label:hover {
-        background: rgba(124,58,237,0.10);
-        border-color: #DDD6FE;
-        color: #4C1D95 !important;
-    }
-    [data-testid="stSidebar"] [data-testid="stRadio"] > div > label:has(input:checked) {
-        background: rgba(124,58,237,0.12);
-        border-color: #7C3AED;
-        border-left: 3px solid #7C3AED !important;
-        padding-left: 9px;
-        color: #6D28D9 !important;
-        font-weight: 600;
-    }
-
     /* ── Expander chrome ── */
     [data-testid="stExpander"] {
         background: #FFFFFF !important;
@@ -433,9 +383,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Page navigation state ─────────────────────────────────────────────────────
-if "page" not in st.session_state:
-    st.session_state.page = "📊 Dashboard"
 
 # ── Shared chart style ──────────────────────────────────────────────────────────
 CHART_BASE = dict(
@@ -494,78 +441,55 @@ with st.spinner("Initializing agents..."):
         st.error(f"Failed to initialize agents: {_e}")
         df, manager, sales = None, None, None
 
-# ── Sidebar ─────────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("""
-    <div style="padding: 6px 0 14px 0;">
-        <div style="font-size: 17px; font-weight: 700; color: #1E1B4B; letter-spacing: -0.3px;">
-            📊 AI Data Dept.
-        </div>
-        <div style="font-size: 11px; color: #7C3AED; margin-top: 3px; letter-spacing: 0.3px;">
-            Retail Intelligence Platform
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("<hr>", unsafe_allow_html=True)
-
-    st.markdown('<div class="section-label">Navigation</div>', unsafe_allow_html=True)
-    _nav_options = ["📊 Dashboard", "💬 AI Chat", "🔮 Prediction"]
-    _selected = st.radio(
-        "nav", _nav_options,
-        index=_nav_options.index(st.session_state.get("page", "📊 Dashboard")),
-        label_visibility="collapsed",
-        key="nav_radio",
-    )
-    st.session_state.page = _selected
-    st.markdown("<hr>", unsafe_allow_html=True)
-
-    if df is None or manager is None:
-        st.error("Could not load data or initialize agents. Check that `mixed_online_retail.csv` is in the project folder.")
-    else:
-        st.markdown('<div class="section-label">Active Agents</div>', unsafe_allow_html=True)
-
-        _AGENT_COLORS = {
-            "Alex": "#7C3AED",
-            "Dana": "#2563EB",
-            "Maya": "#059669",
-            "Rey":  "#6D28D9",
-            "Aria": "#0891B2",
-        }
-        agents_info = [
-            ("Alex", "Sales Analyst", "💼"),
-            ("Dana", "Product Analyst", "📦"),
-            ("Maya", "Customer Analyst", "👤"),
-            ("Rey",  "Prediction Analyst", "🔮"),
-            ("Aria", "General Analyst · Code", "🧠"),
-        ]
-        for name, role, icon in agents_info:
-            color = _AGENT_COLORS.get(name, "#7C3AED")
-            st.markdown(f"""
-            <div class="agent-card" style="border-left: 3px solid {color};">
-                <div class="agent-dot" style="background: {color}; box-shadow: 0 0 6px {color};"></div>
-                <div>
-                    <div class="agent-name">{icon}&nbsp; {name}</div>
-                    <div class="agent-role">{role}</div>
-                </div>
-            </div>""", unsafe_allow_html=True)
-
-        st.markdown("<hr>", unsafe_allow_html=True)
-        st.markdown('<div class="section-label">Dataset</div>', unsafe_allow_html=True)
-        st.markdown(f"""
-        <div style="color: #5B21B6; font-size: 12px; line-height: 2;">
-            📄 &nbsp;mixed_online_retail.csv<br>
-            🗂 &nbsp;{len(df):,} records loaded<br>
-            🌍 &nbsp;UK Online Retail
-        </div>""", unsafe_allow_html=True)
-
-# ── Stop main page rendering if agents failed to load ───────────────────────────
+# ── Stop if agents failed to load ───────────────────────────────────────────────
 if df is None or manager is None:
+    st.error("Could not load data or initialize agents. Check that `mixed_online_retail.csv` is in the project folder.")
     st.stop()
+
+# ── Agent status bar ─────────────────────────────────────────────────────────────
+_AGENT_COLORS = {
+    "Alex": "#7C3AED",
+    "Dana": "#2563EB",
+    "Maya": "#059669",
+    "Rey":  "#6D28D9",
+    "Aria": "#0891B2",
+}
+_agents_info = [
+    ("Alex", "Sales Analyst",        "💼"),
+    ("Dana", "Product Analyst",      "📦"),
+    ("Maya", "Customer Analyst",     "👤"),
+    ("Rey",  "Prediction Analyst",   "🔮"),
+    ("Aria", "General Analyst · Code","🧠"),
+]
+_agent_chips = "".join(
+    f'<span style="display:inline-flex;align-items:center;gap:5px;background:#FFFFFF;'
+    f'border:1px solid {_AGENT_COLORS[n]};border-radius:20px;padding:3px 10px 3px 6px;'
+    f'font-size:11px;font-weight:500;color:{_AGENT_COLORS[n]};">'
+    f'<span style="width:7px;height:7px;border-radius:50%;background:{_AGENT_COLORS[n]};'
+    f'box-shadow:0 0 5px {_AGENT_COLORS[n]};flex-shrink:0;"></span>{i}&nbsp;{n}</span>'
+    for n, _, i in _agents_info
+)
+st.markdown(
+    f'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;'
+    f'padding:10px 4px 14px 4px;border-bottom:1px solid #DDD6FE;margin-bottom:8px;">'
+    f'<span style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:1px;'
+    f'text-transform:uppercase;margin-right:4px;">Active Agents</span>'
+    f'{_agent_chips}'
+    f'<span style="margin-left:auto;font-size:11px;color:#6B7280;">'
+    f'📄 {len(df):,} records &nbsp;·&nbsp; 🌍 UK Retail</span>'
+    f'</div>',
+    unsafe_allow_html=True,
+)
+
+# ════════════════════════════════════════════════════════
+# NAVIGATION TABS
+# ════════════════════════════════════════════════════════
+_tab1, _tab2, _tab3 = st.tabs(["📊 Dashboard", "💬 AI Chat", "🔮 Prediction"])
 
 # ════════════════════════════════════════════════════════
 # PAGE 1 — DASHBOARD
 # ════════════════════════════════════════════════════════
-if st.session_state.page == "📊 Dashboard":
+with _tab1:
 
     st.markdown("""
     <div class="main-header">
@@ -701,7 +625,7 @@ if st.session_state.page == "📊 Dashboard":
 # ════════════════════════════════════════════════════════
 # PAGE 2 — AI CHAT  (split-pane)
 # ════════════════════════════════════════════════════════
-elif st.session_state.page == "💬 AI Chat":
+with _tab2:
 
     MAX_HISTORY = 50
 
@@ -816,7 +740,7 @@ elif st.session_state.page == "💬 AI Chat":
 # ════════════════════════════════════════════════════════
 # PAGE 3 — PREDICTION AGENT (Rey)  (split-pane chat)
 # ════════════════════════════════════════════════════════
-elif st.session_state.page == "🔮 Prediction":
+with _tab3:
 
     pa = manager.prediction_analyst
 
