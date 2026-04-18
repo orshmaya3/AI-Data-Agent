@@ -4,8 +4,10 @@ from datetime import timedelta
 from flask import Flask, redirect, url_for
 from dotenv import load_dotenv
 
-# Make sure the AI AGENT directory is on the path before any blueprint imports
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+# Make sure the AI AGENT directory and agents/ subfolder are on the path
+_BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+sys.path.insert(0, _BASE_DIR)
+sys.path.insert(0, os.path.join(_BASE_DIR, 'agents'))
 
 load_dotenv()
 
