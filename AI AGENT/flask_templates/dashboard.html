@@ -1,45 +1,139 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — Orbital AI{% endblock %}
 
+{% block extra_head %}
+<style>
+  /* ── Full-screen loading overlay ── */
+  #page-loader {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    transition: opacity 0.55s ease;
+  }
+  #page-loader.done {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .loader-orbital {
+    position: relative;
+    width: 72px; height: 72px;
+  }
+  /* Outer ring — slow spin */
+  .loader-orbital .ring-outer {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid rgba(120,160,255,0.18);
+    animation: orbit-spin 3s linear infinite;
+  }
+  /* Inner ring — faster, opposite */
+  .loader-orbital .ring-inner {
+    position: absolute;
+    inset: 14px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(120,160,255,0.10);
+    animation: orbit-spin 1.8s linear infinite reverse;
+  }
+  /* Orbiting dot */
+  .loader-orbital .orbit-dot {
+    position: absolute;
+    top: -4px; left: 50%;
+    transform: translateX(-50%);
+    width: 8px; height: 8px;
+    background: #78a0ff;
+    border-radius: 50%;
+    box-shadow: 0 0 10px 3px rgba(120,160,255,0.45);
+    animation: orbit-spin 3s linear infinite;
+    transform-origin: 50% 40px;
+  }
+  /* Center planet */
+  .loader-orbital .planet {
+    position: absolute;
+    inset: 28px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(120,160,255,0.35), rgba(120,160,255,0.08));
+    border: 1px solid rgba(120,160,255,0.25);
+  }
+  @keyframes orbit-spin { to { transform: rotate(360deg); } }
+
+  .loader-text {
+    text-align: center;
+    line-height: 1.6;
+  }
+  .loader-text .primary {
+    font-size: 14px;
+    font-weight: 600;
+    color: #78a0ff;
+    letter-spacing: 0.5px;
+  }
+  .loader-text .secondary {
+    font-size: 11px;
+    color: rgba(240,240,250,0.28);
+    margin-top: 3px;
+  }
+
+  /* Pulsing dots after "Loading" */
+  .loader-dots span {
+    display: inline-block;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: #78a0ff;
+    margin: 0 1.5px;
+    animation: ldot 1.4s infinite ease-in-out;
+    vertical-align: middle;
+  }
+  .loader-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loader-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes ldot { 0%,80%,100%{opacity:.15} 40%{opacity:1} }
+</style>
+{% endblock %}
+
 {% block content %}
+<!-- Loading overlay -->
+<div id="page-loader">
+  <div class="loader-orbital">
+    <div class="ring-outer"></div>
+    <div class="ring-inner"></div>
+    <div class="orbit-dot"></div>
+    <div class="planet"></div>
+  </div>
+  <div class="loader-text">
+    <div class="primary">Loading data <span class="loader-dots"><span></span><span></span><span></span></span></div>
+    <div class="secondary">Initialising agents</div>
+  </div>
+</div>
+
 <div class="page-header">
   <h1>Dashboard</h1>
   <p>Real-time retail analytics powered by autonomous AI agents</p>
 </div>
 
 <!-- KPI Grid -->
-<div class="grid-4" style="margin-bottom:16px;" id="kpi-row">
-  <div class="kpi-card"><div class="loader-center" style="padding:16px"><div class="spinner"></div></div></div>
-  <div class="kpi-card"><div class="loader-center" style="padding:16px"><div class="spinner"></div></div></div>
-  <div class="kpi-card"><div class="loader-center" style="padding:16px"><div class="spinner"></div></div></div>
-  <div class="kpi-card"><div class="loader-center" style="padding:16px"><div class="spinner"></div></div></div>
-</div>
+<div class="grid-4" style="margin-bottom:16px;" id="kpi-row"></div>
 
 <!-- Charts Row 1 -->
 <div class="grid-5-3" style="margin-bottom:14px;">
-  <div class="chart-panel" style="min-height:300px;" id="chart-monthly">
-    <div class="loader-center"><div class="spinner"></div></div>
-  </div>
-  <div class="chart-panel" style="min-height:300px;" id="chart-countries">
-    <div class="loader-center"><div class="spinner"></div></div>
-  </div>
+  <div class="chart-panel" style="min-height:300px;" id="chart-monthly"></div>
+  <div class="chart-panel" style="min-height:300px;" id="chart-countries"></div>
 </div>
 
 <!-- Charts Row 2 -->
 <div class="grid-3-2">
-  <div class="chart-panel" style="min-height:300px;" id="chart-hourly">
-    <div class="loader-center"><div class="spinner"></div></div>
-  </div>
-  <div class="chart-panel" style="min-height:300px;" id="chart-products">
-    <div class="loader-center"><div class="spinner"></div></div>
-  </div>
+  <div class="chart-panel" style="min-height:300px;" id="chart-hourly"></div>
+  <div class="chart-panel" style="min-height:300px;" id="chart-products"></div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 const BG = '#000000';
-const CARD_BG = 'rgba(240,240,250,0.03)';
 const ACCENT = '#78a0ff';
 const ACCENT_DIM = 'rgba(120,160,255,0.22)';
 const TEXT = 'rgba(240,240,250,0.5)';
@@ -66,91 +160,93 @@ const KPI_DEFS = [
   { icon: '◎', color: 'rgba(167,139,250,0.12)', text: '#a78bfa' },
 ];
 
-fetch('/api/kpis')
-  .then(r => r.json())
-  .then(d => {
-    const mom = d.mom_growth;
-    const badge = mom > 0
-      ? `<span class="kpi-badge badge-up">↑ ${mom.toFixed(1)}%</span>`
-      : mom < 0
-        ? `<span class="kpi-badge badge-down">↓ ${Math.abs(mom).toFixed(1)}%</span>`
-        : `<span class="kpi-badge badge-flat">Stable</span>`;
+const loader = document.getElementById('page-loader');
 
-    const kpis = [
-      { label: 'Total Revenue',   value: `£${d.total_revenue.toLocaleString('en-GB', {maximumFractionDigits:0})}`, sub: badge },
-      { label: 'Total Orders',    value: d.total_orders.toLocaleString(), sub: 'Unique invoices' },
-      { label: 'Items Sold',      value: d.total_items.toLocaleString(), sub: 'Units dispatched' },
-      { label: 'Avg Order Value', value: `£${d.aov.toFixed(2)}`, sub: 'Per invoice' },
-    ];
+function renderKpis(d) {
+  const mom = d.mom_growth;
+  const badge = mom > 0
+    ? `<span class="kpi-badge badge-up">↑ ${mom.toFixed(1)}%</span>`
+    : mom < 0
+      ? `<span class="kpi-badge badge-down">↓ ${Math.abs(mom).toFixed(1)}%</span>`
+      : `<span class="kpi-badge badge-flat">Stable</span>`;
 
-    document.getElementById('kpi-row').innerHTML = kpis.map((k, i) => {
-      const c = KPI_DEFS[i];
-      return `<div class="kpi-card">
-        <div class="kpi-card-icon" style="background:${c.color};color:${c.text};font-weight:700;font-size:15px">${c.icon}</div>
-        <div class="kpi-label">${k.label}</div>
-        <div class="kpi-value">${k.value}</div>
-        <div class="kpi-sub" style="margin-top:5px">${k.sub}</div>
-      </div>`;
-    }).join('');
-  })
-  .catch(() => {
-    document.getElementById('kpi-row').innerHTML =
-      '<div style="grid-column:1/-1"><div class="alert-error">Failed to load KPIs.</div></div>';
-  });
+  const kpis = [
+    { label: 'Total Revenue',   value: `£${d.total_revenue.toLocaleString('en-GB', {maximumFractionDigits:0})}`, sub: badge },
+    { label: 'Total Orders',    value: d.total_orders.toLocaleString(), sub: 'Unique invoices' },
+    { label: 'Items Sold',      value: d.total_items.toLocaleString(), sub: 'Units dispatched' },
+    { label: 'Avg Order Value', value: `£${d.aov.toFixed(2)}`, sub: 'Per invoice' },
+  ];
 
-fetch('/api/charts')
-  .then(r => r.json())
-  .then(d => {
-    // Monthly Revenue — line with glow fill
-    const months = Object.keys(d.monthly_revenue);
-    const revs   = Object.values(d.monthly_revenue);
-    Plotly.newPlot('chart-monthly', [{
-      x: months, y: revs, type: 'scatter', mode: 'lines',
-      fill: 'tozeroy',
-      line: { color: ACCENT, width: 2 },
-      fillcolor: 'rgba(120,160,255,0.07)',
-      hovertemplate: '<b>%{x}</b><br>£%{y:,.0f}<extra></extra>',
-    }], { ...LAYOUT_BASE,
-          title: { text: 'Monthly Revenue', font: { color: 'rgba(240,240,250,0.8)', size: 12 } },
-          yaxis: { ...LAYOUT_BASE.yaxis, tickprefix: '£' } }, CFG);
+  document.getElementById('kpi-row').innerHTML = kpis.map((k, i) => {
+    const c = KPI_DEFS[i];
+    return `<div class="kpi-card">
+      <div class="kpi-card-icon" style="background:${c.color};color:${c.text};font-weight:700;font-size:15px">${c.icon}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub" style="margin-top:5px">${k.sub}</div>
+    </div>`;
+  }).join('');
+}
 
-    // Top Countries
-    const ctry_names = Object.keys(d.top_countries);
-    const ctry_vals  = Object.values(d.top_countries);
-    const maxCtry = Math.max(...ctry_vals);
-    Plotly.newPlot('chart-countries', [{
-      x: ctry_vals, y: ctry_names, type: 'bar', orientation: 'h',
-      marker: { color: ctry_vals.map(v => v === maxCtry ? ACCENT : ACCENT_DIM) },
-      hovertemplate: '<b>%{y}</b><br>£%{x:,.0f}<extra></extra>',
-    }], { ...LAYOUT_BASE,
-          title: { text: 'Top 5 Countries', font: { color: 'rgba(240,240,250,0.8)', size: 12 } },
-          xaxis: { ...LAYOUT_BASE.xaxis, tickprefix: '£' } }, CFG);
+function renderCharts(d) {
+  const months = Object.keys(d.monthly_revenue);
+  const revs   = Object.values(d.monthly_revenue);
+  Plotly.newPlot('chart-monthly', [{
+    x: months, y: revs, type: 'scatter', mode: 'lines',
+    fill: 'tozeroy',
+    line: { color: ACCENT, width: 2 },
+    fillcolor: 'rgba(120,160,255,0.07)',
+    hovertemplate: '<b>%{x}</b><br>£%{y:,.0f}<extra></extra>',
+  }], { ...LAYOUT_BASE,
+        title: { text: 'Monthly Revenue', font: { color: 'rgba(240,240,250,0.8)', size: 12 } },
+        yaxis: { ...LAYOUT_BASE.yaxis, tickprefix: '£' } }, CFG);
 
-    // Hourly Sales
-    const hours_raw = d.hourly_sales;
-    const hours = Object.keys(hours_raw).sort((a,b) => parseInt(a)-parseInt(b));
-    const h_vals = hours.map(h => hours_raw[h]);
-    const maxH = Math.max(...h_vals);
-    Plotly.newPlot('chart-hourly', [{
-      x: hours, y: h_vals, type: 'bar',
-      marker: { color: h_vals.map(v => v === maxH ? ACCENT : ACCENT_DIM) },
-      hovertemplate: '<b>%{x}:00</b><br>£%{y:,.0f}<extra></extra>',
-    }], { ...LAYOUT_BASE,
-          title: { text: 'Sales by Hour of Day', font: { color: 'rgba(240,240,250,0.8)', size: 12 } },
-          yaxis: { ...LAYOUT_BASE.yaxis, tickprefix: '£' }, height: 300 }, CFG);
+  const ctry_names = Object.keys(d.top_countries);
+  const ctry_vals  = Object.values(d.top_countries);
+  const maxCtry = Math.max(...ctry_vals);
+  Plotly.newPlot('chart-countries', [{
+    x: ctry_vals, y: ctry_names, type: 'bar', orientation: 'h',
+    marker: { color: ctry_vals.map(v => v === maxCtry ? ACCENT : ACCENT_DIM) },
+    hovertemplate: '<b>%{y}</b><br>£%{x:,.0f}<extra></extra>',
+  }], { ...LAYOUT_BASE,
+        title: { text: 'Top 5 Countries', font: { color: 'rgba(240,240,250,0.8)', size: 12 } },
+        xaxis: { ...LAYOUT_BASE.xaxis, tickprefix: '£' } }, CFG);
 
-    // Top Products
-    const prod_names = Object.keys(d.top_products).map(n => n.length > 26 ? n.slice(0,26)+'…' : n);
-    const prod_vals  = Object.values(d.top_products);
-    const maxP = Math.max(...prod_vals);
-    Plotly.newPlot('chart-products', [{
-      x: prod_vals, y: prod_names, type: 'bar', orientation: 'h',
-      marker: { color: prod_vals.map(v => v === maxP ? 'rgba(74,222,128,0.85)' : 'rgba(74,222,128,0.22)') },
-      hovertemplate: '<b>%{y}</b><br>£%{x:,.0f}<extra></extra>',
-    }], { ...LAYOUT_BASE,
-          title: { text: 'Top Products', font: { color: 'rgba(240,240,250,0.8)', size: 12 } },
-          xaxis: { ...LAYOUT_BASE.xaxis, tickprefix: '£' }, height: 300 }, CFG);
-  })
-  .catch(err => console.error('Charts error:', err));
+  const hours_raw = d.hourly_sales;
+  const hours = Object.keys(hours_raw).sort((a,b) => parseInt(a)-parseInt(b));
+  const h_vals = hours.map(h => hours_raw[h]);
+  const maxH = Math.max(...h_vals);
+  Plotly.newPlot('chart-hourly', [{
+    x: hours, y: h_vals, type: 'bar',
+    marker: { color: h_vals.map(v => v === maxH ? ACCENT : ACCENT_DIM) },
+    hovertemplate: '<b>%{x}:00</b><br>£%{y:,.0f}<extra></extra>',
+  }], { ...LAYOUT_BASE,
+        title: { text: 'Sales by Hour of Day', font: { color: 'rgba(240,240,250,0.8)', size: 12 } },
+        yaxis: { ...LAYOUT_BASE.yaxis, tickprefix: '£' }, height: 300 }, CFG);
+
+  const prod_names = Object.keys(d.top_products).map(n => n.length > 26 ? n.slice(0,26)+'…' : n);
+  const prod_vals  = Object.values(d.top_products);
+  const maxP = Math.max(...prod_vals);
+  Plotly.newPlot('chart-products', [{
+    x: prod_vals, y: prod_names, type: 'bar', orientation: 'h',
+    marker: { color: prod_vals.map(v => v === maxP ? 'rgba(74,222,128,0.85)' : 'rgba(74,222,128,0.22)') },
+    hovertemplate: '<b>%{y}</b><br>£%{x:,.0f}<extra></extra>',
+  }], { ...LAYOUT_BASE,
+        title: { text: 'Top Products', font: { color: 'rgba(240,240,250,0.8)', size: 12 } },
+        xaxis: { ...LAYOUT_BASE.xaxis, tickprefix: '£' }, height: 300 }, CFG);
+}
+
+Promise.all([
+  fetch('/api/kpis').then(r => r.json()),
+  fetch('/api/charts').then(r => r.json()),
+]).then(([kpiData, chartData]) => {
+  renderKpis(kpiData);
+  renderCharts(chartData);
+  loader.classList.add('done');
+}).catch(() => {
+  loader.classList.add('done');
+  document.getElementById('kpi-row').innerHTML =
+    '<div style="grid-column:1/-1"><div class="alert-error">Failed to load data. Please refresh.</div></div>';
+});
 </script>
 {% endblock %}
