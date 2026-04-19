@@ -13,38 +13,10 @@ import warnings
 import pandas as pd
 import numpy as np
 
-# ── Optional ML imports — graceful degradation if not installed ───────────────
+# Heavy ML libraries (Prophet, sklearn, shap, mlxtend) are imported lazily
+# inside each method so that app startup does not load all of them at once.
+# Python caches imports in sys.modules, so after the first call they are instant.
 
-try:
-    from prophet import Prophet
-    _PROPHET_AVAILABLE = True
-except ImportError:
-    _PROPHET_AVAILABLE = False
-
-try:
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.cluster import KMeans
-    from sklearn.metrics import silhouette_score
-    from sklearn.model_selection import train_test_split
-    from sklearn.metrics import classification_report as _sklearn_cr
-    _SKLEARN_AVAILABLE = True
-except ImportError:
-    _SKLEARN_AVAILABLE = False
-
-try:
-    import shap as _shap_lib
-    _SHAP_AVAILABLE = True
-except ImportError:
-    _SHAP_AVAILABLE = False
-
-try:
-    from mlxtend.frequent_patterns import fpgrowth as _fpgrowth
-    from mlxtend.frequent_patterns import association_rules as _assoc_rules
-    from mlxtend.preprocessing import TransactionEncoder as _TransactionEncoder
-    _MLXTEND_AVAILABLE = True
-except ImportError:
-    _MLXTEND_AVAILABLE = False
 
 
 class PredictionAnalyst:
@@ -289,7 +261,12 @@ class PredictionAnalyst:
             churn_threshold_days: Days inactive used to label churned=1 (default 90).
             top_n: How many high-risk customers to return (default 20, max 50).
         """
-        if not _SKLEARN_AVAILABLE:
+        try:
+            from sklearn.ensemble import RandomForestClassifier
+            from sklearn.preprocessing import StandardScaler
+            from sklearn.model_selection import train_test_split
+            from sklearn.metrics import classification_report as _sklearn_cr
+        except ImportError:
             return {"error": "scikit-learn is not installed. Run: pip install scikit-learn>=1.3.0"}
 
         rfm = self._build_rfm_dataframe()
@@ -369,7 +346,12 @@ class PredictionAnalyst:
 
         # ── SHAP (optional, TreeExplainer fast path) ──────────────────────────
         shap_summary = None
-        if _SHAP_AVAILABLE:
+        try:
+            import shap as _shap_lib
+            _shap_ok = True
+        except ImportError:
+            _shap_ok = False
+        if _shap_ok:
             try:
                 explainer   = _shap_lib.TreeExplainer(self._rf_model)
                 sample_X    = X_all_s[: min(200, len(X_all_s))]
@@ -436,6 +418,8 @@ class PredictionAnalyst:
         Runs KMeans for each k in k_range, computes silhouette scores, and
         returns the k with the highest score. Caches scores in _k_silhouette_scores.
         """
+        from sklearn.cluster import KMeans
+        from sklearn.metrics import silhouette_score
         scores: dict[int, float] = {}
         for k in k_range:
             if len(X_scaled) < k * 5:
@@ -466,7 +450,11 @@ class PredictionAnalyst:
                         auto-detect the optimal K via Silhouette Analysis (range 2–8).
                         Pass an explicit integer to override (clamped to 2–8).
         """
-        if not _SKLEARN_AVAILABLE:
+        try:
+            from sklearn.cluster import KMeans
+            from sklearn.metrics import silhouette_score
+            from sklearn.preprocessing import StandardScaler
+        except ImportError:
             return {"error": "scikit-learn is not installed. Run: pip install scikit-learn>=1.3.0"}
 
         rfm = self._build_rfm_dataframe()
@@ -616,7 +604,13 @@ class PredictionAnalyst:
 
         horizon_months = min(horizon_months, 12)
 
-        if not _PROPHET_AVAILABLE:
+        try:
+            from prophet import Prophet
+            _prophet_ok = True
+        except ImportError:
+            _prophet_ok = False
+
+        if not _prophet_ok:
             return self._get_revenue_forecast_linear(horizon_months)
 
         # ── Build daily revenue series ────────────────────────────────────────
@@ -642,7 +636,7 @@ class PredictionAnalyst:
         if self._prophet_model is None:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                m = Prophet(
+                m = Prophet(  # noqa: F821 — imported above
                     yearly_seasonality=True,
                     weekly_seasonality=True,
                     daily_seasonality=False,
@@ -1012,7 +1006,15 @@ class PredictionAnalyst:
             unique_invoices = MAX_INVOICES
 
         # ── Build basket: Invoice × Product boolean matrix ────────────────────
-        if _MLXTEND_AVAILABLE:
+        try:
+            from mlxtend.frequent_patterns import fpgrowth as _fpgrowth
+            from mlxtend.frequent_patterns import association_rules as _assoc_rules
+            from mlxtend.preprocessing import TransactionEncoder as _TransactionEncoder
+            _mlxtend_ok = True
+        except ImportError:
+            _mlxtend_ok = False
+
+        if _mlxtend_ok:
             # FP-Growth path (fast, memory-efficient)
             basket_sets = (
                 sales_df.groupby("Invoice")["Description"]
@@ -1138,7 +1140,7 @@ class PredictionAnalyst:
 
             rules_out.sort(key=lambda x: x["lift"], reverse=True)
             rules_out = rules_out[:top_n]
-            engine = "co-occurrence matrix (mlxtend not installed)"
+            engine = "co-occurrence matrix (mlxtend not available)"
 
         return {
             "rules":                        rules_out,
