@@ -1,7 +1,17 @@
+import math
 from flask import Blueprint, render_template, session, jsonify
 from flask_routes.utils import login_required
 
 dashboard_bp = Blueprint('dashboard', __name__)
+
+
+def _safe(v, default=0.0):
+    """Return v if it is a finite number, otherwise default."""
+    try:
+        f = float(v)
+        return f if math.isfinite(f) else default
+    except (TypeError, ValueError):
+        return default
 
 
 @dashboard_bp.route('/dashboard')
@@ -35,17 +45,19 @@ def api_kpis():
 
     try:
         mom_data = sales.get_mom_growth_rate()
-        mom = mom_data.get('latest', 0.0) if isinstance(mom_data, dict) else float(mom_data or 0)
+        mom = mom_data.get('latest', 0.0) if isinstance(mom_data, dict) else 0.0
         return jsonify({
-            'total_revenue': sales.get_total_revenue(),
-            'total_orders':  sales.get_total_orders(),
-            'total_items':   sales.get_total_items_sold(),
-            'aov':           sales.get_average_order_value(),
-            'refund_rate':   sales.get_refund_rate(),
-            'mom_growth':    mom,
-            'records':       len(df),
+            'total_revenue': _safe(sales.get_total_revenue()),
+            'total_orders':  int(sales.get_total_orders()),
+            'total_items':   int(sales.get_total_items_sold()),
+            'aov':           _safe(sales.get_average_order_value()),
+            'refund_rate':   _safe(sales.get_refund_rate()),
+            'mom_growth':    _safe(mom),
+            'records':       int(len(df)),
         })
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'KPI calculation failed: {e}'}), 500
 
 
@@ -66,4 +78,6 @@ def api_charts():
             'hourly_sales':    sales.get_hourly_sales_distribution(),
         })
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Chart data failed: {e}'}), 500

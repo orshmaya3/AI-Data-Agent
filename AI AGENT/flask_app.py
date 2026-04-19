@@ -1,31 +1,8 @@
 import os
 import sys
-import math
 from datetime import timedelta
 from flask import Flask, redirect, url_for
-from flask.json.provider import DefaultJSONProvider
 from dotenv import load_dotenv
-
-
-class _FiniteJSONProvider(DefaultJSONProvider):
-    """Converts float nan/inf to null so the browser's JSON.parse() never chokes."""
-    @staticmethod
-    def default(o):
-        if isinstance(o, float) and not math.isfinite(o):
-            return None
-        return DefaultJSONProvider.default(o)
-
-    def dumps(self, obj, **kwargs):
-        # Walk scalars: replace nan/inf with None before encoding
-        def _clean(v):
-            if isinstance(v, float) and not math.isfinite(v):
-                return None
-            if isinstance(v, dict):
-                return {k: _clean(val) for k, val in v.items()}
-            if isinstance(v, list):
-                return [_clean(i) for i in v]
-            return v
-        return super().dumps(_clean(obj), **kwargs)
 
 # Make sure the AI AGENT directory and agents/ subfolder are on the path
 _BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -43,8 +20,6 @@ def create_app():
         static_folder=os.path.join(BASE_DIR, 'flask_static'),
         template_folder=os.path.join(BASE_DIR, 'flask_templates')
     )
-    app.json_provider_class = _FiniteJSONProvider
-    app.json = _FiniteJSONProvider(app)
     app.secret_key = (
         os.environ.get('SECRET_KEY') or
         os.environ.get('FLASK_SECRET_KEY') or
