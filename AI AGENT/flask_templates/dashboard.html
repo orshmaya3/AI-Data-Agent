@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — AI Data Department{% endblock %}
+{% block title %}Dashboard — Orbital AI{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -8,21 +8,17 @@
 </div>
 
 <!-- KPI Grid -->
-<div class="grid-4 mb-kpi" id="kpi-row" style="margin-bottom:20px;">
-  <div class="kpi-card">
-    <div class="loader-center" style="padding:20px">
-      <div class="spinner spinner-sm"></div>
-    </div>
-  </div>
-  <div class="kpi-card"><div class="loader-center" style="padding:20px"><div class="spinner spinner-sm"></div></div></div>
-  <div class="kpi-card"><div class="loader-center" style="padding:20px"><div class="spinner spinner-sm"></div></div></div>
-  <div class="kpi-card"><div class="loader-center" style="padding:20px"><div class="spinner spinner-sm"></div></div></div>
+<div class="grid-4" style="margin-bottom:16px;" id="kpi-row">
+  <div class="kpi-card"><div class="loader-center" style="padding:16px"><div class="spinner"></div></div></div>
+  <div class="kpi-card"><div class="loader-center" style="padding:16px"><div class="spinner"></div></div></div>
+  <div class="kpi-card"><div class="loader-center" style="padding:16px"><div class="spinner"></div></div></div>
+  <div class="kpi-card"><div class="loader-center" style="padding:16px"><div class="spinner"></div></div></div>
 </div>
 
 <!-- Charts Row 1 -->
-<div class="grid-5-3" style="margin-bottom:16px;">
+<div class="grid-5-3" style="margin-bottom:14px;">
   <div class="chart-panel" style="min-height:300px;" id="chart-monthly">
-    <div class="loader-center"><div class="spinner"></div><span>Loading chart...</span></div>
+    <div class="loader-center"><div class="spinner"></div></div>
   </div>
   <div class="chart-panel" style="min-height:300px;" id="chart-countries">
     <div class="loader-center"><div class="spinner"></div></div>
@@ -31,10 +27,10 @@
 
 <!-- Charts Row 2 -->
 <div class="grid-3-2">
-  <div class="chart-panel" style="min-height:320px;" id="chart-hourly">
+  <div class="chart-panel" style="min-height:300px;" id="chart-hourly">
     <div class="loader-center"><div class="spinner"></div></div>
   </div>
-  <div class="chart-panel" style="min-height:320px;" id="chart-products">
+  <div class="chart-panel" style="min-height:300px;" id="chart-products">
     <div class="loader-center"><div class="spinner"></div></div>
   </div>
 </div>
@@ -42,53 +38,58 @@
 
 {% block scripts %}
 <script>
+const BG = '#000000';
+const CARD_BG = 'rgba(240,240,250,0.03)';
+const ACCENT = '#78a0ff';
+const ACCENT_DIM = 'rgba(120,160,255,0.22)';
+const TEXT = 'rgba(240,240,250,0.5)';
+const GRID = 'rgba(240,240,250,0.06)';
+const LINE_C = 'rgba(240,240,250,0.08)';
+
 const LAYOUT_BASE = {
-  paper_bgcolor: '#ffffff',
-  plot_bgcolor:  '#ffffff',
-  font:  { family: 'Inter, sans-serif', color: '#6b7280', size: 11 },
-  title: { font: { family: 'Inter, sans-serif', color: '#1a1a2e', size: 13, weight: 600 } },
-  margin: { l: 10, r: 10, t: 44, b: 10 },
+  paper_bgcolor: BG,
+  plot_bgcolor:  BG,
+  font:  { family: 'Inter, sans-serif', color: TEXT, size: 11 },
+  title: { font: { family: 'Inter, sans-serif', color: 'rgba(240,240,250,0.8)', size: 12, weight: 600 } },
+  margin: { l: 10, r: 10, t: 40, b: 10 },
   showlegend: false,
-  hoverlabel: { bgcolor: '#1a1f5e', font: { color: '#fff', family: 'Inter, sans-serif' }, bordercolor: '#1a1f5e' },
-  xaxis: { gridcolor: '#f0f0f4', linecolor: '#e5e7eb', zerolinecolor: '#e5e7eb' },
-  yaxis: { gridcolor: '#f0f0f4', linecolor: '#e5e7eb', zerolinecolor: '#e5e7eb' },
+  hoverlabel: { bgcolor: '#111', font: { color: 'rgba(240,240,250,0.9)', family: 'Inter, sans-serif' }, bordercolor: 'rgba(120,160,255,0.4)' },
+  xaxis: { gridcolor: GRID, linecolor: LINE_C, zerolinecolor: LINE_C },
+  yaxis: { gridcolor: GRID, linecolor: LINE_C, zerolinecolor: LINE_C },
 };
 const CFG = { responsive: true, displayModeBar: false };
 
-const KPI_ICONS = ['💰', '📦', '🛍️', '🧾', '↩️'];
-const KPI_COLORS = [
-  { icon_bg: 'rgba(108,92,231,0.10)', icon_color: '#6c5ce7' },
-  { icon_bg: 'rgba(0,184,148,0.10)',  icon_color: '#00b894' },
-  { icon_bg: 'rgba(243,156,18,0.10)', icon_color: '#f39c12' },
-  { icon_bg: 'rgba(52,152,219,0.10)', icon_color: '#3498db' },
-  { icon_bg: 'rgba(231,76,60,0.10)',  icon_color: '#e74c3c' },
+const KPI_DEFS = [
+  { icon: '£', color: 'rgba(120,160,255,0.15)', text: '#78a0ff' },
+  { icon: '◈', color: 'rgba(74,222,128,0.12)',  text: '#4ade80' },
+  { icon: '▦', color: 'rgba(251,146,60,0.12)',  text: '#fb923c' },
+  { icon: '◎', color: 'rgba(167,139,250,0.12)', text: '#a78bfa' },
 ];
 
 fetch('/api/kpis')
   .then(r => r.json())
   .then(d => {
     const mom = d.mom_growth;
-    const trendBadge = mom > 0
-      ? `<span class="kpi-badge badge-up">↑ ${mom.toFixed(1)}% MoM</span>`
+    const badge = mom > 0
+      ? `<span class="kpi-badge badge-up">↑ ${mom.toFixed(1)}%</span>`
       : mom < 0
-        ? `<span class="kpi-badge badge-down">↓ ${Math.abs(mom).toFixed(1)}% MoM</span>`
-        : `<span class="kpi-badge badge-flat">Stable MoM</span>`;
+        ? `<span class="kpi-badge badge-down">↓ ${Math.abs(mom).toFixed(1)}%</span>`
+        : `<span class="kpi-badge badge-flat">Stable</span>`;
 
     const kpis = [
-      { label: 'Total Revenue',   value: `£${d.total_revenue.toLocaleString('en-GB', {maximumFractionDigits:0})}`, sub: trendBadge },
+      { label: 'Total Revenue',   value: `£${d.total_revenue.toLocaleString('en-GB', {maximumFractionDigits:0})}`, sub: badge },
       { label: 'Total Orders',    value: d.total_orders.toLocaleString(), sub: 'Unique invoices' },
       { label: 'Items Sold',      value: d.total_items.toLocaleString(), sub: 'Units dispatched' },
       { label: 'Avg Order Value', value: `£${d.aov.toFixed(2)}`, sub: 'Per invoice' },
-      { label: 'Refund Rate',     value: `${d.refund_rate.toFixed(1)}%`, sub: 'Of all transactions' },
     ];
 
-    document.getElementById('kpi-row').innerHTML = kpis.slice(0, 4).map((k, i) => {
-      const c = KPI_COLORS[i];
+    document.getElementById('kpi-row').innerHTML = kpis.map((k, i) => {
+      const c = KPI_DEFS[i];
       return `<div class="kpi-card">
-        <div class="kpi-card-icon" style="background:${c.icon_bg};color:${c.icon_color}">${KPI_ICONS[i]}</div>
+        <div class="kpi-card-icon" style="background:${c.color};color:${c.text};font-weight:700;font-size:15px">${c.icon}</div>
         <div class="kpi-label">${k.label}</div>
         <div class="kpi-value">${k.value}</div>
-        <div class="kpi-sub" style="margin-top:6px">${k.sub}</div>
+        <div class="kpi-sub" style="margin-top:5px">${k.sub}</div>
       </div>`;
     }).join('');
   })
@@ -100,28 +101,29 @@ fetch('/api/kpis')
 fetch('/api/charts')
   .then(r => r.json())
   .then(d => {
-    // Monthly Revenue
+    // Monthly Revenue — line with glow fill
     const months = Object.keys(d.monthly_revenue);
     const revs   = Object.values(d.monthly_revenue);
     Plotly.newPlot('chart-monthly', [{
       x: months, y: revs, type: 'scatter', mode: 'lines',
       fill: 'tozeroy',
-      line: { color: '#6c5ce7', width: 2.5 },
-      fillcolor: 'rgba(108,92,231,0.08)',
+      line: { color: ACCENT, width: 2 },
+      fillcolor: 'rgba(120,160,255,0.07)',
       hovertemplate: '<b>%{x}</b><br>£%{y:,.0f}<extra></extra>',
     }], { ...LAYOUT_BASE,
-          title: { text: 'Monthly Revenue', font: { color: '#1a1a2e', size: 13 } },
+          title: { text: 'Monthly Revenue', font: { color: 'rgba(240,240,250,0.8)', size: 12 } },
           yaxis: { ...LAYOUT_BASE.yaxis, tickprefix: '£' } }, CFG);
 
     // Top Countries
     const ctry_names = Object.keys(d.top_countries);
     const ctry_vals  = Object.values(d.top_countries);
+    const maxCtry = Math.max(...ctry_vals);
     Plotly.newPlot('chart-countries', [{
       x: ctry_vals, y: ctry_names, type: 'bar', orientation: 'h',
-      marker: { color: '#6c5ce7', opacity: 0.85 },
+      marker: { color: ctry_vals.map(v => v === maxCtry ? ACCENT : ACCENT_DIM) },
       hovertemplate: '<b>%{y}</b><br>£%{x:,.0f}<extra></extra>',
     }], { ...LAYOUT_BASE,
-          title: { text: 'Top 5 Countries', font: { color: '#1a1a2e', size: 13 } },
+          title: { text: 'Top 5 Countries', font: { color: 'rgba(240,240,250,0.8)', size: 12 } },
           xaxis: { ...LAYOUT_BASE.xaxis, tickprefix: '£' } }, CFG);
 
     // Hourly Sales
@@ -131,23 +133,23 @@ fetch('/api/charts')
     const maxH = Math.max(...h_vals);
     Plotly.newPlot('chart-hourly', [{
       x: hours, y: h_vals, type: 'bar',
-      marker: { color: h_vals.map(v => v === maxH ? '#6c5ce7' : 'rgba(108,92,231,0.35)') },
+      marker: { color: h_vals.map(v => v === maxH ? ACCENT : ACCENT_DIM) },
       hovertemplate: '<b>%{x}:00</b><br>£%{y:,.0f}<extra></extra>',
     }], { ...LAYOUT_BASE,
-          title: { text: 'Sales by Hour of Day', font: { color: '#1a1a2e', size: 13 } },
-          yaxis: { ...LAYOUT_BASE.yaxis, tickprefix: '£' }, height: 320 }, CFG);
+          title: { text: 'Sales by Hour of Day', font: { color: 'rgba(240,240,250,0.8)', size: 12 } },
+          yaxis: { ...LAYOUT_BASE.yaxis, tickprefix: '£' }, height: 300 }, CFG);
 
     // Top Products
     const prod_names = Object.keys(d.top_products).map(n => n.length > 26 ? n.slice(0,26)+'…' : n);
     const prod_vals  = Object.values(d.top_products);
+    const maxP = Math.max(...prod_vals);
     Plotly.newPlot('chart-products', [{
       x: prod_vals, y: prod_names, type: 'bar', orientation: 'h',
-      marker: { color: '#00b894', opacity: 0.85 },
+      marker: { color: prod_vals.map(v => v === maxP ? 'rgba(74,222,128,0.85)' : 'rgba(74,222,128,0.22)') },
       hovertemplate: '<b>%{y}</b><br>£%{x:,.0f}<extra></extra>',
     }], { ...LAYOUT_BASE,
-          title: { text: 'Top Products by Revenue', font: { color: '#1a1a2e', size: 13 } },
-          xaxis: { ...LAYOUT_BASE.xaxis, tickprefix: '£' },
-          margin: { l: 10, r: 10, t: 44, b: 10 }, height: 320 }, CFG);
+          title: { text: 'Top Products', font: { color: 'rgba(240,240,250,0.8)', size: 12 } },
+          xaxis: { ...LAYOUT_BASE.xaxis, tickprefix: '£' }, height: 300 }, CFG);
   })
   .catch(err => console.error('Charts error:', err));
 </script>

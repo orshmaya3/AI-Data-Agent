@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}AI Chat — AI Data Department{% endblock %}
+{% block title %}AI Chat — Orbital AI{% endblock %}
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
   .chat-wrap {
-    max-width: 820px;
+    max-width: 800px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -18,143 +18,139 @@
     padding: 4px 0;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
   }
-  .chat-history::-webkit-scrollbar { width: 4px; }
+  .chat-history::-webkit-scrollbar { width: 3px; }
   .chat-history::-webkit-scrollbar-track { background: transparent; }
-  .chat-history::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
+  .chat-history::-webkit-scrollbar-thumb { background: rgba(240,240,250,0.1); border-radius: 3px; }
 
-  /* Bubbles */
-  .msg { display: flex; gap: 12px; align-items: flex-start; }
+  .msg { display: flex; gap: 10px; align-items: flex-start; }
   .msg.user { flex-direction: row-reverse; }
 
   .msg-avatar {
-    width: 38px; height: 38px; border-radius: 50%;
+    width: 34px; height: 34px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 14px; flex-shrink: 0;
-    background: #f3f4f6; border: 1.5px solid #e5e7eb;
+    font-size: 13px; flex-shrink: 0;
+    background: rgba(240,240,250,0.05);
+    border: 1px solid rgba(240,240,250,0.10);
     overflow: hidden;
   }
   .msg-avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center 12%; border-radius: 50%; }
-  .msg.user .msg-avatar { background: rgba(108,92,231,0.12); border-color: #6c5ce7; }
+  .msg.user .msg-avatar { background: rgba(120,160,255,0.12); border-color: rgba(120,160,255,0.3); }
 
-  .msg-body { max-width: 78%; }
+  .msg-body { max-width: 76%; }
   .msg-label {
-    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
-    margin-bottom: 4px; color: #9ca3af; text-transform: uppercase;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.8px;
+    margin-bottom: 4px; color: rgba(240,240,250,0.28);
+    text-transform: uppercase;
   }
-  .msg.user .msg-label { text-align: right; color: #6c5ce7; }
+  .msg.user .msg-label { text-align: right; color: rgba(120,160,255,0.6); }
 
   .msg-bubble {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    padding: 12px 16px;
-    color: #1a1a2e;
-    font-size: 14px;
+    background: rgba(240,240,250,0.05);
+    border: 1px solid rgba(240,240,250,0.08);
+    border-radius: 6px;
+    padding: 11px 14px;
+    color: rgba(240,240,250,0.82);
+    font-size: 13.5px;
     line-height: 1.7;
     word-break: break-word;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
   .msg.user .msg-bubble {
-    background: #6c5ce7;
-    border-color: #6c5ce7;
-    color: #fff;
+    background: rgba(120,160,255,0.14);
+    border-color: rgba(120,160,255,0.28);
+    color: rgba(240,240,250,0.88);
     white-space: pre-wrap;
   }
 
-  /* Markdown inside AI bubbles */
-  .msg-bubble p  { margin: 0 0 8px 0; }
+  /* Markdown */
+  .msg-bubble p  { margin: 0 0 7px; }
   .msg-bubble p:last-child { margin-bottom: 0; }
-  .msg-bubble strong { color: #1a1a2e; }
-  .msg-bubble em { color: #374151; }
-  .msg-bubble ul, .msg-bubble ol { margin: 6px 0 8px 0; padding-left: 20px; }
-  .msg-bubble li { margin-bottom: 4px; }
+  .msg-bubble strong { color: rgba(240,240,250,0.95); }
+  .msg-bubble ul, .msg-bubble ol { margin: 5px 0 7px; padding-left: 18px; }
+  .msg-bubble li { margin-bottom: 3px; }
   .msg-bubble code {
-    background: #f3f4f6; border: 1px solid #e5e7eb;
-    border-radius: 4px; padding: 1px 6px;
-    font-size: 12px; color: #6c5ce7;
-    font-family: 'Consolas', monospace;
+    background: rgba(240,240,250,0.06); border: 1px solid rgba(240,240,250,0.10);
+    border-radius: 3px; padding: 1px 5px;
+    font-size: 11.5px; color: #78a0ff; font-family: 'Consolas', monospace;
   }
   .msg-bubble pre {
-    background: #1a1a2e; border-radius: 8px;
-    padding: 12px; overflow-x: auto; margin: 8px 0;
+    background: rgba(240,240,250,0.04); border: 1px solid rgba(240,240,250,0.08);
+    border-radius: 4px; padding: 10px; overflow-x: auto; margin: 7px 0;
   }
-  .msg-bubble pre code { background: none; border: none; padding: 0; color: #e6edf3; font-size: 12px; }
+  .msg-bubble pre code { background: none; border: none; padding: 0; color: rgba(240,240,250,0.8); font-size: 11.5px; }
   .msg-bubble h1, .msg-bubble h2, .msg-bubble h3 {
-    color: #1a1a2e; margin: 10px 0 6px 0;
-    font-size: 14px; font-weight: 700;
+    color: rgba(240,240,250,0.9); margin: 9px 0 5px; font-size: 13px; font-weight: 700;
   }
-  .msg-bubble hr { border: none; border-top: 1px solid #e5e7eb; margin: 10px 0; }
+  .msg-bubble hr { border: none; border-top: 1px solid rgba(240,240,250,0.08); margin: 8px 0; }
 
-  /* Typing indicator */
+  /* Typing */
   .typing-dots span {
-    display: inline-block; width: 6px; height: 6px;
-    background: #9ca3af; border-radius: 50%; margin: 0 2px;
+    display: inline-block; width: 5px; height: 5px;
+    background: rgba(240,240,250,0.3); border-radius: 50%; margin: 0 2px;
     animation: bounce 1.2s infinite;
   }
   .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
   .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
 
-  /* Suggestion chips */
-  .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  /* Chips */
+  .suggestions { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
   .chip {
-    background: #fff; border: 1.5px solid #e5e7eb;
-    border-radius: 20px; color: #374151;
-    font-size: 12px; padding: 5px 14px;
+    background: rgba(240,240,250,0.04); border: 1px solid rgba(240,240,250,0.10);
+    border-radius: 3px; color: rgba(240,240,250,0.5);
+    font-size: 11.5px; padding: 5px 12px;
     cursor: pointer; transition: all 0.15s;
     font-family: 'Inter', sans-serif;
   }
-  .chip:hover { border-color: #6c5ce7; color: #6c5ce7; background: rgba(108,92,231,0.05); }
+  .chip:hover { border-color: rgba(120,160,255,0.4); color: #78a0ff; background: rgba(120,160,255,0.07); }
 
-  /* Input bar */
+  /* Input */
   .chat-input-bar {
-    margin-top: 12px;
+    margin-top: 10px;
     display: flex; gap: 8px; align-items: flex-end;
   }
   .chat-input-bar textarea {
-    flex: 1; background: #fff; border: 1.5px solid #e5e7eb;
-    border-radius: 12px; color: #1a1a2e;
+    flex: 1; background: rgba(240,240,250,0.04);
+    border: 1px solid rgba(240,240,250,0.10);
+    border-radius: 6px; color: rgba(240,240,250,0.85);
     font-family: 'Inter', sans-serif;
-    font-size: 14px; padding: 10px 14px;
+    font-size: 13px; padding: 10px 13px;
     resize: none; outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
-    min-height: 44px; max-height: 120px;
+    min-height: 42px; max-height: 120px;
     overflow-y: auto; line-height: 1.5;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
   .chat-input-bar textarea:focus {
-    border-color: #6c5ce7;
-    box-shadow: 0 0 0 3px rgba(108,92,231,0.12);
+    border-color: rgba(120,160,255,0.4);
+    box-shadow: 0 0 0 3px rgba(120,160,255,0.07);
   }
-  .chat-input-bar textarea::placeholder { color: #9ca3af; }
+  .chat-input-bar textarea::placeholder { color: rgba(240,240,250,0.18); }
 
   .btn-send {
-    background: #6c5ce7; border: none; border-radius: 10px;
-    color: #fff; font-size: 18px; width: 44px; height: 44px;
-    cursor: pointer; transition: background 0.15s;
+    background: #78a0ff; border: none; border-radius: 5px;
+    color: #000; font-size: 16px; width: 42px; height: 42px;
+    cursor: pointer; transition: opacity 0.15s;
     display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
+    flex-shrink: 0; font-weight: 700;
   }
-  .btn-send:hover { background: #5a4bd1; }
-  .btn-send:disabled { background: #e5e7eb; cursor: not-allowed; }
+  .btn-send:hover { opacity: 0.85; }
+  .btn-send:disabled { background: rgba(240,240,250,0.08); color: rgba(240,240,250,0.2); cursor: not-allowed; }
 
   .btn-clear {
-    background: transparent; border: 1.5px solid #e5e7eb;
-    border-radius: 8px; color: #9ca3af; font-size: 12px;
-    padding: 6px 12px; cursor: pointer; transition: all 0.15s;
+    background: transparent; border: 1px solid rgba(240,240,250,0.08);
+    border-radius: 4px; color: rgba(240,240,250,0.28); font-size: 11px;
+    padding: 5px 11px; cursor: pointer; transition: all 0.15s;
     white-space: nowrap; font-family: 'Inter', sans-serif;
   }
-  .btn-clear:hover { border-color: #e74c3c; color: #e74c3c; }
+  .btn-clear:hover { border-color: rgba(248,113,113,0.4); color: #f87171; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="chat-wrap">
-
-  <div class="page-header" style="margin-bottom:16px;">
-    <h1>AI Analyst Chat</h1>
+  <div class="page-header" style="margin-bottom:14px;">
+    <h1>AI Chat</h1>
     <p>Ask Alex, Dana, Maya or Aria anything about your retail data</p>
   </div>
 
@@ -178,9 +174,8 @@
       placeholder="Ask about your sales, products, or customers..."
       onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
     <button class="btn-send" id="btn-send" onclick="sendMessage()" title="Send">➤</button>
-    <button class="btn-clear" onclick="clearChat()">🗑 Clear</button>
+    <button class="btn-clear" onclick="clearChat()">Clear</button>
   </div>
-
 </div>
 {% endblock %}
 
@@ -214,16 +209,10 @@ function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
-
 function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
-
-function sendSuggestion(el) {
-  inputEl.value = el.textContent;
-  sendMessage();
-}
-
+function sendSuggestion(el) { inputEl.value = el.textContent; sendMessage(); }
 function clearChat() {
   history = []; messages = [];
   chatEl.innerHTML = '';
@@ -232,42 +221,31 @@ function clearChat() {
 }
 
 const AGENT_AVATARS = {
-  'Sales Agent (Alex)':     { img: '{{ url_for("static", filename="avatars/alex.png") }}',  label: 'Alex · Sales Agent' },
-  'Product Agent (Dana)':   { img: '{{ url_for("static", filename="avatars/dana.png") }}',  label: 'Dana · Product Agent' },
-  'Customer Agent (Maya)':  { img: '{{ url_for("static", filename="avatars/maya.png") }}',  label: 'Maya · Customer Agent' },
-  'Prediction Agent (Rey)': { img: '{{ url_for("static", filename="avatars/rey.png") }}',   label: 'Rey · Prediction Agent' },
-  'General Agent (Aria)':   { img: '{{ url_for("static", filename="avatars/aria.png") }}',  label: 'Aria · General Agent' },
+  'Sales Agent (Alex)':     { img: '{{ url_for("static", filename="avatars/alex.png") }}',  label: 'Alex · Sales' },
+  'Product Agent (Dana)':   { img: '{{ url_for("static", filename="avatars/dana.png") }}',  label: 'Dana · Products' },
+  'Customer Agent (Maya)':  { img: '{{ url_for("static", filename="avatars/maya.png") }}',  label: 'Maya · Customers' },
+  'Prediction Agent (Rey)': { img: '{{ url_for("static", filename="avatars/rey.png") }}',   label: 'Rey · Prediction' },
+  'General Agent (Aria)':   { img: '{{ url_for("static", filename="avatars/aria.png") }}',  label: 'Aria · General' },
 };
 
-function agentAvatar(agentLabel) {
-  const a = AGENT_AVATARS[agentLabel];
-  if (a) return `<img src="${a.img}" alt="${a.label}" onerror="this.replaceWith('🤖')">`;
-  return '🤖';
+function agentAvatar(a) {
+  const d = AGENT_AVATARS[a];
+  return d ? `<img src="${d.img}" alt="${d.label}" onerror="this.replaceWith('◈')">` : '◈';
 }
-
-function agentName(agentLabel) {
-  const a = AGENT_AVATARS[agentLabel];
-  return a ? a.label : 'AI Analyst';
-}
+function agentName(a) { return (AGENT_AVATARS[a] || {}).label || 'AI Analyst'; }
 
 function renderBubble(role, content, agentLabel = '', scroll = true) {
   const isUser = role === 'user';
   suggsEl.style.display = 'none';
-
   const div = document.createElement('div');
   div.className = `msg ${isUser ? 'user' : 'ai'}`;
-
   const bodyHtml = isUser
     ? `<div style="white-space:pre-wrap">${escapeHtml(content)}</div>`
     : marked.parse(content);
-
-  const avatarHtml = isUser ? '👤' : agentAvatar(agentLabel);
-  const labelHtml  = isUser ? '{{ username }}' : agentName(agentLabel);
-
   div.innerHTML = `
-    <div class="msg-avatar">${avatarHtml}</div>
+    <div class="msg-avatar">${isUser ? '○' : agentAvatar(agentLabel)}</div>
     <div class="msg-body">
-      <div class="msg-label">${labelHtml}</div>
+      <div class="msg-label">${isUser ? '{{ username }}' : agentName(agentLabel)}</div>
       <div class="msg-bubble">${bodyHtml}</div>
     </div>`;
   chatEl.appendChild(div);
@@ -283,7 +261,7 @@ function showTyping() {
   const div = document.createElement('div');
   div.className = 'msg ai'; div.id = 'typing-indicator';
   div.innerHTML = `
-    <div class="msg-avatar"><img src="{{ url_for('static', filename='avatars/aria.png') }}" alt="Thinking..." onerror="this.replaceWith('🤖')"></div>
+    <div class="msg-avatar"><img src="{{ url_for('static', filename='avatars/aria.png') }}" alt="..." onerror="this.replaceWith('◈')"></div>
     <div class="msg-body">
       <div class="msg-label">Thinking...</div>
       <div class="msg-bubble typing-dots"><span></span><span></span><span></span></div>
@@ -291,11 +269,7 @@ function showTyping() {
   chatEl.appendChild(div);
   chatEl.scrollTop = chatEl.scrollHeight;
 }
-
-function removeTyping() {
-  const el = document.getElementById('typing-indicator');
-  if (el) el.remove();
-}
+function removeTyping() { const el = document.getElementById('typing-indicator'); if (el) el.remove(); }
 
 async function sendMessage() {
   if (isLoading) return;
@@ -309,10 +283,8 @@ async function sendMessage() {
 
   renderBubble('user', text);
   messages.push({ role: 'user', content: text });
-
   const apiHistory = history.slice();
   history.push({ role: 'user', content: text });
-
   showTyping();
 
   try {
@@ -323,16 +295,14 @@ async function sendMessage() {
     });
     const data = await res.json();
     removeTyping();
-
-    const reply = data.error ? `⚠️ Error: ${data.error}` : data.response;
+    const reply = data.error ? `⚠ Error: ${data.error}` : data.response;
     renderBubble('assistant', reply, data.agent || '');
     messages.push({ role: 'assistant', content: reply, agent: data.agent || '' });
     history.push({ role: 'assistant', content: reply });
-
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
   } catch (err) {
     removeTyping();
-    renderBubble('assistant', '⚠️ Network error. Please try again.');
+    renderBubble('assistant', '⚠ Network error. Please try again.');
   } finally {
     isLoading = false;
     sendBtn.disabled = false;
