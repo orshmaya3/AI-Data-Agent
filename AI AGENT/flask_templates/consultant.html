@@ -1,0 +1,719 @@
+{% extends "base.html" %}
+{% block title %}Business Consultant — Orbital AI{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+/* ── Two-phase layout ───────────────────────────────────────── */
+#phase-setup   { display: block; }
+#phase-results { display: none; }
+
+/* ── Goal cards ─────────────────────────────────────────────── */
+.goal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.goal-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 18px 16px;
+  cursor: pointer;
+  transition: all 0.18s;
+  user-select: none;
+}
+.goal-card:hover {
+  border-color: rgba(120,160,255,0.35);
+  background: rgba(120,160,255,0.05);
+}
+.goal-card.selected {
+  border-color: var(--accent);
+  background: rgba(120,160,255,0.08);
+  box-shadow: 0 0 0 1px rgba(120,160,255,0.3);
+}
+.goal-icon {
+  font-size: 22px;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+.goal-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(240,240,250,0.88);
+  margin-bottom: 4px;
+}
+.goal-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ── Form controls ──────────────────────────────────────────── */
+.form-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin-bottom: 7px;
+  display: block;
+}
+.form-input {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 5px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.form-input::placeholder { color: var(--text-dim); }
+.form-input:focus { border-color: rgba(120,160,255,0.5); }
+
+.timeframe-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tf-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+.tf-pill:hover { border-color: rgba(120,160,255,0.35); color: var(--text); }
+.tf-pill.selected {
+  border-color: var(--accent);
+  background: rgba(120,160,255,0.1);
+  color: var(--accent);
+}
+
+/* ── Build button ───────────────────────────────────────────── */
+.btn-build {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+  margin-top: 24px;
+}
+.btn-build:hover:not(:disabled) { background: #9bb8ff; }
+.btn-build:disabled {
+  background: rgba(120,160,255,0.2);
+  color: rgba(120,160,255,0.4);
+  cursor: not-allowed;
+}
+
+/* ── Results phase ──────────────────────────────────────────── */
+.results-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.results-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(120,160,255,0.08);
+  border: 1px solid rgba(120,160,255,0.2);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 500;
+}
+.btn-change {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-change:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Loading animation ──────────────────────────────────────── */
+#loading-state {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 52px 20px;
+}
+.loader-orbital-sm {
+  position: relative;
+  width: 52px; height: 52px;
+}
+.loader-orbital-sm .ring { position: absolute; inset: 0; border-radius: 50%; }
+.loader-orbital-sm .ring-1 {
+  border: 1.5px solid rgba(120,160,255,0.15);
+  animation: spin 3s linear infinite;
+}
+.loader-orbital-sm .ring-2 {
+  inset: 10px;
+  border: 1.5px solid rgba(120,160,255,0.08);
+  animation: spin 1.8s linear infinite reverse;
+}
+.loader-orbital-sm .dot {
+  position: absolute;
+  top: -4px; left: 50%;
+  width: 7px; height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 8px 2px rgba(120,160,255,0.5);
+  transform: translateX(-50%);
+  transform-origin: 50% 30px;
+  animation: spin 3s linear infinite;
+}
+#loading-msg {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  min-height: 20px;
+}
+
+/* ── Strategy panel ─────────────────────────────────────────── */
+#strategy-panel {
+  display: none;
+}
+.strategy-body {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 28px 30px;
+  line-height: 1.7;
+  font-size: 14px;
+  color: var(--text);
+}
+/* Markdown styles inside strategy */
+.strategy-body h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(240,240,250,0.92);
+  margin: 22px 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-dim);
+}
+.strategy-body h2:first-child { margin-top: 0; }
+.strategy-body h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 18px 0 8px;
+}
+.strategy-body p { margin-bottom: 10px; color: rgba(240,240,250,0.78); }
+.strategy-body strong { color: rgba(240,240,250,0.92); }
+.strategy-body ul, .strategy-body ol {
+  padding-left: 20px;
+  margin-bottom: 10px;
+}
+.strategy-body li {
+  margin-bottom: 5px;
+  color: rgba(240,240,250,0.75);
+}
+.strategy-body li::marker { color: var(--accent); }
+
+/* ── Follow-up chat ─────────────────────────────────────────── */
+#followup-section {
+  display: none;
+  margin-top: 28px;
+}
+.followup-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.followup-divider span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.followup-divider::before,
+.followup-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-dim);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+.chip {
+  padding: 5px 12px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+.chip:hover {
+  border-color: rgba(120,160,255,0.4);
+  color: var(--accent);
+  background: rgba(120,160,255,0.06);
+}
+
+/* Chat messages */
+.chat-history {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 14px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.msg { display: flex; gap: 10px; }
+.msg-user { flex-direction: row-reverse; }
+
+.msg-bubble {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.msg-user .msg-bubble {
+  background: rgba(120,160,255,0.15);
+  border: 1px solid rgba(120,160,255,0.2);
+  color: rgba(240,240,250,0.88);
+}
+.msg-atlas .msg-bubble {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  color: rgba(240,240,250,0.82);
+}
+.msg-atlas .msg-bubble h2,
+.msg-atlas .msg-bubble h3 { font-size: 13px; color: var(--accent); margin: 8px 0 4px; }
+.msg-atlas .msg-bubble p  { margin-bottom: 6px; }
+.msg-atlas .msg-bubble ul,
+.msg-atlas .msg-bubble ol { padding-left: 16px; }
+.msg-atlas .msg-bubble li { margin-bottom: 3px; }
+.msg-atlas .msg-bubble strong { color: rgba(240,240,250,0.92); }
+
+.msg-ava {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: rgba(120,160,255,0.15);
+  border: 1px solid rgba(120,160,255,0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Typing indicator */
+.typing-dots { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+.typing-dots span {
+  width: 5px; height: 5px;
+  background: var(--text-dim);
+  border-radius: 50%;
+  animation: tdot 1.4s infinite ease-in-out;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes tdot { 0%,80%,100%{opacity:.15;transform:scale(0.9)} 40%{opacity:1;transform:scale(1.1)} }
+
+/* Input row */
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.chat-textarea {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 9px 12px;
+  resize: none;
+  outline: none;
+  min-height: 40px;
+  max-height: 120px;
+  overflow-y: auto;
+  transition: border-color 0.15s;
+  line-height: 1.45;
+}
+.chat-textarea::placeholder { color: var(--text-dim); }
+.chat-textarea:focus { border-color: rgba(120,160,255,0.45); }
+
+.btn-send {
+  width: 36px; height: 36px;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.btn-send:hover { background: #9bb8ff; }
+.btn-send:disabled { background: rgba(120,160,255,0.2); cursor: not-allowed; }
+.btn-send svg { fill: #000; width: 15px; height: 15px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Business Consultant</h1>
+  <p>Tell Atlas your goal — it will analyse your data and tell you exactly what to do.</p>
+</div>
+
+<!-- ══ PHASE 1: Goal setup ══════════════════════════════════════ -->
+<div id="phase-setup" style="max-width:680px;">
+
+  <div style="margin-bottom:18px;">
+    <label class="form-label">What do you want to achieve?</label>
+    <div class="goal-grid">
+      <div class="goal-card" data-goal="Grow my revenue — increase total sales and the amount each customer spends per order">
+        <div class="goal-icon">💰</div>
+        <div class="goal-title">Grow my revenue</div>
+        <div class="goal-desc">Increase total sales and what each customer spends per visit</div>
+      </div>
+      <div class="goal-card" data-goal="Get more customers — attract new buyers and turn one-time shoppers into regulars">
+        <div class="goal-icon">👥</div>
+        <div class="goal-title">Get more customers</div>
+        <div class="goal-desc">Attract new buyers and turn one-time shoppers into regulars</div>
+      </div>
+      <div class="goal-card" data-goal="Stop losing customers — identify buyers who haven't returned recently and win them back">
+        <div class="goal-icon">🛡️</div>
+        <div class="goal-title">Stop losing customers</div>
+        <div class="goal-desc">Find buyers who haven't returned and bring them back</div>
+      </div>
+      <div class="goal-card" data-goal="Sell my stock smarter — focus on products that sell well, clear slow ones, and find what to promote together">
+        <div class="goal-icon">📦</div>
+        <div class="goal-title">Sell my stock smarter</div>
+        <div class="goal-desc">Focus on fast-movers, clear slow ones, and find what to bundle</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:18px;">
+    <label class="form-label" for="target-input">Your target <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:var(--text-dim)">(optional)</span></label>
+    <input id="target-input" class="form-input" type="text"
+           placeholder="e.g. Grow revenue by 20%, get 100 new customers this quarter…">
+  </div>
+
+  <div style="margin-bottom:4px;">
+    <label class="form-label">Timeframe</label>
+    <div class="timeframe-pills">
+      <div class="tf-pill" data-tf="the next month">Next month</div>
+      <div class="tf-pill selected" data-tf="the next 3 months">Next 3 months</div>
+      <div class="tf-pill" data-tf="the next 6 months">Next 6 months</div>
+      <div class="tf-pill" data-tf="the next year">Next year</div>
+    </div>
+  </div>
+
+  <button id="btn-build" class="btn-build" disabled>
+    <span id="btn-build-text">Select a goal to continue</span>
+  </button>
+</div>
+
+<!-- ══ PHASE 2: Results ══════════════════════════════════════════ -->
+<div id="phase-results" style="max-width:780px;">
+
+  <!-- Header bar -->
+  <div class="results-header">
+    <div id="results-badge" class="results-badge">
+      <span id="badge-icon">💰</span>
+      <span id="badge-label">Your Strategy</span>
+    </div>
+    <button class="btn-change" id="btn-change">← Change goal</button>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading-state">
+    <div class="loader-orbital-sm">
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="dot"></div>
+    </div>
+    <div id="loading-msg">Looking at your business data…</div>
+  </div>
+
+  <!-- Strategy output -->
+  <div id="strategy-panel">
+    <div id="strategy-content" class="strategy-body"></div>
+
+    <!-- Follow-up chat -->
+    <div id="followup-section">
+      <div class="followup-divider"><span>Ask a follow-up question</span></div>
+
+      <div class="chips" id="followup-chips">
+        <div class="chip">How do I reach the customers who haven't bought recently?</div>
+        <div class="chip">Which product should I promote first?</div>
+        <div class="chip">What discount should I offer to bring people back?</div>
+        <div class="chip">Which country should I focus on next?</div>
+      </div>
+
+      <div class="chat-history" id="chat-history"></div>
+
+      <div class="chat-input-row">
+        <textarea id="chat-input" class="chat-textarea" rows="1"
+                  placeholder="Ask anything about your business…"></textarea>
+        <button id="btn-send" class="btn-send" disabled>
+          <svg viewBox="0 0 20 20"><path d="M2 10L18 2l-4 8 4 8L2 10z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── State ──────────────────────────────────────────────────────
+let selectedGoal      = '';
+let selectedGoalLabel = '';
+let selectedGoalIcon  = '';
+let selectedTf        = 'the next 3 months';
+let followupHistory   = [];   // [{role, content}]
+let isLoading         = false;
+
+// ── Loading messages ───────────────────────────────────────────
+const LOADING_MSGS = [
+  'Looking at your sales history…',
+  'Checking which customers haven\'t bought recently…',
+  'Finding your best and worst-performing products…',
+  'Seeing which markets have the most opportunity…',
+  'Building your action plan…',
+];
+let loadingTimer = null;
+
+function startLoadingCycle() {
+  let i = 0;
+  document.getElementById('loading-msg').textContent = LOADING_MSGS[0];
+  loadingTimer = setInterval(() => {
+    i = (i + 1) % LOADING_MSGS.length;
+    document.getElementById('loading-msg').textContent = LOADING_MSGS[i];
+  }, 2800);
+}
+function stopLoadingCycle() {
+  if (loadingTimer) { clearInterval(loadingTimer); loadingTimer = null; }
+}
+
+// ── Goal card selection ────────────────────────────────────────
+document.querySelectorAll('.goal-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.goal-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedGoal      = card.dataset.goal;
+    selectedGoalLabel = card.querySelector('.goal-title').textContent;
+    selectedGoalIcon  = card.querySelector('.goal-icon').textContent;
+
+    const btn  = document.getElementById('btn-build');
+    const text = document.getElementById('btn-build-text');
+    btn.disabled = false;
+    text.textContent = `Build my strategy →`;
+  });
+});
+
+// ── Timeframe pills ────────────────────────────────────────────
+document.querySelectorAll('.tf-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.tf-pill').forEach(p => p.classList.remove('selected'));
+    pill.classList.add('selected');
+    selectedTf = pill.dataset.tf;
+  });
+});
+
+// ── Build strategy ─────────────────────────────────────────────
+document.getElementById('btn-build').addEventListener('click', buildStrategy);
+
+async function buildStrategy() {
+  if (!selectedGoal || isLoading) return;
+
+  const target    = document.getElementById('target-input').value.trim();
+
+  // Switch to results phase
+  document.getElementById('phase-setup').style.display   = 'none';
+  document.getElementById('phase-results').style.display = 'block';
+
+  // Update badge
+  document.getElementById('badge-icon').textContent  = selectedGoalIcon;
+  document.getElementById('badge-label').textContent =
+    selectedGoalLabel + (target ? ` · ${target}` : '') + ` · ${selectedTf}`;
+
+  // Show loader, hide strategy
+  document.getElementById('loading-state').style.display  = 'flex';
+  document.getElementById('strategy-panel').style.display = 'none';
+  startLoadingCycle();
+  isLoading = true;
+
+  try {
+    const res = await fetch('/api/consultant/analyze', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ goal: selectedGoal, target, timeframe: selectedTf }),
+    });
+    const data = await res.json();
+    stopLoadingCycle();
+    isLoading = false;
+
+    document.getElementById('loading-state').style.display  = 'none';
+    document.getElementById('strategy-panel').style.display = 'block';
+
+    if (data.error) {
+      document.getElementById('strategy-content').innerHTML =
+        `<div class="alert-error">Could not generate strategy: ${data.error}</div>`;
+    } else {
+      document.getElementById('strategy-content').innerHTML = marked.parse(data.response || '');
+      document.getElementById('followup-section').style.display = 'block';
+      document.getElementById('btn-send').disabled = false;
+
+      // Prime follow-up history with the strategy as context
+      followupHistory = [
+        { role: 'assistant', content: data.response },
+      ];
+    }
+  } catch (err) {
+    stopLoadingCycle();
+    isLoading = false;
+    document.getElementById('loading-state').style.display  = 'none';
+    document.getElementById('strategy-panel').style.display = 'block';
+    document.getElementById('strategy-content').innerHTML =
+      `<div class="alert-error">Failed to load strategy. Please try again.</div>`;
+  }
+}
+
+// ── Change goal ────────────────────────────────────────────────
+document.getElementById('btn-change').addEventListener('click', () => {
+  document.getElementById('phase-results').style.display = 'none';
+  document.getElementById('phase-setup').style.display   = 'block';
+  document.getElementById('strategy-panel').style.display   = 'none';
+  document.getElementById('followup-section').style.display = 'none';
+  document.getElementById('chat-history').innerHTML = '';
+  followupHistory = [];
+  isLoading = false;
+  stopLoadingCycle();
+});
+
+// ── Follow-up chips ────────────────────────────────────────────
+document.querySelectorAll('#followup-chips .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.getElementById('chat-input').value = chip.textContent;
+    sendFollowup();
+  });
+});
+
+// ── Follow-up chat ─────────────────────────────────────────────
+const chatInput = document.getElementById('chat-input');
+const btnSend   = document.getElementById('btn-send');
+
+chatInput.addEventListener('input', () => {
+  chatInput.style.height = 'auto';
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+  btnSend.disabled = chatInput.value.trim() === '' || isLoading;
+});
+chatInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendFollowup(); }
+});
+btnSend.addEventListener('click', sendFollowup);
+
+function appendMsg(role, html) {
+  const history = document.getElementById('chat-history');
+  const div = document.createElement('div');
+  div.className = `msg msg-${role === 'user' ? 'user' : 'atlas'}`;
+
+  const ava = document.createElement('div');
+  ava.className = 'msg-ava';
+  ava.textContent = role === 'user' ? '👤' : '⚡';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = html;
+
+  div.appendChild(ava);
+  div.appendChild(bubble);
+  history.appendChild(div);
+  history.scrollTop = history.scrollHeight;
+  return div;
+}
+
+async function sendFollowup() {
+  const text = chatInput.value.trim();
+  if (!text || isLoading) return;
+
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  btnSend.disabled = true;
+  isLoading = true;
+
+  appendMsg('user', escapeHtml(text));
+  followupHistory.push({ role: 'user', content: text });
+
+  // Typing indicator
+  const typingDiv = appendMsg('atlas', '<div class="typing-dots"><span></span><span></span><span></span></div>');
+
+  try {
+    const res = await fetch('/api/consultant/followup', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ message: text, history: followupHistory }),
+    });
+    const data = await res.json();
+
+    typingDiv.remove();
+    isLoading = false;
+    btnSend.disabled = chatInput.value.trim() === '';
+
+    const reply = data.error ? `Sorry, I ran into an issue: ${data.error}` : (data.response || '');
+    appendMsg('atlas', marked.parse(reply));
+    followupHistory.push({ role: 'assistant', content: reply });
+
+    // Hide chips after first reply
+    document.getElementById('followup-chips').style.display = 'none';
+
+  } catch (err) {
+    typingDiv.remove();
+    isLoading = false;
+    btnSend.disabled = false;
+    appendMsg('atlas', 'Something went wrong. Please try again.');
+  }
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+{% endblock %}

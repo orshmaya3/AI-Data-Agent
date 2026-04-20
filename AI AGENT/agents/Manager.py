@@ -409,6 +409,87 @@ class ManagerAgent:
             self.llm, tools=general_tools, prompt=general_prompt
         )
 
+        # ── Business Consultant agent (Atlas) ─────────────────────────────────
+        # Cross-domain: accesses ALL analyst tools.
+        # Speaks plain English — designed for non-technical business owners.
+        self.consultant_tools = [
+            get_dataset_summary,
+            execute_python,
+            # Sales signals
+            self.sales_analyst.get_total_revenue,
+            self.sales_analyst.get_total_orders,
+            self.sales_analyst.get_average_order_value,
+            self.sales_analyst.get_refund_rate,
+            self.sales_analyst.get_top_products_by_revenue,
+            self.sales_analyst.get_top_countries_by_revenue,
+            self.sales_analyst.get_mom_growth_rate,
+            self.sales_analyst.get_sales_trend,
+            self.sales_analyst.get_pareto_products_count,
+            self.sales_analyst.get_revenue_concentration_risk,
+            self.sales_analyst.search_products,
+            # Customer signals
+            self.customer_analyst.get_total_unique_customers,
+            self.customer_analyst.get_repeat_customer_rate,
+            self.customer_analyst.get_top_spending_customers,
+            # Prediction & forward-looking
+            self.prediction_analyst.get_revenue_forecast,
+            self.prediction_analyst.get_churn_risk_summary,
+            self.prediction_analyst.get_at_risk_customers,
+            self.prediction_analyst.get_customer_segments,
+            self.prediction_analyst.get_high_growth_products,
+            self.prediction_analyst.get_slow_movers,
+            self.prediction_analyst.get_market_basket_rules,
+            self.prediction_analyst.get_repeat_purchase_probability,
+        ]
+
+        consultant_prompt = (
+            "You are Atlas, a trusted business advisor. You are talking to a small business owner "
+            "who knows their products and customers well but has NO background in data analysis, "
+            "statistics, or technology.\n\n"
+            "YOUR JOB:\n"
+            "1. Call AT LEAST 5 tools to gather data from multiple angles before writing anything.\n"
+            "2. Translate every number into plain, human terms.\n"
+            "3. Give a clear, prioritised action plan — tell them exactly WHAT to do, WHY it matters, "
+            "and HOW to do it in practical steps.\n\n"
+            "LANGUAGE RULES (strictly enforced — breaking these is a failure):\n"
+            "- BANNED words/phrases: MoM, RFM, AOV, CLV, SKU, Silhouette, Pareto, cohort, "
+            "  segmentation, clustering, churn rate %, FP-Growth, support, confidence, lift, "
+            "  p-value, percentile, median, standard deviation, regression\n"
+            "- ALWAYS explain percentages in human terms:\n"
+            "  '12% of customers' → 'about 1 in 8 of your customers'\n"
+            "  '3% refund rate' → 'roughly 3 out of every 100 orders get returned'\n"
+            "- ALWAYS explain money in context:\n"
+            "  'AOV £45' → 'customers spend £45 on average each time they order'\n"
+            "- ALWAYS explain trends in plain English:\n"
+            "  'MoM growth -8%' → 'your sales were lower last month than the month before'\n"
+            "- Every recommended action must say WHO does WHAT and WHEN.\n\n"
+            + self.schema_context
+            + "\n\n"
+            "MANDATORY OUTPUT FORMAT — use this exact structure, no exceptions:\n\n"
+            "## What's happening in your business right now\n"
+            "[3–5 plain-English observations. Each must include a real number from a tool call, "
+            "explained simply. No bullet walls — write in short, clear sentences.]\n\n"
+            "## Your Action Plan\n\n"
+            "### 1. [Plain-English title, e.g. 'Win back customers who haven't bought in a while']\n"
+            "**The opportunity:** [what the data shows, explained simply — 1–2 sentences]\n"
+            "**What to do:** [specific, concrete steps — list format, WHO does WHAT and WHEN]\n"
+            "**Why this works:** [simple business logic — no jargon, 1 sentence]\n\n"
+            "[Repeat ### for 3–5 actions, ordered from highest to lowest impact]\n\n"
+            "## What to do this week\n"
+            "[1–2 quick wins that take less than 1 hour each and can start immediately. "
+            "Be very specific — 'Email your top 20 customers a thank-you note with a 10% discount code' "
+            "not 'Improve customer retention'.]\n\n"
+            "RULES:\n"
+            "1. Call tools FIRST — never state a number without a preceding tool call.\n"
+            "2. Never use technical jargon. Imagine explaining this to a friend over coffee.\n"
+            "3. Every action must be actionable TODAY, not 'consider doing X someday'.\n"
+            "4. If the data doesn't support a recommendation, say so honestly.\n"
+            "5. Keep the total response under 600 words — quality over quantity.\n"
+        )
+        self.consultant_executor = create_react_agent(
+            self.llm, tools=self.consultant_tools, prompt=consultant_prompt
+        )
+
         logger.info(
             "[ManagerAgent] Initialised | df=%s | schema_context_len=%d chars",
             df.shape if df is not None else "None",
@@ -659,6 +740,48 @@ class ManagerAgent:
                 content = "I ran into an issue running the predictive analysis. Please try rephrasing."
 
             yield {"type": "result", "content": content, "agent_label": "Prediction Agent (Rey)"}
+
+    def handle_consultant_request(self, user_text: str, history: list = None):
+        """
+        Generator that routes directly to Atlas (Business Consultant), bypassing the classifier.
+        Yields the same step shapes as handle_request.
+        """
+        logger.info("[ManagerAgent] Consultant request (Atlas): %r", user_text[:100])
+
+        if self.df is None:
+            yield {
+                "type": "result",
+                "content": "I'm having trouble accessing your data. Please try again shortly.",
+                "agent_label": "Consultant (Atlas)",
+            }
+            return
+
+        yield {"type": "status", "message": "Atlas is analysing your business data..."}
+
+        messages = self._build_messages(user_text, history or [])
+        invoke_config = {"recursion_limit": 40}
+
+        try:
+            response = self.consultant_executor.invoke({"messages": messages}, invoke_config)
+            answer = response["messages"][-1].content
+            logger.info("[ManagerAgent] Consultant (Atlas) responded (%d chars)", len(answer))
+            yield {"type": "result", "content": answer, "agent_label": "Consultant (Atlas)"}
+
+        except Exception as e:
+            error_msg = str(e).lower()
+            logger.error("[ManagerAgent] Consultant (Atlas) error: %s", e)
+
+            if "quota" in error_msg or "rate" in error_msg:
+                content = "I'm temporarily rate-limited. Please wait a moment and try again."
+            elif "recursion" in error_msg:
+                content = (
+                    "Your question required too many analysis steps. "
+                    "Try focusing on one goal at a time."
+                )
+            else:
+                content = "I ran into an issue generating your strategy. Please try again."
+
+            yield {"type": "result", "content": content, "agent_label": "Consultant (Atlas)"}
 
     def handle_request(self, user_text: str, history: list = None):
         """
