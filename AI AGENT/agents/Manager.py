@@ -409,7 +409,7 @@ class ManagerAgent:
             self.llm, tools=general_tools, prompt=general_prompt
         )
 
-        # ── Business Consultant agent (Atlas) ─────────────────────────────────
+        # ── Business Consultant agent (Zyon) ─────────────────────────────────
         # Cross-domain: accesses ALL analyst tools.
         # Speaks plain English — designed for non-technical business owners.
         self.consultant_tools = [
@@ -443,7 +443,7 @@ class ManagerAgent:
         ]
 
         consultant_prompt = (
-            "You are Atlas, a trusted business advisor. You are talking to a small business owner "
+            "You are Zyon, a trusted business advisor. You are talking to a small business owner "
             "who knows their products and customers well but has NO background in data analysis, "
             "statistics, or technology.\n\n"
             "YOUR JOB:\n"
@@ -743,20 +743,20 @@ class ManagerAgent:
 
     def handle_consultant_request(self, user_text: str, history: list = None):
         """
-        Generator that routes directly to Atlas (Business Consultant), bypassing the classifier.
+        Generator that routes directly to Zyon (Business Consultant), bypassing the classifier.
         Yields the same step shapes as handle_request.
         """
-        logger.info("[ManagerAgent] Consultant request (Atlas): %r", user_text[:100])
+        logger.info("[ManagerAgent] Consultant request (Zyon): %r", user_text[:100])
 
         if self.df is None:
             yield {
                 "type": "result",
                 "content": "I'm having trouble accessing your data. Please try again shortly.",
-                "agent_label": "Consultant (Atlas)",
+                "agent_label": "Consultant (Zyon)",
             }
             return
 
-        yield {"type": "status", "message": "Atlas is analysing your business data..."}
+        yield {"type": "status", "message": "Zyon is analysing your business data..."}
 
         messages = self._build_messages(user_text, history or [])
         invoke_config = {"recursion_limit": 40}
@@ -764,12 +764,12 @@ class ManagerAgent:
         try:
             response = self.consultant_executor.invoke({"messages": messages}, invoke_config)
             answer = response["messages"][-1].content
-            logger.info("[ManagerAgent] Consultant (Atlas) responded (%d chars)", len(answer))
-            yield {"type": "result", "content": answer, "agent_label": "Consultant (Atlas)"}
+            logger.info("[ManagerAgent] Consultant (Zyon) responded (%d chars)", len(answer))
+            yield {"type": "result", "content": answer, "agent_label": "Consultant (Zyon)"}
 
         except Exception as e:
             error_msg = str(e).lower()
-            logger.error("[ManagerAgent] Consultant (Atlas) error: %s", e)
+            logger.error("[ManagerAgent] Consultant (Zyon) error: %s", e)
 
             if "quota" in error_msg or "rate" in error_msg:
                 content = "I'm temporarily rate-limited. Please wait a moment and try again."
@@ -781,7 +781,7 @@ class ManagerAgent:
             else:
                 content = "I ran into an issue generating your strategy. Please try again."
 
-            yield {"type": "result", "content": content, "agent_label": "Consultant (Atlas)"}
+            yield {"type": "result", "content": content, "agent_label": "Consultant (Zyon)"}
 
     def handle_request(self, user_text: str, history: list = None):
         """

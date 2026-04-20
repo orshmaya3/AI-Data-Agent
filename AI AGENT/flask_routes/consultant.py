@@ -21,7 +21,7 @@ def api_consultant_analyze():
     if not goal:
         return jsonify({'error': 'No goal provided.'}), 400
 
-    # Build a rich natural-language prompt for Atlas
+    # Build a rich natural-language prompt for Zyon
     parts = [f"My business goal is: {goal}."]
     if target:
         parts.append(f"My target is: {target}.")
@@ -44,7 +44,7 @@ def api_consultant_analyze():
             if step['type'] == 'result':
                 return jsonify({
                     'response': step['content'],
-                    'agent':    step.get('agent_label', 'Consultant (Atlas)'),
+                    'agent':    step.get('agent_label', 'Consultant (Zyon)'),
                 })
         return jsonify({'error': 'No response generated.'}), 500
     except Exception as e:
@@ -74,7 +74,7 @@ def api_consultant_followup():
             if step['type'] == 'result':
                 return jsonify({
                     'response': step['content'],
-                    'agent':    step.get('agent_label', 'Consultant (Atlas)'),
+                    'agent':    step.get('agent_label', 'Consultant (Zyon)'),
                 })
         return jsonify({'error': 'No response.'}), 500
     except Exception as e:
