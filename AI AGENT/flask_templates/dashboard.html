@@ -175,11 +175,11 @@ function makeLayout() {
     paper_bgcolor: c.BG, plot_bgcolor: c.BG,
     font:  { family: 'Inter, sans-serif', color: c.TEXT, size: 11 },
     title: { font: { family: 'Inter, sans-serif', color: c.TITLE_C, size: 12, weight: 600 } },
-    margin: { l: 10, r: 10, t: 40, b: 10 },
+    margin: { l: 55, r: 16, t: 44, b: 48 },
     showlegend: false,
     hoverlabel: { bgcolor: c.HOVER_BG, font: { color: c.HOVER_TEXT, family: 'Inter, sans-serif' }, bordercolor: c.HOVER_BDR },
-    xaxis: { gridcolor: c.GRID, linecolor: c.LINE_C, zerolinecolor: c.LINE_C },
-    yaxis: { gridcolor: c.GRID, linecolor: c.LINE_C, zerolinecolor: c.LINE_C },
+    xaxis: { gridcolor: c.GRID, linecolor: c.LINE_C, zerolinecolor: c.LINE_C, automargin: true },
+    yaxis: { gridcolor: c.GRID, linecolor: c.LINE_C, zerolinecolor: c.LINE_C, automargin: true },
   };
 }
 
