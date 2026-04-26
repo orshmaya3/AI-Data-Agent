@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Data Agent — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --sidebar-bg:   #1a1f5e;
+    --sidebar-w:    230px;
+    --accent:       #6c5ce7;
+    --accent-light: rgba(108,92,231,0.12);
+    --bg:           #f4f5f9;
+    --card:         #ffffff;
+    --text:         #2d3748;
+    --muted:        #8a94a6;
+    --green:        #00b894;
+    --rose:         #ff6b6b;
+    --gold:         #fdcb6e;
+    --border:       rgba(0,0,0,0.06);
+    --shadow:       0 2px 16px rgba(0,0,0,0.07);
+    --radius:       14px;
+    --radius-sm:    8px;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    padding: 28px 0;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+  }
+
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 24px 32px;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  .sidebar-logo .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .sidebar-section {
+    padding: 0 14px;
+    margin-bottom: 8px;
+  }
+
+  .sidebar-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    padding: 0 10px;
+    margin-bottom: 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 10px;
+    border-radius: 10px;
+    color: rgba(255,255,255,0.55);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    font-size: 13.5px;
+    margin-bottom: 2px;
+  }
+
+  .nav-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+
+  .nav-item.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(108,92,231,0.4);
+  }
+
+  .nav-icon {
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--rose);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+  }
+
+  .sidebar-bottom {
+    margin-top: auto;
+    padding: 0 14px;
+  }
+
+  .sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.07);
+    cursor: pointer;
+  }
+
+  .sidebar-user img {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .sidebar-user-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-user-info { flex: 1; min-width: 0; }
+  .sidebar-user-name { color: #fff; font-size: 12.5px; font-weight: 600; }
+  .sidebar-user-role { color: rgba(255,255,255,0.4); font-size: 11px; }
+
+  /* ── Main ── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 28px 32px;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+
+  .header-left h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.4px;
+  }
+
+  .header-left p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 2px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 14px;
+    width: 220px;
+    box-shadow: var(--shadow);
+  }
+
+  .search-bar input {
+    border: none; outline: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--text);
+    font-family: inherit;
+    width: 100%;
+  }
+
+  .search-bar input::placeholder { color: var(--muted); }
+
+  .icon-btn {
+    width: 40px; height: 40px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    font-size: 16px;
+    position: relative;
+  }
+
+  .icon-btn .dot {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 7px; height: 7px;
+    background: var(--rose);
+    border-radius: 50%;
+    border: 2px solid var(--card);
+  }
+
+  .user-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px 14px 6px 6px;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+  }
+
+  .user-chip-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 12px; font-weight: 700;
+  }
+
+  .user-chip span { font-size: 13px; font-weight: 600; }
+
+  /* ── KPI Cards ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  .kpi-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 22px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    opacity: 0.06;
+    transform: translate(20px, -20px);
+  }
+
+  .kpi-card.blue::after  { background: #6c5ce7; }
+  .kpi-card.green::after { background: #00b894; }
+  .kpi-card.rose::after  { background: #ff6b6b; }
+  .kpi-card.gold::after  { background: #fdcb6e; }
+
+  .kpi-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .kpi-icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+
+  .kpi-icon.blue  { background: rgba(108,92,231,0.12); }
+  .kpi-icon.green { background: rgba(0,184,148,0.12); }
+  .kpi-icon.rose  { background: rgba(255,107,107,0.12); }
+  .kpi-icon.gold  { background: rgba(253,203,110,0.12); }
+
+  .kpi-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+
+  .kpi-badge.up   { background: rgba(0,184,148,0.12); color: var(--green); }
+  .kpi-badge.down { background: rgba(255,107,107,0.12); color: var(--rose); }
+
+  .kpi-value {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+
+  .kpi-label {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  /* ── Content Grid ── */
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .card-subtitle {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .select-pill {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    font-family: inherit;
+    outline: none;
+  }
+
+  /* ── Bar Chart ── */
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 180px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+
+  .bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .bar {
+    width: 100%;
+    border-radius: 6px 6px 0 0;
+    background: linear-gradient(180deg, #6c5ce7 0%, #a29bfe 100%);
+    opacity: 0.85;
+    transition: opacity 0.15s;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .bar.active {
+    opacity: 1;
+    background: linear-gradient(180deg, #6c5ce7 0%, #6c5ce7 100%);
+    box-shadow: 0 4px 14px rgba(108,92,231,0.35);
+  }
+
+  .bar-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .chart-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background: #2d3748;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 7px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .bar:hover .chart-tooltip { opacity: 1; }
+
+  /* ── Right Panel ── */
+  .donut-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .donut-svg { margin-bottom: 14px; }
+
+  .donut-legend {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-label { font-size: 12.5px; font-weight: 500; flex: 1; }
+  .legend-pct   { font-size: 12.5px; font-weight: 700; color: var(--text); }
+
+  /* ── Bottom Row ── */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  /* ── Agent Cards ── */
+  .agent-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .agent-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .agent-card:hover {
+    background: var(--accent-light);
+    border-color: rgba(108,92,231,0.2);
+  }
+
+  .agent-avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--card);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    background: #fff;
+  }
+
+  .agent-info { flex: 1; min-width: 0; }
+  .agent-name { font-size: 13px; font-weight: 600; }
+  .agent-role { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+
+  .agent-status {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px rgba(0,184,148,0.2);
+  }
+
+  /* ── Activity List ── */
+  .activity-list { display: flex; flex-direction: column; gap: 0; }
+
+  .activity-item {
+    display: flex;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+
+  .activity-item:last-child { border-bottom: none; }
+
+  .activity-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .activity-text { flex: 1; }
+  .activity-main { font-size: 12.5px; font-weight: 500; margin-bottom: 2px; }
+  .activity-sub  { font-size: 11px; color: var(--muted); }
+  .activity-time { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  /* ── Ask AI Button ── */
+  .ask-ai-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 4px 14px rgba(108,92,231,0.35);
+    transition: all 0.15s;
+  }
+
+  .ask-ai-btn:hover {
+    background: #5a4bd1;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(108,92,231,0.45);
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">📊</div>
+    AI Data Dept.
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Main Menu</div>
+    <a class="nav-item active" href="#">
+      <span class="nav-icon">📈</span> Dashboard
+    </a>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">💬</span> AI Chat
+      <span class="nav-badge">3</span>
+    </a>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">🔮</span> Prediction
+    </a>
+  </div>
+
+  <div class="sidebar-section" style="margin-top:16px;">
+    <div class="sidebar-label">Agents</div>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">📊</span> Alex · Sales
+    </a>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">📦</span> Dana · Products
+    </a>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">👥</span> Maya · Customers
+    </a>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">🔮</span> Rey · Prediction
+    </a>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">🤖</span> Aria · General
+    </a>
+  </div>
+
+  <div class="sidebar-bottom">
+    <a class="nav-item" href="#" style="margin-bottom:12px;">
+      <span class="nav-icon">⚙️</span> Settings
+    </a>
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar">T</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">Taeir</div>
+        <div class="sidebar-user-role">Admin</div>
+      </div>
+      <span style="color:rgba(255,255,255,0.3);font-size:12px;">⋯</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ── Main Content ── -->
+<main class="main">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1>Hello, Taeir 👋</h1>
+      <p>Here's what's happening with your store today.</p>
+    </div>
+    <div class="header-right">
+      <div class="search-bar">
+        <span style="color:var(--muted);">🔍</span>
+        <input type="text" placeholder="Ask anything...">
+      </div>
+      <div class="icon-btn">🔔<div class="dot"></div></div>
+      <div class="user-chip">
+        <div class="user-chip-avatar">T</div>
+        <span>Taeir</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi-card blue">
+      <div class="kpi-top">
+        <div class="kpi-icon blue">💷</div>
+        <span class="kpi-badge up">↑ 10.8%</span>
+      </div>
+      <div class="kpi-value">£9.75M</div>
+      <div class="kpi-label">Total Revenue</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-top">
+        <div class="kpi-icon green">🛒</div>
+        <span class="kpi-badge up">↑ 5.6%</span>
+      </div>
+      <div class="kpi-value">25,900</div>
+      <div class="kpi-label">Total Orders</div>
+    </div>
+    <div class="kpi-card rose">
+      <div class="kpi-top">
+        <div class="kpi-icon rose">👥</div>
+        <span class="kpi-badge down">↓ 2.1%</span>
+      </div>
+      <div class="kpi-value">4,372</div>
+      <div class="kpi-label">Unique Customers</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-top">
+        <div class="kpi-icon gold">📦</div>
+        <span class="kpi-badge up">↑ 8.3%</span>
+      </div>
+      <div class="kpi-value">5,625,701</div>
+      <div class="kpi-label">Items Sold</div>
+    </div>
+  </div>
+
+  <!-- Content Grid -->
+  <div class="content-grid">
+
+    <!-- Revenue Chart -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Revenue Overview</div>
+          <div class="card-subtitle">Monthly performance · all channels</div>
+        </div>
+        <select class="select-pill">
+          <option>Monthly</option>
+          <option>Weekly</option>
+          <option>Quarterly</option>
+        </select>
+      </div>
+      <div class="chart-bars">
+        <div class="bar-col">
+          <div class="bar" style="height:52%"><div class="chart-tooltip">Jan · £483K</div></div>
+          <div class="bar-label">Jan</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar" style="height:78%"><div class="chart-tooltip">Feb · £722K</div></div>
+          <div class="bar-label">Feb</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar" style="height:62%"><div class="chart-tooltip">Mar · £574K</div></div>
+          <div class="bar-label">Mar</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar" style="height:28%"><div class="chart-tooltip">Apr · £259K</div></div>
+          <div class="bar-label">Apr</div>
+        </div>
+        <div class="bar active" style="height:72%;flex:1;border-radius:6px 6px 0 0;background:linear-gradient(180deg,#6c5ce7,#6c5ce7);box-shadow:0 4px 14px rgba(108,92,231,.35);position:relative;cursor:pointer;">
+          <div class="chart-tooltip" style="opacity:1;">May · £667K</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar" style="height:18%"><div class="chart-tooltip">Jun · £167K</div></div>
+          <div class="bar-label">Jun</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar" style="height:12%"><div class="chart-tooltip">Jul · £111K</div></div>
+          <div class="bar-label">Jul</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar" style="height:54%"><div class="chart-tooltip">Aug · £500K</div></div>
+          <div class="bar-label">Aug</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar" style="height:44%"><div class="chart-tooltip">Sep · £407K</div></div>
+          <div class="bar-label">Sep</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar" style="height:88%"><div class="chart-tooltip">Oct · £815K</div></div>
+          <div class="bar-label">Oct</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar" style="height:100%"><div class="chart-tooltip">Nov · £926K</div></div>
+          <div class="bar-label">Nov</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:24px;padding-top:12px;">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">This month</div>
+          <div style="font-size:16px;font-weight:700;">£926K</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Avg. order</div>
+          <div style="font-size:16px;font-weight:700;">£376</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Refund rate</div>
+          <div style="font-size:16px;font-weight:700;color:var(--rose);">1.7%</div>
+        </div>
+        <div style="margin-left:auto;">
+          <button class="ask-ai-btn">✨ Ask Alex</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Donut -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Revenue by Country</div>
+          <div class="card-subtitle">Top 5 markets</div>
+        </div>
+        <span style="font-size:20px;">🌍</span>
+      </div>
+      <div class="donut-wrap">
+        <svg class="donut-svg" width="150" height="150" viewBox="0 0 150 150">
+          <!-- United Kingdom: 82% -->
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#6c5ce7" stroke-width="22"
+            stroke-dasharray="345 400" stroke-dashoffset="0" transform="rotate(-90 75 75)"/>
+          <!-- Germany: 8% -->
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#00b894" stroke-width="22"
+            stroke-dasharray="34 400" stroke-dashoffset="-345" transform="rotate(-90 75 75)"/>
+          <!-- France: 4% -->
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#fdcb6e" stroke-width="22"
+            stroke-dasharray="17 400" stroke-dashoffset="-379" transform="rotate(-90 75 75)"/>
+          <!-- Others -->
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#ff6b6b" stroke-width="22"
+            stroke-dasharray="24 400" stroke-dashoffset="-396" transform="rotate(-90 75 75)"/>
+          <text x="75" y="70" text-anchor="middle" font-size="20" font-weight="800" fill="#2d3748" font-family="Inter">82%</text>
+          <text x="75" y="86" text-anchor="middle" font-size="10" fill="#8a94a6" font-family="Inter">United Kingdom</text>
+        </svg>
+        <div class="donut-legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#6c5ce7;"></div>
+            <span class="legend-label">United Kingdom</span>
+            <span class="legend-pct">82.3%</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#00b894;"></div>
+            <span class="legend-label">Germany</span>
+            <span class="legend-pct">8.6%</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#fdcb6e;"></div>
+            <span class="legend-label">France</span>
+            <span class="legend-pct">4.3%</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#ff6b6b;"></div>
+            <span class="legend-label">Others</span>
+            <span class="legend-pct">4.8%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Row -->
+  <div class="bottom-row">
+
+    <!-- AI Agents -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">AI Agents</div>
+          <div class="card-subtitle">5 agents online · ready to answer</div>
+        </div>
+        <button class="ask-ai-btn" style="font-size:12px;padding:8px 14px;">+ New Chat</button>
+      </div>
+      <div class="agent-list">
+        <div class="agent-card">
+          <div class="agent-avatar">📊</div>
+          <div class="agent-info">
+            <div class="agent-name">Alex · Sales Agent</div>
+            <div class="agent-role">Revenue, orders, trends, refunds</div>
+          </div>
+          <div class="agent-status"></div>
+        </div>
+        <div class="agent-card">
+          <div class="agent-avatar">👥</div>
+          <div class="agent-info">
+            <div class="agent-name">Maya · Customer Agent</div>
+            <div class="agent-role">Profiles, segments, loyalty</div>
+          </div>
+          <div class="agent-status"></div>
+        </div>
+        <div class="agent-card">
+          <div class="agent-avatar">📦</div>
+          <div class="agent-info">
+            <div class="agent-name">Dana · Product Agent</div>
+            <div class="agent-role">Performance, pricing, rankings</div>
+          </div>
+          <div class="agent-status"></div>
+        </div>
+        <div class="agent-card">
+          <div class="agent-avatar">🔮</div>
+          <div class="agent-info">
+            <div class="agent-name">Rey · Prediction Agent</div>
+            <div class="agent-role">Forecasts, churn, CLV, RFM</div>
+          </div>
+          <div class="agent-status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Recent Activity</div>
+          <div class="card-subtitle">Latest agent interactions</div>
+        </div>
+        <span style="font-size:12px;color:var(--accent);font-weight:600;cursor:pointer;">View all →</span>
+      </div>
+      <div class="activity-list">
+        <div class="activity-item">
+          <div class="activity-icon" style="background:rgba(108,92,231,0.1);">📈</div>
+          <div class="activity-text">
+            <div class="activity-main">Revenue forecast generated</div>
+            <div class="activity-sub">Rey predicted £1.2M for next quarter</div>
+          </div>
+          <div class="activity-time">2m ago</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:rgba(255,107,107,0.1);">⚠️</div>
+          <div class="activity-text">
+            <div class="activity-main">Churn risk alert</div>
+            <div class="activity-sub">847 customers inactive 90+ days</div>
+          </div>
+          <div class="activity-time">18m ago</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:rgba(0,184,148,0.1);">🏆</div>
+          <div class="activity-text">
+            <div class="activity-main">Top customer identified</div>
+            <div class="activity-sub">Customer #14646 · £280K lifetime value</div>
+          </div>
+          <div class="activity-time">1h ago</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:rgba(253,203,110,0.1);">📦</div>
+          <div class="activity-text">
+            <div class="activity-main">Slow movers detected</div>
+            <div class="activity-sub">12 products with declining demand</div>
+          </div>
+          <div class="activity-time">3h ago</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:rgba(108,92,231,0.1);">💬</div>
+          <div class="activity-text">
+            <div class="activity-main">Chat session completed</div>
+            <div class="activity-sub">Alex answered 4 sales questions</div>
+          </div>
+          <div class="activity-time">5h ago</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // Make bars in the chart column work correctly
+  document.querySelectorAll('.bar-col').forEach(col => {
+    const bar = col.querySelector('.bar');
+    if (!bar) return;
+    const label = col.querySelector('.bar-label');
+    const newBar = document.createElement('div');
+    newBar.className = 'bar';
+    newBar.style.height = bar.style.height;
+    const tt = bar.querySelector('.chart-tooltip');
+    if (tt) newBar.appendChild(tt.cloneNode(true));
+    col.insertBefore(newBar, label);
+    bar.remove();
+  });
+</script>
+</body>
+</html>

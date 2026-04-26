@@ -1268,6 +1268,289 @@ class PredictionAnalyst:
             "note":                      note,
         }
 
+    def get_churn_adjusted_clv(self, customer_id: int, projection_months: int = 12) -> dict:
+        """Returns a churn-adjusted Customer Lifetime Value for a specific customer.
+        Multiplies the naive projected CLV by (1 − churn_probability) so the estimate
+        reflects the statistical likelihood the customer stops buying before the horizon.
+        Use this instead of get_customer_clv_estimate when you need a realistic expected value
+        rather than a best-case projection.
+        Args:
+            customer_id: The numeric customer ID.
+            projection_months: Projection horizon in months (default 12, max 36).
+        """
+        clv = self.get_customer_clv_estimate(customer_id, projection_months)
+        if "error" in clv and "projected_clv_gbp" not in clv:
+            return clv
+
+        projected_clv = float(clv.get("projected_clv_gbp", 0.0))
+
+        try:
+            churn_result = self.get_churn_probability_scores(top_n=50)
+            cid_f = float(customer_id)
+            churn_pct = None
+            source = "unknown"
+
+            if "high_risk_customers" in churn_result:
+                for c in churn_result["high_risk_customers"]:
+                    if float(c["customer_id"]) == cid_f:
+                        churn_pct = float(c["churn_probability"])
+                        source = "Random Forest ML model"
+                        break
+
+            if churn_pct is None:
+                summary = self.get_churn_risk_summary()
+                churn_pct = min(float(summary.get("churn_risk_pct", 15.0)), 95.0)
+                source = "population average (customer not in high-risk list — likely low-risk)"
+
+            survival = 1.0 - (churn_pct / 100.0)
+            adjusted = round(projected_clv * survival, 2)
+
+            result = dict(clv)
+            result["churn_probability_pct"]    = round(churn_pct, 1)
+            result["churn_probability_source"] = source
+            result["survival_probability_pct"] = round(survival * 100, 1)
+            result["churn_adjusted_clv_gbp"]   = adjusted
+            result["clv_reduction_gbp"]        = round(projected_clv - adjusted, 2)
+            result["note"] = (
+                f"Churn-adjusted CLV = projected CLV × (1 − churn probability). "
+                f"Churn probability sourced from: {source}. "
+                f"The adjusted figure (£{adjusted:,.2f}) is the statistically expected value "
+                f"accounting for the risk this customer stops purchasing before the {projection_months}-month horizon."
+            )
+            return result
+
+        except Exception as e:
+            clv["churn_adjustment_error"] = str(e)
+            return clv
+
+    def get_cohort_retention(self, max_cohorts: int = 6) -> dict:
+        """Computes cohort retention curves: for each acquisition cohort (the month a customer
+        first purchased), shows what percentage returned to buy again in month 1, 2, 3, etc.
+        Use this to understand customer loyalty over time and whether new customers are becoming
+        repeat buyers. A healthy business shows month-1 retention of 20%+.
+        Args:
+            max_cohorts: Number of most recent acquisition cohorts to include (default 6, max 12).
+        """
+        if not self._has_customer_id or not self._has_invoice_date or not self._has_invoice:
+            return {"error": "Cohort analysis requires Customer ID, InvoiceDate, and Invoice columns."}
+        if not self._has_valid_dates:
+            return self._no_date_error()
+
+        max_cohorts = min(max(max_cohorts, 1), 12)
+
+        try:
+            sales = (
+                self._dated_df[self._dated_df["Quantity"] > 0].copy()
+                if self._has_quantity
+                else self._dated_df.copy()
+            )
+            sales = sales.dropna(subset=["Customer ID"])
+            if sales.empty:
+                return {"error": "No valid sales data available for cohort analysis."}
+
+            sales["CohortMonth"] = (
+                sales.groupby("Customer ID")["InvoiceDate"]
+                .transform("min")
+                .dt.to_period("M")
+            )
+            sales["OrderMonth"]  = sales["InvoiceDate"].dt.to_period("M")
+            sales["CohortIndex"] = (sales["OrderMonth"] - sales["CohortMonth"]).apply(
+                lambda x: x.n
+            )
+
+            cohort_counts = (
+                sales.groupby(["CohortMonth", "CohortIndex"])["Customer ID"]
+                .nunique()
+                .reset_index()
+            )
+            pivot = cohort_counts.pivot_table(
+                index="CohortMonth", columns="CohortIndex", values="Customer ID"
+            )
+
+            # Keep only cohorts with known size (month 0) and ≥1 follow-up month
+            pivot = pivot[pivot[0].notna()]
+            pivot = pivot[pivot.shape[1] > 1] if pivot.shape[1] > 1 else pivot
+            pivot = pivot.tail(max_cohorts)
+
+            if pivot.empty:
+                return {"error": "Insufficient data for cohort retention. Need purchases spanning at least 2 months."}
+
+            cohort_sizes = pivot[0]
+            retention_pct = pivot.divide(cohort_sizes, axis=0).multiply(100)
+
+            results = []
+            for cohort_month, row in retention_pct.iterrows():
+                size = int(cohort_sizes[cohort_month])
+                months = {}
+                for idx in range(min(7, len(row))):
+                    if idx in row.index and pd.notna(row[idx]):
+                        months[f"month_{idx}"] = round(float(row[idx]), 1)
+                if len(months) >= 2:
+                    results.append({
+                        "cohort":              str(cohort_month),
+                        "cohort_size":         size,
+                        "retention_by_month":  months,
+                    })
+
+            if not results:
+                return {"error": "Not enough consecutive months of data to build retention curves."}
+
+            m1_rates = [
+                c["retention_by_month"]["month_1"]
+                for c in results
+                if "month_1" in c["retention_by_month"]
+            ]
+            avg_m1 = round(sum(m1_rates) / len(m1_rates), 1) if m1_rates else None
+
+            return {
+                "cohorts":                    results,
+                "avg_month_1_retention_pct":  avg_m1,
+                "cohorts_analysed":           len(results),
+                "note": (
+                    "month_0 = 100% (first purchase month). "
+                    "month_1 = % of that cohort who purchased again in the following month. "
+                    "Benchmark: healthy e-commerce typically shows 20–35% month-1 retention."
+                ),
+            }
+
+        except Exception as e:
+            return {"error": f"Cohort retention analysis failed: {e}"}
+
+    def get_clv_by_segment(self, projection_months: int = 12) -> dict:
+        """Computes projected Customer Lifetime Value aggregated by RFM customer segment.
+        Cross-references KMeans segmentation with individual CLV projections to show which
+        segments are most valuable and where revenue growth potential is concentrated.
+        Use this to prioritise which customer groups deserve the most retention investment.
+        Args:
+            projection_months: How many months ahead to project CLV (default 12, max 36).
+        """
+        if not self._has_customer_id or not self._has_invoice or not self._has_invoice_date:
+            return {"error": "CLV by segment requires Customer ID, Invoice, and InvoiceDate columns."}
+        if not self._has_revenue:
+            return {"error": "Revenue could not be computed. Ensure both 'Price' and 'Quantity' columns exist."}
+        if not self._has_valid_dates:
+            return self._no_date_error()
+
+        projection_months = min(max(projection_months, 1), 36)
+
+        try:
+            from sklearn.preprocessing import StandardScaler
+            from sklearn.cluster import KMeans
+
+            rfm = self._build_rfm_dataframe()
+            if rfm is None or rfm.empty:
+                return {"error": "Could not build RFM data for CLV by segment analysis."}
+
+            # Segment customers via KMeans (reuse cached optimal K if available)
+            seg_result = self.get_customer_segments()
+            if "error" in seg_result:
+                return {"error": f"Segmentation failed: {seg_result.get('error', 'unknown')}"}
+
+            features = rfm[["recency_days", "frequency", "monetary"]].copy()
+            scaler   = StandardScaler()
+            X        = scaler.fit_transform(features)
+
+            n_clusters = seg_result["model_metadata"]["n_clusters"]
+            km = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto", max_iter=300)
+            rfm = rfm.copy()
+            rfm["cluster"] = km.fit_predict(X)
+
+            # Build centroid-based label map (mirrors get_customer_segments logic)
+            centers_df = pd.DataFrame(
+                scaler.inverse_transform(km.cluster_centers_),
+                columns=["recency_days", "frequency", "monetary"],
+            )
+            centers_df["cluster"]        = range(n_clusters)
+            centers_df["recency_rank"]   = centers_df["recency_days"].rank(ascending=True)
+            centers_df["frequency_rank"] = centers_df["frequency"].rank(ascending=False)
+            centers_df["monetary_rank"]  = centers_df["monetary"].rank(ascending=False)
+            centers_df["rfm_score"] = (
+                -centers_df["recency_rank"]
+                + centers_df["frequency_rank"]
+                + centers_df["monetary_rank"]
+            )
+            centers_df = centers_df.sort_values("rfm_score", ascending=False).reset_index(drop=True)
+            label_list = ["Champions", "Loyal Customers", "At-Risk", "Hibernating", "Lost", "New Customers"]
+            cluster_to_label = {
+                int(row["cluster"]): label_list[min(i, len(label_list) - 1)]
+                for i, (_, row) in enumerate(centers_df.iterrows())
+            }
+            rfm["segment"] = rfm["cluster"].map(cluster_to_label)
+
+            # Per-customer CLV stats
+            sales = (
+                self._dated_df[self._dated_df["Quantity"] > 0].copy()
+                if self._has_quantity
+                else self._dated_df.copy()
+            )
+            sales = sales.dropna(subset=["Customer ID"])
+            cust_stats = (
+                sales.groupby("Customer ID")
+                .agg(
+                    total_spend   =("Revenue",     "sum"),
+                    total_orders  =("Invoice",     "nunique"),
+                    first_purchase=("InvoiceDate", "min"),
+                    last_purchase =("InvoiceDate", "max"),
+                )
+                .reset_index()
+            )
+            cust_stats["active_days"]         = (cust_stats["last_purchase"] - cust_stats["first_purchase"]).dt.days
+            cust_stats["active_months"]       = (cust_stats["active_days"] / 30.0).clip(lower=1.0)
+            cust_stats["aov"]                 = cust_stats["total_spend"] / cust_stats["total_orders"]
+            cust_stats["purchases_per_month"] = cust_stats["total_orders"] / cust_stats["active_months"]
+            cust_stats["projected_clv"]       = (
+                cust_stats["aov"] * cust_stats["purchases_per_month"] * projection_months
+            )
+
+            merged = rfm[["customer_id", "segment"]].merge(
+                cust_stats.rename(columns={"Customer ID": "customer_id"}),
+                on="customer_id",
+                how="inner",
+            )
+
+            agg = (
+                merged.groupby("segment")
+                .agg(
+                    customer_count       =("customer_id",         "count"),
+                    avg_historical_spend =("total_spend",         "mean"),
+                    avg_projected_clv    =("projected_clv",       "mean"),
+                    total_projected_clv  =("projected_clv",       "sum"),
+                    avg_order_value      =("aov",                 "mean"),
+                    avg_purchases_per_month=("purchases_per_month", "mean"),
+                )
+                .reset_index()
+            )
+
+            segments_out = [
+                {
+                    "segment":                    row["segment"],
+                    "customer_count":             int(row["customer_count"]),
+                    "avg_historical_spend_gbp":   round(float(row["avg_historical_spend"]),    2),
+                    "avg_projected_clv_gbp":      round(float(row["avg_projected_clv"]),       2),
+                    "total_projected_clv_gbp":    round(float(row["total_projected_clv"]),     2),
+                    "avg_order_value_gbp":        round(float(row["avg_order_value"]),         2),
+                    "avg_purchases_per_month":    round(float(row["avg_purchases_per_month"]), 2),
+                }
+                for _, row in agg.sort_values("avg_projected_clv", ascending=False).iterrows()
+            ]
+
+            total_projected = sum(s["total_projected_clv_gbp"] for s in segments_out)
+
+            return {
+                "segments":                             segments_out,
+                "projection_horizon_months":            projection_months,
+                "total_projected_clv_all_segments_gbp": round(total_projected, 2),
+                "note": (
+                    f"Projected CLV assumes each customer continues at their historical purchase rate "
+                    f"for {projection_months} months. Does not account for churn probability — use "
+                    "get_churn_adjusted_clv for individual risk-adjusted estimates. "
+                    "Segments ordered by avg_projected_clv_gbp descending."
+                ),
+            }
+
+        except Exception as e:
+            return {"error": f"CLV by segment analysis failed: {e}"}
+
     # ──────────────────────────────────────────────────────────────────────────
     # Utility (shared with other analysts — needed so the agent can resolve names)
     # ──────────────────────────────────────────────────────────────────────────
