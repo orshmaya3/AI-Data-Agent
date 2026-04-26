@@ -193,6 +193,8 @@ def _subprocess_worker(
     except Exception:
         error = traceback.format_exc()
     finally:
+        sys.stdout.flush()
+        sys.stderr.flush()
         sys.stdout, sys.stderr = old_stdout, old_stderr
 
     output = stdout_buf.getvalue()
@@ -218,6 +220,7 @@ def _subprocess_worker(
     # ---- Extract updated picklable namespace data -------------------------
     _SKIP_LIBS = {"pd", "np", "plt", "sns", "stats"}
     updated_data: dict = {}
+    dropped_keys: list = []
     for k, v in namespace.items():
         if k in _SKIP_LIBS or k.startswith("_"):
             continue
@@ -225,13 +228,16 @@ def _subprocess_worker(
             _pickle.dumps(v)
             updated_data[k] = v
         except Exception:
-            pass
+            dropped_keys.append(k)
 
+    stripped_output = output.strip()
     result_queue.put({
-        "output":       output.strip(),
+        "output":       stripped_output,
+        "has_output":   bool(stripped_output),
         "error":        error,
         "charts":       charts,
         "updated_data": updated_data,
+        "dropped_keys": dropped_keys,
     })
 
 
@@ -335,12 +341,21 @@ class CodeExecutor:
             "extra": extra,
         }
 
-    def _merge_namespace(self, updated_data: dict) -> None:
+    def _merge_namespace(self, updated_data: dict, dropped_keys: list = None) -> None:
         """Write the worker's namespace changes back into the persistent session."""
         _SKIP_LIBS = {"pd", "np", "plt", "sns", "stats"}
         for k, v in updated_data.items():
             if k not in _SKIP_LIBS:
                 self._namespace[k] = v
+
+        if dropped_keys:
+            for k in dropped_keys:
+                logger.warning(
+                    "[CodeExecutor] Variable %r could not be pickled and was "
+                    "silently dropped from the session (e.g. lambda, open file, "
+                    "or unpicklable object). The agent cannot reuse it.", k
+                )
+
         # Keep top-level dfs variables in sync with the dfs dict
         for name, frame in self._namespace.get("dfs", {}).items():
             self._namespace[name] = frame
@@ -453,7 +468,7 @@ class CodeExecutor:
 
         # Only merge namespace on clean success to preserve atomic semantics
         if not result["error"]:
-            self._merge_namespace(result["updated_data"])
+            self._merge_namespace(result["updated_data"], result.get("dropped_keys"))
 
         logger.info(
             "[CodeExecutor] success=%s | %d ms | %d chart(s) | "

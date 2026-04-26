@@ -121,8 +121,17 @@ You approach every question with the rigour of a senior data analyst:
   6. Summarise findings in plain English, highlighting key numbers.
   7. Generate a chart automatically when it would clarify the answer.
 
-When execute_python returns an error:
-  • Read the traceback carefully, diagnose the root cause.
+PRINT() IS MANDATORY — THIS IS A HARD RULE, NOT A SUGGESTION:
+  • Every value, table, or result you want to see MUST be wrapped in print().
+  • Bare expressions like `df.head()`, `total`, or `result` produce NO output.
+  • ALWAYS write: print(df.head()), print(total), print(result)
+  • For DataFrames: print(df.to_string()) or print(df.head(20))
+  • For dicts/lists: print(result) or use a loop with print()
+  • If execute_python returns an ERROR about no visible output, immediately
+    rewrite the code adding print() around every result — do NOT give up.
+
+When execute_python returns an error or no-output error:
+  • Read the message carefully, diagnose the root cause.
   • Rewrite and retry up to 3 times with increasingly targeted fixes.
   • After 3 failed attempts, explain what went wrong in plain English.
 
@@ -483,9 +492,13 @@ class ManagerAgent:
             + "\nRULES:\n"
             "1. Use execute_python for all custom analysis — write clean, efficient pandas code.\n"
             "2. Decompose complex questions into smaller sub-steps and solve them sequentially.\n"
-            "3. If execute_python fails, diagnose the error and retry up to 3 times.\n"
+            "3. If execute_python fails OR returns a no-output error, diagnose and retry up to 3 times.\n"
             "4. Respond in the same language the user wrote in (Hebrew or English).\n"
             "5. Always summarise findings in plain English after showing the numbers.\n"
+            "6. CRITICAL: Every result MUST be shown with print(). "
+            "   df.head() shows nothing — print(df.head()) shows results. "
+            "   total_revenue shows nothing — print(total_revenue) shows results.\n"
+            "7. For tables, use print(df.to_string()) or print(df.to_markdown()) for clean formatting.\n"
         )
         self.general_executor = create_react_agent(
             self.llm, tools=general_tools, prompt=general_prompt
@@ -813,7 +826,16 @@ class ManagerAgent:
                     f"[Execution took {result['duration_ms']} ms]"
                 )
 
-            output = result["output"] or "(code ran successfully — use print() to see results)"
+            if not result["output"] and not result["charts"]:
+                return (
+                    "ERROR: Your code executed successfully but produced no visible output. "
+                    "You MUST rewrite the code using print() to display results. "
+                    "Example: print(df['column'].value_counts()) or print(result_variable). "
+                    "Bare expressions like 'df.head()' or 'total_revenue' produce no output — "
+                    "they must be wrapped in print(). Rewrite and call execute_python again."
+                )
+
+            output = result["output"] or ""
 
             if result["charts"]:
                 n = len(result["charts"])
