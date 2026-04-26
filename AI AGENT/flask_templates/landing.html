@@ -476,6 +476,80 @@
       #theme-toggle { right: 12px; }
     }
 
+    /* ── How It Works ── */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      position: relative;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .step-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      box-shadow: var(--card-shadow);
+      padding: 32px 28px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      position: relative;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    .step-card:hover {
+      border-color: rgba(var(--accent-rgb), 0.35);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(var(--accent-rgb), 0.10);
+    }
+    .step-card:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1px;
+      height: 40%;
+      background: var(--card-border);
+    }
+    .step-num {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--accent);
+      margin-bottom: 16px;
+      font-variant-numeric: tabular-nums;
+    }
+    .step-icon-wrap {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      background: rgba(var(--accent-rgb), 0.10);
+      border: 1px solid rgba(var(--accent-rgb), 0.22);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px;
+      flex-shrink: 0;
+    }
+    .step-icon-wrap svg { color: var(--accent); }
+    .step-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+      letter-spacing: -0.2px;
+    }
+    .step-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    @media (max-width: 700px) {
+      .steps-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .step-card:not(:last-child)::after { display: none; }
+    }
+
     /* ── Page-exit overlay ── */
     #exit-overlay {
       position: fixed;
@@ -545,6 +619,60 @@
       </div>
     </div>
   </div>
+
+  <!-- ── How It Works ── -->
+  <section>
+    <p class="section-label reveal">How It Works</p>
+    <h2 class="section-title reveal">From data to decisions<br>in three steps.</h2>
+
+    <div class="steps-grid">
+
+      <div class="step-card reveal reveal-delay-1">
+        <div class="step-num">01</div>
+        <div class="step-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <div class="step-title">Upload Your Data</div>
+        <div class="step-desc">Bring any retail or business dataset. The platform ingests it instantly — no setup, no schema mapping required.</div>
+      </div>
+
+      <div class="step-card reveal reveal-delay-2">
+        <div class="step-num">02</div>
+        <div class="step-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div class="step-title">Consult the Agents</div>
+        <div class="step-desc">Ask Alex about sales trends, Dana about product demand, Maya about customers, or Rey for ML forecasts — in plain English.</div>
+      </div>
+
+      <div class="step-card reveal reveal-delay-3">
+        <div class="step-num">03</div>
+        <div class="step-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3l1.9 5.8a1 1 0 0 0 .6.6L20.2 11.5l-4.7 3.4a1 1 0 0 0-.4 1.1L16.9 22 12 18.6 7.1 22l1.8-6a1 1 0 0 0-.4-1.1L3.8 11.5l5.7-2.1a1 1 0 0 0 .6-.6L12 3z"/>
+          </svg>
+        </div>
+        <div class="step-title">Get Your Strategy</div>
+        <div class="step-desc">The AI Consultant synthesises all agents' findings into a plain-English action plan — what to do, why it matters, and how to do it.</div>
+      </div>
+
+    </div>
+  </section>
 
   <!-- ── Agents ── -->
   <section>
@@ -635,7 +763,7 @@
   </div>
 
   <!-- ── Footer ── -->
-  <footer>© 2025 Taeir Cohen</footer>
+  <footer>© 2025 Taeir & Or</footer>
 
   <script>
     /* ══ Theme engine ════════════════════════════════════════════════ */
