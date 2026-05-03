@@ -37,8 +37,8 @@ def api_health():
 @login_required
 def api_kpis():
     try:
-        from flask_agents import get_data_agents
-        df, sales = get_data_agents()
+        from flask_routes.utils import resolve_data_agents
+        df, sales = resolve_data_agents(session.get('session_id'))
 
         if df is None:
             return jsonify({'error': 'Data not loaded — check server logs for details.'}), 503
@@ -66,8 +66,8 @@ def api_kpis():
 @login_required
 def api_charts():
     try:
-        from flask_agents import get_data_agents
-        df, sales = get_data_agents()
+        from flask_routes.utils import resolve_data_agents
+        df, sales = resolve_data_agents(session.get('session_id'))
 
         if df is None:
             return jsonify({'error': 'Data not loaded — check server logs for details.'}), 503

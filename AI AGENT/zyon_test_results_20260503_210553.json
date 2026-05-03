@@ -1,0 +1,171 @@
+[
+  {
+    "scenario": "PREFLIGHT",
+    "mode": "HEALTHY",
+    "word_count": 559,
+    "response": "## What's happening in your business right now\n\n1. **Sales Drop**: Your sales took a significant hit last month, dropping by 72% compared to the month before. This is a major concern and needs immediate attention.\n   \n2. **Churn Risk**: About 53% of your customers haven't made a purchase in the last 90 days, indicating a high risk of losing them. This is more than half of your customer base.\n\n3. **Revenue Forecast**: Despite the recent drop, the forecast for the next few months is looking up. The trend is upward, with expected revenue to increase in the coming months.\n\n4. **Repeat Customers**: Nearly 69% of your customers have made more than one purchase, which is a strong point for your business. It shows that once customers buy from you, they tend to come back.\n\n5. **Revenue Concentration**: A significant 64% of your revenue comes from just the top 10% of your customers. This is risky because losing even a few of these customers could greatly impact your revenue.\n\n## Your Action Plan\n\n### 1. **Win-Back Campaign**\n**What the data shows:** With over half of your customers at risk of leaving, it's crucial to re-engage them.\n**The mechanism:** Bringing back lapsed customers can stabilize your revenue and reduce the risk of further sales drops.\n**What to assume:** You have the means to reach out to these customers, whether through email, phone, or other channels.\n**Specific steps:**\n   1. Identify the top 100 at-risk customers by revenue.\n   2. Reach out with a personalized offer or incentive to encourage them to return.\n   3. Track responses and purchases over the next two weeks.\n**How you'll know it's working:** An increase in orders from previously inactive customers within two weeks.\n\n### 2. **Revenue Concentration Reduction**\n**What the data shows:** Your revenue is heavily dependent on a small group of customers.\n**The mechanism:** Diversifying your customer base reduces the risk of revenue loss if a few key customers stop buying.\n**What to assume:** You can identify and target new customer segments effectively.\n**Specific steps:**\n   1. Analyze your current customer segments to identify potential new markets.\n   2. Develop targeted marketing campaigns to attract these new segments.\n   3. Monitor the diversity of your revenue sources over the next month.\n**How you'll know it's working:** A decrease in the percentage of revenue from your top 10% of customers.\n\n### 3. **Star Product Doubling**\n**The opportunity:** Your top products, like the \"REGENCY CAKESTAND 3 TIER,\" are generating significant revenue.\n**The mechanism:** Focusing on best-sellers can boost sales quickly and efficiently.\n**What to assume:** You have the capacity to increase stock and promote these products.\n**What to do:**\n   1. Increase inventory for your top 3 products.\n   2. Promote these products through your main sales channels.\n   3. Track sales of these products over the next month.\n**How you'll know it's working:** An increase in sales volume and revenue from these products.\n\n## What to do this week\n\n1. **Customer Outreach**: Start your win-back campaign by reaching out to at-risk customers with a personalized message or offer. This should take less than an hour to draft and send.\n\n2. **Product Promotion**: Highlight your top-selling products on your website and social media. This can be done quickly and will help boost visibility and sales.\n\nBy focusing on these areas, you can stabilize your business and set the stage for growth in the coming months.",
+    "score": null
+  },
+  {
+    "scenario": "T1",
+    "mode": "WARNING",
+    "word_count": 521,
+    "checks": {
+      "jargon_found": false,
+      "jargon_clean": true,
+      "lever_present": true,
+      "pound_sign": false,
+      "word_limit_ok": true,
+      "no_team_refs": true,
+      "time_component": true,
+      "has_section_head": true
+    },
+    "score": 4,
+    "jargon": [],
+    "response": "## What's happening in your business right now\n\n1. **Sales Decline**: Your sales dropped significantly by 72% last month compared to the month before. This is a major concern and needs immediate attention.\n   \n2. **Churn Risk**: About 53% of your customers haven't purchased in the last 90 days, indicating a high risk of losing them permanently.\n\n3. **Revenue Concentration**: A significant 64% of your total revenue comes from just the top 10% of your customers. This means losing even a few of these customers could severely impact your business.\n\n4. **Repeat Customers**: On a positive note, about 69% of your customers have made more than one purchase, which is a strong base to build upon.\n\n5. **Forecast**: The revenue forecast for the next three months shows an upward trend, which is promising if you can address the current issues.\n\n## Your Action Plan\n\n### 1. **Win-Back Campaign**\n**What the data shows:** With 53% of customers at risk, re-engaging them is crucial.\n**The mechanism:** Customers who return after a lapse are more likely to become regular buyers again, stabilizing your revenue.\n**What to assume:** You have accurate contact information and a compelling reason for them to return.\n**Specific steps:**\n   1. Identify the top 100 at-risk customers by spend.\n   2. Send personalized emails or messages offering a special incentive to return within the next 30 days.\n   3. Track responses and purchases to measure effectiveness.\n**How you'll know it's working:** An increase in returning customer purchases within two weeks.\n\n### 2. **Revenue Concentration Reduction**\n**What the data shows:** 64% of revenue from top 10% customers is risky.\n**The mechanism:** Diversifying your customer base reduces dependency on a few high-spenders, stabilizing revenue.\n**What to assume:** You can attract new customers or increase spend from existing lower-tier customers.\n**Specific steps:**\n   1. Launch a referral program encouraging existing customers to bring in new buyers.\n   2. Offer a small discount or bonus for first-time purchases.\n   3. Monitor new customer acquisition and spending patterns.\n**How you'll know it's working:** A decrease in revenue concentration percentage within a month.\n\n### 3. **Star Product Doubling**\n**The opportunity:** Products like \"HAND WARMER RED RETROSPOT\" and \"CHRISTMAS DECOUPAGE CANDLE\" have shown massive growth.\n**The mechanism:** Doubling down on high-growth products can quickly boost sales.\n**What to assume:** These products have sufficient stock and appeal to a broad audience.\n**What to do:**\n   1. Increase marketing efforts for these products through social media and email campaigns.\n   2. Ensure stock levels are adequate to meet potential demand.\n   3. Track sales volume and customer feedback.\n**How you'll know it's working:** A noticeable increase in sales of these products within two weeks.\n\n## One question before you start\nAre there any recent changes in your product availability, pricing, or customer service that could have contributed to the recent sales drop?\n\n## What to do this week\n1. **Quick Customer Survey**: Send a short survey to recent customers asking about their experience and any improvements they suggest. This can provide immediate insights into potential issues.\n   \n2. **Stock Check**: Ensure that your top-selling and high-growth products are well-stocked and ready for promotion. This prevents missed sales opportunities due to stockouts."
+  },
+  {
+    "scenario": "T2",
+    "mode": "WARNING",
+    "checks": {
+      "jargon_found": false,
+      "jargon_clean": true,
+      "no_team_refs": true,
+      "lever_present": true,
+      "pound_sign": false,
+      "acquisition_lever": true,
+      "has_number": true,
+      "time_component": true
+    },
+    "score": 4,
+    "jargon": [],
+    "team_refs": [],
+    "response": "## What's happening in your business right now\n\n1. **Sales Decline**: Your sales dropped significantly by 72% last month compared to the month before. This is a major concern and indicates a sharp decline in business activity.\n   \n2. **Churn Risk**: About 53% of your customers haven't made a purchase in the last 90 days, which means more than half of your customer base is at risk of leaving.\n\n3. **Customer Base**: You currently have 5,206 unique customers. To double this in 6 months, you'll need to add another 5,206 customers.\n\n4. **Revenue Concentration**: A significant 64% of your revenue comes from just the top 10% of your customers. This is risky because losing a few key customers could greatly impact your revenue.\n\n5. **Positive Forecast**: Despite recent declines, the revenue forecast for the next few months is upward, suggesting potential recovery if the right actions are taken.\n\n## Your Action Plan\n\n### 1. Repeat Buyer Conversion\n**The opportunity:** With about 69% of your customers making repeat purchases, there's a strong base to encourage more frequent buying.\n**The mechanism:** Customers who buy again within a short period tend to become loyal, increasing their lifetime value and stabilizing revenue.\n**What to assume:** Your products and services meet customer expectations, encouraging them to return.\n**What to do:** \n   1. Identify customers who haven't purchased in the last 60 days.\n   2. Send personalized offers or reminders to these customers within the next week.\n   3. Track the response rate and adjust offers based on what works best.\n\n### 2. Customer Base Diversification\n**The opportunity:** With a high revenue concentration risk, diversifying your customer base is crucial.\n**The mechanism:** Reducing dependency on a few customers stabilizes revenue and reduces risk.\n**What to assume:** You can attract a broader audience with your current product range.\n**What to do:** \n   1. Launch a targeted marketing campaign aimed at new customer segments within the next month.\n   2. Use social media and online ads to reach these new audiences.\n   3. Measure the increase in new customer acquisition over the next two months.\n\n### 3. First-Time Buyer Onboarding Sequence\n**The opportunity:** Doubling your customer base requires attracting new buyers and converting them into repeat customers.\n**The mechanism:** A structured onboarding process increases the likelihood of first-time buyers returning.\n**What to assume:** New customers have a positive initial experience with your store.\n**What to do:** \n   1. Develop a welcome email series for new customers, highlighting your best products and offers.\n   2. Implement this sequence within the next two weeks.\n   3. Monitor the conversion rate of first-time buyers to repeat customers over the next month.\n\n## One question before you start\nAre there any specific customer segments or demographics you believe are underrepresented in your current customer base?\n\n## What to do this week\n1. **Quick Win**: Send a thank-you email to your top 10% of customers, offering them an exclusive discount for their next purchase. This can help maintain their loyalty.\n2. **Immediate Action**: Review your current marketing channels and identify one new platform to test for customer acquisition, such as a new social media platform or partnership with an influencer."
+  },
+  {
+    "scenario": "T3",
+    "mode": "CRISIS",
+    "checks": {
+      "jargon_found": false,
+      "jargon_clean": true,
+      "human_percentage": false,
+      "no_churn_rate_pct": true,
+      "no_cohort": true,
+      "retention_lever": false,
+      "pound_sign": false,
+      "revenue_recovery_est": false
+    },
+    "score": 2,
+    "jargon": [],
+    "response": "MODE: CRISIS — Your sales dropped by 72% last month compared to the month before.\n\n## Your business is facing a serious problem\nYour sales dropped by 72% last month compared to the month before. This is a significant decline that needs immediate attention.\n\n## Before I can advise you, I need to understand what happened\n1. Has anything changed with your main sales channel? For example, has your website gone down, your marketplace account been suspended, or your payment system had issues?\n2. Did your top 1 or 2 products suddenly become unavailable or go out of stock?\n3. Did you lose a single large trade or wholesale customer?\n\nPlease provide some insights into these areas so we can pinpoint the root cause and take appropriate action."
+  },
+  {
+    "scenario": "T4",
+    "mode": "WARNING",
+    "checks": {
+      "jargon_found": false,
+      "jargon_clean": true,
+      "no_aov": true,
+      "no_sku": true,
+      "no_fpgrowth": true,
+      "product_lever": true,
+      "pound_sign": true,
+      "avg_order_explained": true
+    },
+    "score": 4,
+    "jargon": [],
+    "response": "## What's happening in your business right now\n\n1. **Sales Decline**: Your sales dropped significantly by 72% last month compared to the month before. This is a major concern and needs immediate attention.\n   \n2. **Churn Risk**: About 53% of your customers haven't purchased in the last 90 days, indicating a high risk of losing them.\n\n3. **Revenue Concentration**: A significant 64% of your total revenue comes from just the top 10% of your customers. This means your business is heavily reliant on a small group of customers.\n\n4. **Average Spend**: On average, customers spend about £60 each time they order from you.\n\n5. **Slow-Moving Products**: Several products, like the \"SMALL ZINC HEART WALL ORGANISER\" and \"SMALL POLKADOT CHOCOLATE GIFT BAG\", have seen a drastic decline in sales, dropping by over 99%.\n\n6. **High-Growth Products**: Some products, such as the \"HAND WARMER RED RETROSPOT\" and \"CHRISTMAS DECOUPAGE CANDLE\", have experienced significant growth, with sales increasing by over 40,000%.\n\n## Your Action Plan\n\n### 1. Slow Mover Clearance\n**The opportunity:** You have several products with a drastic decline in sales. Clearing these can free up cash and space.\n**The mechanism:** By discounting or bundling these slow movers, you can convert them into cash and reduce storage costs.\n**What to assume:** These products are not likely to rebound in demand without significant changes.\n**What to do:** \n   - Identify the top 5 slow-moving products.\n   - Create a clearance sale or bundle them with popular items.\n   - Promote these offers through your existing customer communication channels.\n**How you'll know it's working:** Monitor the inventory levels of these products weekly. A reduction in stock will indicate success.\n\n### 2. Average Order Value Lift\n**The opportunity:** Increasing the average spend per order can boost your revenue without needing more customers.\n**The mechanism:** By encouraging customers to add more items to their cart, you increase the total order value.\n**What to assume:** Customers are willing to spend more if they see value in the additional items.\n**What to do:** \n   - Implement a bundle pricing strategy for high-growth products.\n   - Offer a small discount for orders above a certain value.\n   - Highlight complementary products during the checkout process.\n**How you'll know it's working:** Track the average order value weekly. An increase will show the strategy is effective.\n\n### 3. Revenue Concentration Reduction\n**The opportunity:** Reducing reliance on a small group of customers can stabilize your revenue.\n**The mechanism:** By diversifying your customer base, you reduce the risk of revenue loss if a few customers stop buying.\n**What to assume:** You can attract and retain a broader customer base.\n**What to do:** \n   - Launch a campaign targeting new customer acquisition.\n   - Offer incentives for first-time buyers.\n   - Engage with existing customers to encourage referrals.\n**How you'll know it's working:** Monitor the percentage of revenue from your top 10% customers. A decrease indicates success.\n\n## One question before you start\nAre there any specific reasons you know of that might have caused the recent sales drop, such as supply issues or changes in customer preferences?\n\n## What to do this week\n1. **Clearance Sale Setup**: Spend an hour setting up a clearance sale for the top 5 slow-moving products. Use your website and email list to promote it.\n   \n2. **Bundle Offer Creation**: Create a bundle offer for high-growth products. This can be done in under an hour and promoted through your existing channels."
+  },
+  {
+    "scenario": "T5",
+    "checks": {
+      "jargon_found": false,
+      "jargon_clean": true,
+      "context_used": true,
+      "no_re_ask_products": true,
+      "no_diagnostic_block": true,
+      "pound_sign": false,
+      "lever_present": true,
+      "has_content": true
+    },
+    "score": 4,
+    "jargon_b": [],
+    "response_a": "## What's happening in your business right now\n\n1. **Sales Drop**: Your sales dropped significantly by 72% last month compared to the month before. This is a major concern and needs immediate attention.\n   \n2. **Churn Risk**: About 53% of your customers haven't purchased in the last 90 days, indicating a high risk of losing them permanently.\n\n3. **Revenue Forecast**: Despite the recent drop, the forecast for the next three months shows an upward trend, suggesting potential recovery if actions are taken.\n\n4. **Repeat Customers**: Nearly 69% of your customers have made more than one purchase, which is a strong base to build upon.\n\n5. **Current Revenue and Orders**: Your total revenue stands at approximately £1,608,031 from 26,739 orders, indicating a healthy average order value.\n\n## Your Action Plan\n\n### 1. **Win-Back Campaign**\n**What the data shows:** With 53% of your customers at risk, re-engaging them is crucial.\n**The mechanism:** Bringing back lapsed customers can significantly boost sales, as they are already familiar with your products.\n**What to assume:** You have the means to reach out to these customers, whether through email, phone, or social media.\n**Specific steps:**\n   1. Identify the top 15 at-risk customers by revenue and reach out personally within the next week.\n   2. Offer a personalized incentive or discount to encourage them to return.\n   3. Track their responses and purchases over the next two weeks.\n**How you'll know it's working:** An increase in orders from previously inactive customers within two weeks.\n\n### 2. **Cross-Sell Activation**\n**What the data shows:** With a high repeat customer rate, there's an opportunity to increase the average order value.\n**The mechanism:** Encouraging customers to buy complementary products can increase the total spend per order.\n**What to assume:** You have a range of products that naturally complement each other.\n**Specific steps:**\n   1. Identify top-selling products and their complementary items.\n   2. Create bundles or suggest related products during checkout.\n   3. Monitor the average order value over the next month.\n**How you'll know it's working:** An increase in the average order value within a month.\n\n### 3. **High-Value Customer Retention Sequence**\n**What the data shows:** A significant portion of your revenue comes from repeat customers.\n**The mechanism:** Retaining high-value customers ensures a steady revenue stream and reduces churn risk.\n**What to assume:** You can identify and segment your high-value customers.\n**Specific steps:**\n   1. Segment your top 10% of customers by spend.\n   2. Develop a loyalty program or exclusive offers for these customers.\n   3. Track engagement and repeat purchases over the next month.\n**How you'll know it's working:** Increased engagement and repeat purchases from high-value customers within a month.\n\n## One question before you start\nAre you currently running any customer feedback or satisfaction surveys? Understanding why customers might be leaving can help tailor your win-back strategies more effectively.\n\n## What to do this week\n1. **Reach Out to At-Risk Customers**: Send personalized emails or messages to the top 15 at-risk customers offering a special deal.\n2. **Bundle Products**: Create at least one product bundle with a slight discount to encourage cross-selling.\n\nBy focusing on these strategies, you can leverage your existing customer base to drive revenue growth over the next three months.",
+    "response_b": "## What's happening in your business right now\n\n1. **Top Products**: Your best-selling items include the \"REGENCY CAKESTAND 3 TIER\" and \"WHITE HANGING HEART T-LIGHT HOLDER,\" which are generating significant revenue.\n\n2. **High Growth Products**: Items like the \"CHRISTMAS DECOUPAGE CANDLE\" and \"DOORMAT MERRY CHRISTMAS RED\" have seen explosive growth recently, indicating strong seasonal demand.\n\n3. **Slow Movers**: Products such as the \"SMALL ZINC HEART WALL ORGANISER\" and \"SMALL POLKADOT CHOCOLATE GIFT BAG\" have seen a drastic decline in sales, suggesting they may not be worth restocking.\n\n4. **Revenue Concentration Risk**: A significant 63.86% of your revenue comes from just the top 10% of your customers, indicating a high dependency on a small customer base.\n\n5. **Cross-Sell Opportunities**: No strong cross-sell patterns were detected, suggesting an opportunity to create new product bundles or promotions.\n\n## Your Action Plan\n\n### 1. **Star Product Doubling**\n**The opportunity:** Your \"CHRISTMAS DECOUPAGE CANDLE\" and \"DOORMAT MERRY CHRISTMAS RED\" are in high demand.\n**The mechanism:** Doubling down on these products can capture more of the seasonal market, maximizing revenue during peak times.\n**What to assume:** You can increase inventory and marketing efforts for these products quickly.\n**What to do:**\n   1. Increase stock levels of these high-demand items immediately.\n   2. Highlight these products in your marketing campaigns and on your website.\n   3. Monitor sales daily to ensure stock levels meet demand.\n\n### 2. **Revenue Concentration Reduction**\n**The opportunity:** With 63.86% of revenue from the top 10% of customers, diversifying your customer base is crucial.\n**The mechanism:** Reducing dependency on a few customers lowers risk and stabilizes revenue.\n**What to assume:** You can attract new customers through targeted marketing.\n**What to do:**\n   1. Launch a campaign targeting new customer segments, possibly through social media or partnerships.\n   2. Offer introductory discounts or bundles to entice first-time buyers.\n   3. Track the number of new customers acquired over the next month.\n\n### 3. **Slow Mover Clearance**\n**The opportunity:** Products like the \"SMALL ZINC HEART WALL ORGANISER\" are not selling.\n**The mechanism:** Clearing out slow movers frees up cash and space for better-selling items.\n**What to assume:** You can offer discounts or bundle these items with more popular products.\n**What to do:**\n   1. Create clearance sales for these slow-moving items.\n   2. Bundle them with high-demand products to increase their appeal.\n   3. Monitor inventory levels and sales to ensure these items are moving.\n\n## What to do this week\n1. **Stock Up on High-Demand Items**: Ensure you have enough inventory of the \"CHRISTMAS DECOUPAGE CANDLE\" and \"DOORMAT MERRY CHRISTMAS RED\" to meet the expected demand.\n2. **Launch a New Customer Campaign**: Start a targeted marketing campaign aimed at attracting new customers, using social media or email marketing.\n\nBy focusing on these strategies, you can leverage the seasonal demand for your top products and reduce your revenue concentration risk, setting a strong foundation for growth over the next three months."
+  },
+  {
+    "scenario": "T6",
+    "mode": "CRISIS",
+    "checks": {
+      "jargon_found": false,
+      "jargon_clean": true,
+      "clv_explained": true,
+      "rfm_explained": true,
+      "no_raw_churn_pct": true,
+      "pound_sign": false,
+      "has_numbers": true,
+      "not_refusal": false
+    },
+    "score": 3,
+    "jargon": [],
+    "response": "## Your business is facing a serious problem\n\nYour sales dropped by 72% last month compared to the month before.\n\n## Before I can advise you, I need to understand what happened\n\n1. Has anything changed with your main sales channel? For example, has your website gone down, your marketplace account been suspended, or your payment system had issues?\n2. Did your top 1 or 2 products suddenly become unavailable or go out of stock?\n3. Is this a seasonal pattern? Were sales also low at this same time last year?\n\nOnce you provide some insights into these questions, we can figure out the best way to address the situation."
+  },
+  {
+    "scenario": "T7",
+    "mode_a": "CRISIS",
+    "mode_b": "UNKNOWN",
+    "checks_a": {
+      "jargon_found": false,
+      "jargon_clean": true,
+      "has_diagnostic_section": true,
+      "no_action_plan_yet": true,
+      "no_marketing_tactics": true
+    },
+    "checks_b": {
+      "jargon_found": false,
+      "jargon_clean": true,
+      "no_repeat_channel_q": true,
+      "wholesale_context_used": true,
+      "has_actions_now": true,
+      "pound_sign": false,
+      "no_generic_ads": true
+    },
+    "score_a": 4,
+    "score_b": 3,
+    "score": 3,
+    "jargon_a": [],
+    "jargon_b": [],
+    "response_a": "## Your business is facing a serious problem\nYour sales dropped by 72% last month compared to the month before. This is a significant decline that needs immediate attention.\n\n## Before I can advise you, I need to understand what happened\n1. Has anything changed with your main sales channel? For example, has your website gone down, your marketplace account been suspended, or your payment system had issues?\n2. Did your top 1 or 2 products suddenly become unavailable or go out of stock?\n3. Did you lose a single large trade or wholesale customer?\n\nPlease provide some insights on these questions so we can pinpoint the root cause and take appropriate action.",
+    "response_b": "## What is actually happening (based on what you told me)\nThe loss of your two biggest wholesale customers is the primary reason for the sharp decline in your sales. These customers likely contributed a significant portion of your revenue, and their departure has left a noticeable gap.\n\n## Your Immediate Actions — next 7 days only\n\n### 1. Revenue Concentration Reduction\n**Why this lever:** By diversifying your customer base, you reduce the risk of losing a large portion of your revenue if a few customers leave.\n**What to assume:** You have the capacity to attract and serve more retail customers or smaller wholesale clients.\n**Specific steps:**\n   1. Identify potential retail customers who have shown interest in your products but haven't purchased yet. Reach out to them with a personalized offer by the end of this week.\n   2. Explore partnerships with smaller wholesale clients who may be interested in your products. Contact at least three potential partners within the next three days.\n   3. Review your pricing strategy to ensure competitiveness, especially for retail customers. Adjust prices if necessary by the end of the week.\n**What you'll learn:** You'll gain insights into the potential of expanding your retail customer base and the feasibility of attracting smaller wholesale clients.\n\n### 2. High-Value Customer Retention Sequence\n**Why this lever:** Retaining existing retail customers and encouraging them to purchase more frequently can help stabilize your revenue.\n**What to assume:** Your retail customers are satisfied with your products and service.\n**Specific steps:**\n   1. Identify your top 15 retail customers and offer them a special incentive to make another purchase within the next week.\n   2. Implement a follow-up communication strategy to engage these customers and remind them of the value you offer.\n**What you'll learn:** You'll understand the effectiveness of your retention efforts and whether your retail customers are willing to increase their purchase frequency.\n\n## Watch these numbers daily this week\n1. Check whether today's order count is above your average daily orders from last month.\n2. Monitor the response rate to your outreach efforts with potential retail and wholesale customers."
+  },
+  {
+    "scenario": "T8",
+    "checks_b": {
+      "jargon_found": false,
+      "jargon_clean": true,
+      "no_email_campaign": true,
+      "no_paid_advertising": true,
+      "zero_cost_action": false,
+      "acknowledges_constraint": true,
+      "not_repeating_verbatim": true,
+      "pound_sign": false
+    },
+    "checks_c": {
+      "jargon_found": false,
+      "jargon_clean": true,
+      "not_refusal": false,
+      "lever_present": false,
+      "pound_sign": false,
+      "has_structure": false,
+      "no_only_question": false
+    },
+    "score_b": 3,
+    "score_c": 1,
+    "score": 2,
+    "jargon_b": [],
+    "jargon_c": [],
+    "response_a": "## What's happening in your business right now\n\n1. **Sales Decline**: Your sales dropped significantly by 72% last month compared to the month before. This is a major concern and needs immediate attention.\n   \n2. **Churn Risk**: About 53% of your customers are at risk of not returning. This means more than half of your customer base hasn't made a purchase in the last 90 days.\n\n3. **Revenue Concentration**: A significant 64% of your total revenue comes from just the top 10% of your customers. This indicates a high dependency on a small group of customers, which is risky.\n\n4. **Repeat Purchase Rate**: Currently, about 69% of your customers make a second purchase, which is quite strong. However, there's room for improvement to stabilize your revenue.\n\n5. **Refund Rate**: Roughly 2 out of every 100 orders are returned, which is a manageable rate and not a major concern right now.\n\n## Your Action Plan\n\n### 1. High-Value Customer Retention Sequence\n**The opportunity:** With 64% of your revenue coming from a small group of customers, retaining these high-value customers is crucial.\n**The mechanism:** Retaining high-value customers ensures stable revenue and reduces the risk of sudden revenue drops if a few customers leave.\n**What to assume:** These customers value your products and are likely to continue purchasing if engaged properly.\n**What to do:** \n   1. Identify your top 10% of customers and reach out with personalized offers or exclusive previews of new products.\n   2. Implement a loyalty program that rewards frequent purchases or referrals.\n   3. Follow up with these customers post-purchase to gather feedback and strengthen relationships.\n**How you'll know it's working:** Track the repeat purchase rate among these customers over the next month. An increase indicates success.\n\n### 2. Dormant Customer Reactivation\n**What the data shows:** Over half of your customers are at risk of not returning.\n**The mechanism:** Reactivating dormant customers can quickly boost sales and improve cash flow.\n**What to assume:** These customers had a positive experience previously and just need a nudge to return.\n**Specific steps:** \n   1. Send a targeted email campaign to at-risk customers with a special offer or discount.\n   2. Highlight new arrivals or best-sellers in your communication to reignite interest.\n   3. Monitor engagement and follow up with those who show interest but don't purchase.\n**How you'll know it's working:** Measure the number of reactivated customers and their purchase frequency within two weeks.\n\n### 3. Revenue Concentration Reduction\n**What the data shows:** High dependency on a small group of customers poses a risk.\n**The mechanism:** Diversifying your customer base reduces risk and stabilizes revenue.\n**What to assume:** You can attract new customers with targeted marketing efforts.\n**Specific steps:** \n   1. Launch a campaign aimed at acquiring new customers, focusing on your top-selling products.\n   2. Use social media and online ads to reach a broader audience.\n   3. Offer a first-time buyer discount to encourage trial purchases.\n**How you'll know it's working:** Track the number of new customers and their contribution to total revenue over the next month.\n\n## One question before you start\nAre there any specific reasons you know of that might have caused the recent drop in sales, such as supply issues or changes in customer preferences?\n\n## What to do this week\n1. **Reach Out to Top Customers**: Send personalized thank-you notes or exclusive offers to your top 10% customers. This can be done in less than an hour and helps strengthen relationships.\n   \n2. **Plan a Reactivation Campaign**: Draft an email or social media campaign targeting dormant customers. Focus on a compelling offer to bring them back.",
+    "response_b": "## Your business is facing a serious problem\nYour sales dropped by 72% last month compared to the month before. This is a significant issue that needs immediate attention.\n\n## Before I can advise you, I need to understand what happened\n\n1. Has anything changed with your main sales channel? For example, has your website gone down, your marketplace account been suspended, or your payment system had issues?\n   \n2. Did your top 1 or 2 products suddenly become unavailable or go out of stock?\n\n3. Did you lose a single large trade or wholesale customer?\n\nOnce you provide some insights into these questions, we can pinpoint the root cause and develop a plan that doesn't require additional spending or time.",
+    "response_c": "I can definitely help you, but I'll need a bit more information to understand your situation. Could you tell me what specific area of your business you're concerned about? For example, are you worried about sales, customer retention, or something else?"
+  }
+]

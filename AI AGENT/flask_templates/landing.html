@@ -673,10 +673,10 @@
           Try Live Demo
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7h9M7.5 3.5L11 7l-3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
-        <span class="btn-ghost" title="Coming soon — upload your own dataset">
+        <button class="btn-ghost" onclick="openUploadModal()" type="button">
           Upload Your Data
-          <span class="soon-badge">Soon</span>
-        </span>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 10V3M3.5 6.5L7 3l3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
       <div class="tech-pills">
         <span class="pill">Prophet</span>
@@ -845,10 +845,10 @@
         Open Demo
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7h9M7.5 3.5L11 7l-3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
-      <span class="btn-ghost reveal" title="Coming soon">
+      <button class="btn-ghost reveal" onclick="openUploadModal()" type="button">
         Upload Your Own
-        <span class="soon-badge">Soon</span>
-      </span>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 10V3M3.5 6.5L7 3l3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
   </div>
 
@@ -1023,6 +1023,488 @@
       });
     });
   </script>
+
+<!-- ══ Upload Modal ═════════════════════════════════════════════════════ -->
+<style>
+  /* Overlay */
+  .upload-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,.55);
+    backdrop-filter: blur(4px);
+    align-items: center; justify-content: center;
+  }
+  .upload-overlay.open { display: flex; }
+
+  /* Panel */
+  .upload-panel {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #e2e2e2);
+    border-radius: 16px;
+    padding: 2.5rem 2.5rem 2rem;
+    width: min(520px, 94vw);
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 24px 64px rgba(0,0,0,.18);
+  }
+  .upload-close {
+    position: absolute; top: 1rem; right: 1rem;
+    background: none; border: none;
+    font-size: 1.4rem; line-height: 1;
+    color: var(--text-secondary, #888);
+    cursor: pointer; padding: .25rem .5rem;
+    border-radius: 6px;
+  }
+  .upload-close:hover { background: var(--hover, #f0f0f0); }
+
+  /* Steps */
+  .upload-step { display: none; }
+  .upload-step.active { display: block; }
+
+  .upload-panel h2 {
+    font-size: 1.25rem; font-weight: 700;
+    margin: 0 0 .35rem; color: var(--text, #111);
+  }
+  .upload-sub {
+    font-size: .875rem; color: var(--text-secondary, #666);
+    margin: 0 0 1.5rem;
+  }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed var(--border, #d4d4d4);
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent, #6c63ff);
+    background: color-mix(in srgb, var(--accent, #6c63ff) 6%, transparent);
+  }
+  .drop-icon { font-size: 2rem; margin-bottom: .75rem; display: block; }
+  .drop-label { font-size: .95rem; font-weight: 600; margin: 0 0 .35rem; }
+  .drop-sub { font-size: .8rem; color: var(--text-secondary, #888); margin: 0 0 1rem; }
+
+  .schema-toggle {
+    font-size: .8rem; color: var(--accent, #6c63ff);
+    background: none; border: none; cursor: pointer; padding: 0;
+    margin-top: .75rem; display: block; width: 100%; text-align: center;
+  }
+  .schema-hint {
+    margin-top: .75rem;
+    font-size: .8rem;
+    background: var(--hover, #f5f5f5);
+    border-radius: 8px; padding: .75rem 1rem;
+    color: var(--text-secondary, #666);
+    line-height: 1.5;
+  }
+
+  /* Progress steps */
+  .prog-list { list-style: none; padding: 0; margin: 1.5rem 0 0; }
+  .prog-list li {
+    display: flex; align-items: center; gap: .6rem;
+    font-size: .875rem; padding: .5rem 0;
+    color: var(--text-secondary, #888);
+    border-bottom: 1px solid var(--border, #eee);
+  }
+  .prog-list li:last-child { border-bottom: none; }
+  .prog-list li.done { color: var(--text, #111); }
+  .prog-list li.active { color: var(--accent, #6c63ff); font-weight: 600; }
+  .prog-icon { font-size: 1rem; width: 1.25rem; text-align: center; flex-shrink: 0; }
+
+  /* Spinner */
+  .upload-spinner {
+    width: 42px; height: 42px;
+    border: 3px solid var(--border, #e0e0e0);
+    border-top-color: var(--accent, #6c63ff);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin: 0 auto 1.25rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Mapping table */
+  .map-table { width: 100%; border-collapse: collapse; font-size: .83rem; margin-top: 1rem; }
+  .map-table th {
+    text-align: left; font-weight: 600;
+    padding: .45rem .6rem;
+    border-bottom: 2px solid var(--border, #e0e0e0);
+    color: var(--text-secondary, #666);
+    font-size: .78rem; text-transform: uppercase; letter-spacing: .04em;
+  }
+  .map-table td { padding: .45rem .6rem; border-bottom: 1px solid var(--border, #eee); }
+  .map-table select {
+    width: 100%; padding: .3rem .5rem;
+    border: 1px solid var(--border, #d4d4d4);
+    border-radius: 6px;
+    background: var(--surface, #fff);
+    color: var(--text, #111);
+    font-size: .82rem;
+  }
+  .map-table select.err { border-color: #e53e3e; }
+  .map-table .req { color: #e53e3e; font-size: .75rem; }
+  .sample-cell { color: var(--text-secondary, #888); font-size: .78rem; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Ready / Error states */
+  .upload-result-icon {
+    font-size: 2.5rem; text-align: center; display: block; margin: 0 auto .75rem;
+  }
+  .upload-warning {
+    font-size: .8rem; color: var(--text-secondary, #888);
+    background: var(--hover, #f5f5f5);
+    border-radius: 6px; padding: .5rem .75rem;
+    margin-top: .5rem;
+  }
+  .upload-account-note {
+    text-align: center; font-size: .8rem;
+    color: var(--text-secondary, #888);
+    margin-top: 1.25rem;
+  }
+  .upload-account-note a { color: var(--accent, #6c63ff); }
+
+  /* Action row */
+  .upload-actions {
+    display: flex; gap: .75rem; margin-top: 1.5rem; justify-content: flex-end;
+  }
+  .upload-actions .btn-primary,
+  .upload-actions .btn-ghost {
+    font-size: .875rem; padding: .55rem 1.2rem;
+  }
+  .btn-upload-cta {
+    display: flex; align-items: center; gap: .5rem;
+    width: 100%; justify-content: center;
+    font-size: 1rem; padding: .75rem 1.5rem;
+    margin-top: 1.5rem;
+  }
+</style>
+
+<div id="upload-overlay" class="upload-overlay" role="dialog" aria-modal="true" aria-labelledby="upload-title">
+  <div class="upload-panel">
+    <button class="upload-close" onclick="closeUploadModal()" aria-label="Close">×</button>
+
+    <!-- Step 0: Drop zone -->
+    <div id="step-drop" class="upload-step active">
+      <h2 id="upload-title">Analyse Your Own Data</h2>
+      <p class="upload-sub">Upload a CSV or Excel file. No account required.</p>
+      <div id="drop-zone" class="drop-zone" tabindex="0" role="button"
+           aria-label="Drop file here or click to browse"
+           onclick="document.getElementById('upload-file-input').click()"
+           ondragover="handleDragOver(event)"
+           ondragleave="handleDragLeave(event)"
+           ondrop="handleDrop(event)">
+        <span class="drop-icon">⬆</span>
+        <p class="drop-label">Drag &amp; drop your file here</p>
+        <p class="drop-sub">CSV, XLSX, XLS &middot; max 50 MB &middot; up to 500,000 rows</p>
+        <button class="btn-ghost" style="font-size:.85rem;padding:.4rem 1rem;"
+                onclick="event.stopPropagation();document.getElementById('upload-file-input').click()">
+          Browse File
+        </button>
+      </div>
+      <input type="file" id="upload-file-input" accept=".csv,.xlsx,.xls" style="display:none"
+             onchange="handleFileSelect(this.files[0])">
+      <button class="schema-toggle" onclick="toggleSchemaHint(event)">
+        What columns do I need?
+      </button>
+      <div id="schema-hint" class="schema-hint" style="display:none">
+        <strong>Expected fields:</strong> Customer ID, Invoice, Description, Quantity, Price, InvoiceDate, Country.<br>
+        Column names are detected automatically — common aliases like <em>order_id</em>, <em>product_name</em>, <em>date</em>, <em>qty</em> all work.
+        Country is optional.
+      </div>
+    </div>
+
+    <!-- Step 1: Column mapping -->
+    <div id="step-mapping" class="upload-step">
+      <h2>Map Your Columns</h2>
+      <p class="upload-sub">We couldn't auto-detect some fields. Choose which column maps to each.</p>
+      <div id="mapping-table-wrap"></div>
+      <div class="upload-actions">
+        <button class="btn-ghost" onclick="goToStep('step-drop')">Back</button>
+        <button class="btn-primary" onclick="submitWithMapping()">Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Processing -->
+    <div id="step-processing" class="upload-step" style="text-align:center;padding:1rem 0">
+      <div class="upload-spinner"></div>
+      <h2 id="proc-headline">Uploading your file…</h2>
+      <p class="upload-sub" id="proc-sub">Please wait a moment.</p>
+      <ul class="prog-list">
+        <li id="prog-upload"><span class="prog-icon">○</span> Uploading file</li>
+        <li id="prog-data"><span class="prog-icon">○</span> Processing &amp; cleaning data</li>
+        <li id="prog-ai"><span class="prog-icon">○</span> Initialising AI agents</li>
+      </ul>
+    </div>
+
+    <!-- Step 3: Ready -->
+    <div id="step-ready" class="upload-step" style="text-align:center">
+      <span class="upload-result-icon">✅</span>
+      <h2>Your data is ready!</h2>
+      <p class="upload-sub" id="ready-summary"></p>
+      <div id="ready-warnings"></div>
+      <button class="btn-primary btn-upload-cta" onclick="goToDashboard()">
+        Analyse My Data
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7h9M7.5 3.5L11 7l-3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <p class="upload-account-note">
+        Want to save this analysis for later?
+        <a href="/login">Create a free account</a>
+      </p>
+    </div>
+
+    <!-- Step 4: Error -->
+    <div id="step-error" class="upload-step" style="text-align:center">
+      <span class="upload-result-icon">⚠️</span>
+      <h2>Something went wrong</h2>
+      <p class="upload-sub" id="error-message">An error occurred.</p>
+      <div class="upload-actions" style="justify-content:center">
+        <button class="btn-ghost" onclick="goToStep('step-drop')">Try Again</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ══ Upload Modal ══════════════════════════════════════════════════════ */
+  (function () {
+    let _file         = null;
+    let _rawMapping   = null;   // detected_mapping from server
+    let _rawColumns   = [];     // all columns from uploaded file
+    let _rawPreview   = [];
+    let _rawDtypes    = {};
+    let _pollTimer    = null;
+    let _pollCount    = 0;
+    const MAX_POLLS   = 80;     // 80 × 3s = 4 min max wait
+
+    /* ── Modal open/close ─────────────────────────────────────────── */
+    window.openUploadModal = function () {
+      document.getElementById('upload-overlay').classList.add('open');
+      goToStep('step-drop');
+    };
+    window.closeUploadModal = function () {
+      document.getElementById('upload-overlay').classList.remove('open');
+      stopPolling();
+    };
+
+    /* Close on backdrop click */
+    document.getElementById('upload-overlay').addEventListener('click', function (e) {
+      if (e.target === this) closeUploadModal();
+    });
+    /* Close on Escape */
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeUploadModal();
+    });
+
+    /* ── Step navigation ──────────────────────────────────────────── */
+    window.goToStep = function (id) {
+      document.querySelectorAll('.upload-step').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    };
+
+    /* ── Schema hint toggle ───────────────────────────────────────── */
+    window.toggleSchemaHint = function (e) {
+      e.stopPropagation();
+      const hint = document.getElementById('schema-hint');
+      hint.style.display = hint.style.display === 'none' ? 'block' : 'none';
+    };
+
+    /* ── Drag & drop ──────────────────────────────────────────────── */
+    window.handleDragOver = function (e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.add('drag-over');
+    };
+    window.handleDragLeave = function () {
+      document.getElementById('drop-zone').classList.remove('drag-over');
+    };
+    window.handleDrop = function (e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.remove('drag-over');
+      const f = e.dataTransfer.files[0];
+      if (f) handleFileSelect(f);
+    };
+
+    /* ── File selected (browse or drop) ──────────────────────────── */
+    window.handleFileSelect = function (file) {
+      if (!file) return;
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!['csv', 'xlsx', 'xls'].includes(ext)) {
+        showError('Unsupported file type ".' + ext + '". Please upload a CSV, XLSX, or XLS file.');
+        return;
+      }
+      if (file.size > 50 * 1024 * 1024) {
+        showError('File is larger than 50 MB. Please upload a smaller file.');
+        return;
+      }
+      _file = file;
+      uploadFile(file, null);
+    };
+
+    /* ── Upload ───────────────────────────────────────────────────── */
+    async function uploadFile(file, manualMapping) {
+      goToStep('step-processing');
+      setProgStep('prog-upload', 'active');
+      setProgStep('prog-data', '');
+      setProgStep('prog-ai', '');
+      document.getElementById('proc-headline').textContent = 'Uploading your file…';
+
+      const form = new FormData();
+      form.append('file', file);
+      if (manualMapping) form.append('mapping', JSON.stringify(manualMapping));
+
+      let data;
+      try {
+        const resp = await fetch('/api/upload', { method: 'POST', body: form });
+        data = await resp.json();
+        if (!resp.ok) { showError(data.error || 'Upload failed.'); return; }
+      } catch (e) {
+        showError('Network error. Please check your connection and try again.'); return;
+      }
+
+      setProgStep('prog-upload', 'done');
+
+      if (data.status === 'mapping_required') {
+        _rawMapping  = data.detected_mapping;
+        _rawColumns  = data.columns;
+        _rawPreview  = data.preview;
+        _rawDtypes   = data.dtypes;
+        renderMappingTable();
+        goToStep('step-mapping');
+        return;
+      }
+
+      /* status === 'processing' */
+      setProgStep('prog-data', 'done');
+      setProgStep('prog-ai', 'active');
+      document.getElementById('proc-headline').textContent = 'Initialising AI agents…';
+      document.getElementById('proc-sub').textContent = 'This usually takes 10–30 seconds.';
+      startPolling(data.rows, data.warnings);
+    }
+
+    /* ── Polling ──────────────────────────────────────────────────── */
+    function startPolling(rows, warnings) {
+      _pollCount = 0;
+      _pollTimer = setInterval(async function () {
+        _pollCount++;
+        if (_pollCount > MAX_POLLS) {
+          stopPolling();
+          showError('AI initialisation is taking longer than expected. Please try again.');
+          return;
+        }
+        try {
+          const resp = await fetch('/api/upload/status');
+          const d    = await resp.json();
+          if (d.status === 'ready') {
+            stopPolling();
+            setProgStep('prog-ai', 'done');
+            showReady(rows, warnings);
+          } else if (d.status === 'error') {
+            stopPolling();
+            showError(d.error || 'AI initialisation failed. Please try again.');
+          }
+        } catch (_) { /* ignore transient network errors */ }
+      }, 3000);
+    }
+    function stopPolling() {
+      if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+    }
+
+    /* ── Progress steps ───────────────────────────────────────────── */
+    const ICONS = { '': '○', active: '⬤', done: '✓' };
+    function setProgStep(id, state) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = state;
+      el.querySelector('.prog-icon').textContent = ICONS[state] || '○';
+    }
+
+    /* ── Column mapping UI ────────────────────────────────────────── */
+    const CANONICALS = ['Customer ID','Invoice','Description','Quantity','Price','InvoiceDate','Country'];
+    const REQUIRED   = ['Customer ID','Invoice','Description','Quantity','Price','InvoiceDate'];
+
+    function renderMappingTable() {
+      let html = '<table class="map-table"><thead><tr>'
+        + '<th>Required Field</th><th>Your Column</th><th>Sample Values</th>'
+        + '</tr></thead><tbody>';
+
+      CANONICALS.forEach(function (canon) {
+        const isReq   = REQUIRED.includes(canon);
+        const selCol  = _rawMapping[canon] || '';
+        const colIdx  = _rawColumns.indexOf(selCol);
+        const samples = colIdx >= 0
+          ? _rawPreview.slice(0, 3).map(r => r[colIdx]).filter(v => v !== '').join(', ')
+          : '—';
+        const safeId  = 'map_' + canon.replace(/ /g, '_');
+
+        html += '<tr>'
+          + '<td>' + canon + (isReq ? ' <span class="req">*</span>' : '') + '</td>'
+          + '<td><select id="' + safeId + '" class="col-select" onchange="updateSampleCell(\'' + canon + '\', this.value)">'
+          + '<option value="">— select —</option>'
+          + _rawColumns.map(c => '<option value="' + esc(c) + '"' + (c === selCol ? ' selected' : '') + '>' + esc(c) + '</option>').join('')
+          + '</select></td>'
+          + '<td class="sample-cell" id="sample_' + safeId + '">' + esc(samples) + '</td>'
+          + '</tr>';
+      });
+      html += '</tbody></table><p style="font-size:.78rem;color:var(--text-secondary,#888);margin:.5rem 0 0">* Required fields</p>';
+      document.getElementById('mapping-table-wrap').innerHTML = html;
+    }
+
+    window.updateSampleCell = function (canon, col) {
+      const idx  = _rawColumns.indexOf(col);
+      const samp = idx >= 0
+        ? _rawPreview.slice(0, 3).map(r => r[idx]).filter(v => v !== '').join(', ')
+        : '—';
+      const el = document.getElementById('sample_map_' + canon.replace(/ /g, '_'));
+      if (el) el.textContent = samp;
+    };
+
+    window.submitWithMapping = function () {
+      const mapping = {};
+      let valid = true;
+      CANONICALS.forEach(function (canon) {
+        const sel = document.getElementById('map_' + canon.replace(/ /g, '_'));
+        const val = sel ? sel.value : '';
+        if (REQUIRED.includes(canon) && !val) {
+          if (sel) sel.classList.add('err');
+          valid = false;
+        } else {
+          if (sel) sel.classList.remove('err');
+          mapping[canon] = val || null;
+        }
+      });
+      if (!valid) return;
+      uploadFile(_file, mapping);
+    };
+
+    /* ── Ready state ──────────────────────────────────────────────── */
+    function showReady(rows, warnings) {
+      document.getElementById('ready-summary').textContent =
+        rows.toLocaleString() + ' rows loaded and ready for analysis.';
+      const wWrap = document.getElementById('ready-warnings');
+      wWrap.innerHTML = (warnings && warnings.length)
+        ? warnings.map(w => '<p class="upload-warning">' + esc(w) + '</p>').join('')
+        : '';
+      goToStep('step-ready');
+    }
+
+    window.goToDashboard = function () {
+      closeUploadModal();
+      window.location.href = '/dashboard';
+    };
+
+    /* ── Error state ──────────────────────────────────────────────── */
+    function showError(msg) {
+      document.getElementById('error-message').textContent = msg;
+      goToStep('step-error');
+    }
+
+    /* ── Helpers ──────────────────────────────────────────────────── */
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  })();
+</script>
 
 </body>
 </html>

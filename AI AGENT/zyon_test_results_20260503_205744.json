@@ -1,0 +1,57 @@
+[
+  {
+    "scenario": "PREFLIGHT",
+    "mode": "HEALTHY",
+    "word_count": 562,
+    "response": "## What's happening in your business right now\n\nYour business is currently experiencing a significant challenge. Last month, your sales dropped by 72% compared to the month before. This is a substantial decline that needs immediate attention. Despite this, the forecast for the next few months shows an upward trend, suggesting potential recovery if the right actions are taken.\n\nAbout 53% of your customers are at risk of not returning, which is concerning. This means more than half of your customer base hasn't made a purchase in the last 90 days. On a positive note, nearly 69% of your customers have made more than one purchase, indicating a strong base of repeat buyers.\n\nYour total revenue so far is approximately £1.6 million from 26,739 orders. However, there's a high concentration risk, with nearly 64% of your revenue coming from just the top 10% of your customers. This means losing a few key customers could significantly impact your business.\n\n## Your Action Plan\n\n### 1. Cash Flow Triage\n**The opportunity:** With a 72% drop in sales last month, it's crucial to stabilize your cash flow immediately.\n**The mechanism:** By identifying and addressing immediate cash flow issues, you can prevent further financial strain and prepare for recovery.\n**What to assume:** You have access to your financial records and can identify areas where expenses can be reduced or deferred.\n**What to do:** \n1. Review your current expenses and identify any non-essential costs that can be cut or postponed.\n2. Contact key suppliers to negotiate better payment terms or discounts.\n3. Prioritize collecting outstanding receivables to improve cash flow.\n4. Monitor your daily cash position to ensure you have enough liquidity to cover essential expenses.\n\n### 2. High-Value Customer Retention Sequence\n**The opportunity:** With 64% of your revenue coming from the top 10% of customers, retaining these high-value customers is critical.\n**The mechanism:** By focusing on retaining your most valuable customers, you can stabilize revenue and reduce concentration risk.\n**What to assume:** You have the ability to identify and communicate with your top customers.\n**What to do:** \n1. Identify your top 10% of customers and reach out to them with personalized offers or incentives to encourage repeat purchases.\n2. Implement a feedback loop to understand their needs and improve your service or product offerings.\n3. Monitor their purchasing behavior closely to detect any signs of disengagement early.\n\n### 3. Slow Mover Clearance\n**The opportunity:** Several products have seen a drastic decline in sales, with some dropping by over 98%.\n**The mechanism:** Clearing out slow-moving inventory can free up cash and space for more profitable products.\n**What to assume:** You have the ability to discount or bundle these products to encourage sales.\n**What to do:** \n1. Identify the slow-moving products and create a clearance sale or bundle them with more popular items.\n2. Promote these offers through your existing customer communication channels.\n3. Track the sales performance of these products to assess the effectiveness of your clearance strategy.\n\n## What to do this week\n\n1. **Review Expenses:** Spend an hour reviewing your financial statements to identify any immediate cost-saving opportunities.\n2. **Customer Outreach:** Dedicate time to personally reach out to your top 10% of customers with a special offer or personalized message to reinforce their loyalty.\n\nBy focusing on these immediate actions, you can stabilize your business and set the stage for recovery in the coming months.",
+    "score": null
+  },
+  {
+    "scenario": "T1: Grow Revenue",
+    "score": 0,
+    "error": "'charmap' codec can't encode character '\\u2713' in position 0: character maps to <undefined>",
+    "server_error": true
+  },
+  {
+    "scenario": "T2: Get More Customers",
+    "score": 0,
+    "error": "'charmap' codec can't encode character '\\u2713' in position 0: character maps to <undefined>",
+    "server_error": true
+  },
+  {
+    "scenario": "T3: Stop Losing Customers",
+    "score": 0,
+    "error": "'charmap' codec can't encode character '\\u2713' in position 0: character maps to <undefined>",
+    "server_error": true
+  },
+  {
+    "scenario": "T4: Sell Stock Smarter",
+    "score": 0,
+    "error": "'charmap' codec can't encode character '\\u2713' in position 0: character maps to <undefined>",
+    "server_error": true
+  },
+  {
+    "scenario": "T5: Follow-Up Memory",
+    "score": 0,
+    "error": "'charmap' codec can't encode character '\\u2713' in position 0: character maps to <undefined>",
+    "server_error": true
+  },
+  {
+    "scenario": "T6: Jargon Probe",
+    "score": 0,
+    "error": "'charmap' codec can't encode character '\\u2713' in position 0: character maps to <undefined>",
+    "server_error": true
+  },
+  {
+    "scenario": "T7: Diagnostic / CRISIS",
+    "score": 0,
+    "error": "'charmap' codec can't encode character '\\u2713' in position 0: character maps to <undefined>",
+    "server_error": true
+  },
+  {
+    "scenario": "T8: Adversarial + Vague",
+    "score": 0,
+    "error": "'charmap' codec can't encode character '\\u2713' in position 0: character maps to <undefined>",
+    "server_error": true
+  }
+]

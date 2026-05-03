@@ -33,8 +33,8 @@ def api_consultant_analyze():
     )
     prompt = " ".join(parts)
 
-    from flask_agents import get_manager
-    manager = get_manager()
+    from flask_routes.utils import resolve_manager
+    manager = resolve_manager(session.get('session_id'))
 
     if manager is None:
         return jsonify({'error': 'Agent not available. Please check server logs.'}), 503
@@ -63,8 +63,8 @@ def api_consultant_followup():
     if len(message) > 2000:
         return jsonify({'error': 'Message too long.'}), 400
 
-    from flask_agents import get_manager
-    manager = get_manager()
+    from flask_routes.utils import resolve_manager
+    manager = resolve_manager(session.get('session_id'))
 
     if manager is None:
         return jsonify({'error': 'Agent not available.'}), 503

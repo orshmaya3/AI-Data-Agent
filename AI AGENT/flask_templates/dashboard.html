@@ -110,6 +110,18 @@
   </div>
 </div>
 
+<!-- Upload session banner (hidden by default, shown by JS when user has own data) -->
+<div id="upload-banner" style="display:none;align-items:center;justify-content:space-between;gap:.75rem;
+  background:color-mix(in srgb,var(--accent,#6c63ff) 10%,transparent);
+  border:1px solid color-mix(in srgb,var(--accent,#6c63ff) 30%,transparent);
+  border-radius:10px;padding:.6rem 1rem;margin-bottom:1rem;font-size:.85rem;">
+  <span id="upload-banner-text" style="color:var(--text,#111)"></span>
+  <button onclick="clearUploadSession()" style="
+    background:none;border:1px solid var(--border,#d4d4d4);border-radius:6px;
+    padding:.25rem .7rem;font-size:.8rem;cursor:pointer;color:var(--text-secondary,#888);
+    white-space:nowrap;flex-shrink:0;">Switch to demo data</button>
+</div>
+
 <div class="page-header">
   <h1>Dashboard</h1>
   <p>Real-time retail analytics powered by autonomous AI agents</p>
@@ -301,5 +313,20 @@ Promise.all([
   }
   loader.classList.add('done');
 });
+
+/* ── Upload session banner ── */
+fetch('/api/upload/status').then(r => r.json()).then(d => {
+  if (d.status === 'ready' || d.status === 'data_ready') {
+    const banner = document.getElementById('upload-banner');
+    const txt    = document.getElementById('upload-banner-text');
+    txt.textContent = 'Analysing your uploaded data'
+      + (d.rows ? ' · ' + d.rows.toLocaleString() + ' rows' : '');
+    banner.style.display = 'flex';
+  }
+}).catch(() => {});
+
+window.clearUploadSession = function () {
+  fetch('/api/upload/session', { method: 'DELETE' }).finally(() => location.reload());
+};
 </script>
 {% endblock %}

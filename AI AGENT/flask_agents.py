@@ -4,9 +4,13 @@ Singleton loader for AI agents — shared across all Flask routes.
 Data + SalesAnalyst load on first dashboard/KPI request (no API key, ~50 MB).
 ManagerAgent loads on first chat/consultant request (LangChain, ~300 MB) so
 the dashboard works immediately without triggering the heavy import.
+
+Per-session agents: users who upload their own data get isolated agent
+instances keyed by session_id. See register_session_data() and friends.
 """
 import os
 import sys
+import time
 import threading
 import traceback
 
@@ -24,6 +28,18 @@ _manager_lock = threading.Lock()
 _data_loaded    = False
 _manager_loaded = False
 _manager_error  = None
+
+# ── Per-session registry ───────────────────────────────────────────────────
+# Each entry: {df, sales, manager, status, error, created_at}
+_session_registry: dict[str, dict] = {}
+_session_lock = threading.Lock()
+
+SESSION_PENDING    = "pending"
+SESSION_DATA_READY = "data_ready"
+SESSION_READY      = "ready"
+SESSION_ERROR      = "error"
+
+MAX_UPLOAD_SESSIONS = int(os.environ.get('MAX_UPLOAD_SESSIONS', '10'))
 
 
 def get_data_agents():
@@ -100,3 +116,109 @@ def get_agents():
 
 def get_manager_error() -> str | None:
     return _manager_error
+
+
+# ── Per-session agent management ──────────────────────────────────────────
+
+def register_session_data(session_id: str, df) -> None:
+    """
+    Store a cleaned DataFrame for this session, create a SalesAnalyst, then
+    kick off ManagerAgent initialisation in a background thread.
+    """
+    from Sales_Analyst import SalesAnalyst
+
+    sales = SalesAnalyst(df)
+    with _session_lock:
+        _session_registry[session_id] = {
+            'df':         df,
+            'sales':      sales,
+            'manager':    None,
+            'status':     SESSION_DATA_READY,
+            'error':      None,
+            'created_at': time.time(),
+        }
+    print(f"[flask_agents] Session {session_id[:8]}: data registered ({len(df):,} rows). Starting manager init…")
+
+    t = threading.Thread(
+        target=_init_session_manager,
+        args=(session_id,),
+        daemon=True,
+        name=f"manager-init-{session_id[:8]}",
+    )
+    t.start()
+
+
+def _init_session_manager(session_id: str) -> None:
+    """Background worker: initialise ManagerAgent and update registry status."""
+    with _session_lock:
+        entry = _session_registry.get(session_id)
+    if not entry:
+        return
+    df = entry.get('df')
+    if df is None:
+        return
+    try:
+        from Manager import ManagerAgent
+        manager = ManagerAgent(df)
+        with _session_lock:
+            if session_id in _session_registry:
+                _session_registry[session_id]['manager'] = manager
+                _session_registry[session_id]['status']  = SESSION_READY
+        print(f"[flask_agents] Session {session_id[:8]}: ManagerAgent ready.")
+    except Exception as e:
+        traceback.print_exc()
+        with _session_lock:
+            if session_id in _session_registry:
+                _session_registry[session_id]['status'] = SESSION_ERROR
+                _session_registry[session_id]['error']  = str(e)
+        print(f"[flask_agents] Session {session_id[:8]}: manager init FAILED — {e}")
+
+
+def get_session_status(session_id: str | None) -> dict:
+    """Return status dict for a session."""
+    if not session_id:
+        return {'status': 'not_found', 'error': None, 'rows': None, 'columns': None}
+    with _session_lock:
+        entry = _session_registry.get(session_id)
+    if not entry:
+        return {'status': 'not_found', 'error': None, 'rows': None, 'columns': None}
+    df = entry.get('df')
+    return {
+        'status':  entry.get('status', SESSION_PENDING),
+        'error':   entry.get('error'),
+        'rows':    int(len(df)) if df is not None else None,
+        'columns': list(df.columns) if df is not None else None,
+    }
+
+
+def get_session_manager(session_id: str | None):
+    """Return the ManagerAgent for this session, or None if not ready."""
+    if not session_id:
+        return None
+    with _session_lock:
+        entry = _session_registry.get(session_id)
+    return entry.get('manager') if entry else None
+
+
+def get_session_agents(session_id: str | None) -> tuple:
+    """Return (df, sales) for this session, or (None, None) if not available."""
+    if not session_id:
+        return None, None
+    with _session_lock:
+        entry = _session_registry.get(session_id)
+    if not entry:
+        return None, None
+    return entry.get('df'), entry.get('sales')
+
+
+def evict_expired_sessions(max_age_seconds: int = 3600) -> int:
+    """Remove sessions older than max_age_seconds. Returns eviction count."""
+    now = time.time()
+    to_evict = []
+    with _session_lock:
+        for sid, entry in _session_registry.items():
+            if now - entry.get('created_at', now) > max_age_seconds:
+                to_evict.append(sid)
+        for sid in to_evict:
+            del _session_registry[sid]
+    return len(to_evict)
