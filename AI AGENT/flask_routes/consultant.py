@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-from flask import Blueprint, render_template, session, request, jsonify
+from flask import Blueprint, render_template, session, request, jsonify, Response, stream_with_context
 from flask_routes.utils import login_required
 
 consultant_bp = Blueprint('consultant', __name__)
@@ -238,54 +238,56 @@ def api_consultant_analyze():
     if manager is None:
         return jsonify({'error': 'Agent not available. Please check server logs.'}), 503
 
-    try:
-        for step in manager.handle_consultant_request(prompt):
-            if step['type'] == 'result':
-                strategy_text = step['content']
-                _append_log({
-                    'id':              str(uuid.uuid4()),
-                    'event':           'strategy_generated',
-                    'timestamp':       datetime.now(timezone.utc).isoformat(),
-                    'name':            profile_name,
-                    'email':           profile_email,
-                    'business_type':   profile_type,
-                    'goal_label':      goal_label,
-                    'goal_questions':  goal_questions,
-                    'timeframe':       timeframe,
-                    'target':          target,
-                    'strategy_snippet': strategy_text[:300],
-                })
+    def generate():
+        try:
+            for step in manager.handle_consultant_request(prompt):
+                if step['type'] == 'result':
+                    strategy_text = step['content']
+                    _append_log({
+                        'id':              str(uuid.uuid4()),
+                        'event':           'strategy_generated',
+                        'timestamp':       datetime.now(timezone.utc).isoformat(),
+                        'name':            profile_name,
+                        'email':           profile_email,
+                        'business_type':   profile_type,
+                        'goal_label':      goal_label,
+                        'goal_questions':  goal_questions,
+                        'timeframe':       timeframe,
+                        'target':          target,
+                        'strategy_snippet': strategy_text[:300],
+                    })
+                    user_id = session.get('user_id')
+                    if user_id:
+                        from models import db, ConsultantPlan
+                        initial_history = json.dumps([
+                            {'role': 'user',      'content': prompt},
+                            {'role': 'assistant', 'content': strategy_text},
+                        ])
+                        plan = ConsultantPlan(
+                            user_id=user_id,
+                            business_profile=json.dumps(profile),
+                            goal_label=goal_label,
+                            goal_text=goal,
+                            timeframe=timeframe,
+                            target=target,
+                            strategy_text=strategy_text,
+                            conversation_history=initial_history,
+                            next_checkin_due=datetime.now(timezone.utc) + timedelta(days=7),
+                        )
+                        db.session.add(plan)
+                        db.session.commit()
+                        session['active_plan_id'] = plan.id
+                yield f"data: {json.dumps(step)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+        finally:
+            yield "data: [DONE]\n\n"
 
-                # Persist plan for logged-in users
-                user_id = session.get('user_id')
-                if user_id:
-                    from models import db, ConsultantPlan
-                    initial_history = json.dumps([
-                        {'role': 'user',      'content': prompt},
-                        {'role': 'assistant', 'content': strategy_text},
-                    ])
-                    plan = ConsultantPlan(
-                        user_id=user_id,
-                        business_profile=json.dumps(profile),
-                        goal_label=goal_label,
-                        goal_text=goal,
-                        timeframe=timeframe,
-                        target=target,
-                        strategy_text=strategy_text,
-                        conversation_history=initial_history,
-                        next_checkin_due=datetime.now(timezone.utc) + timedelta(days=7),
-                    )
-                    db.session.add(plan)
-                    db.session.commit()
-                    session['active_plan_id'] = plan.id
-
-                return jsonify({
-                    'response': strategy_text,
-                    'agent':    step.get('agent_label', 'Consultant (Zyon)'),
-                })
-        return jsonify({'error': 'No response generated.'}), 500
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    return Response(
+        stream_with_context(generate()),
+        content_type='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'},
+    )
 
 
 @consultant_bp.route('/api/consultant/followup', methods=['POST'])
@@ -306,32 +308,34 @@ def api_consultant_followup():
     if manager is None:
         return jsonify({'error': 'Agent not available.'}), 503
 
-    try:
-        for step in manager.handle_consultant_request(message, history=history):
-            if step['type'] == 'result':
-                response_text = step['content']
+    def generate():
+        try:
+            for step in manager.handle_consultant_request(message, history=history):
+                if step['type'] == 'result':
+                    response_text = step['content']
+                    user_id  = session.get('user_id')
+                    plan_id  = session.get('active_plan_id')
+                    if user_id and plan_id:
+                        from models import db, ConsultantPlan
+                        plan = ConsultantPlan.query.get(plan_id)
+                        if plan and plan.user_id == user_id:
+                            h = json.loads(plan.conversation_history or '[]')
+                            h.append({'role': 'user',      'content': message})
+                            h.append({'role': 'assistant', 'content': response_text})
+                            plan.conversation_history = json.dumps(h)
+                            plan.updated_at = datetime.now(timezone.utc)
+                            db.session.commit()
+                yield f"data: {json.dumps(step)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+        finally:
+            yield "data: [DONE]\n\n"
 
-                # Persist conversation update
-                user_id  = session.get('user_id')
-                plan_id  = session.get('active_plan_id')
-                if user_id and plan_id:
-                    from models import db, ConsultantPlan
-                    plan = ConsultantPlan.query.get(plan_id)
-                    if plan and plan.user_id == user_id:
-                        h = json.loads(plan.conversation_history or '[]')
-                        h.append({'role': 'user',      'content': message})
-                        h.append({'role': 'assistant', 'content': response_text})
-                        plan.conversation_history = json.dumps(h)
-                        plan.updated_at = datetime.now(timezone.utc)
-                        db.session.commit()
-
-                return jsonify({
-                    'response': response_text,
-                    'agent':    step.get('agent_label', 'Consultant (Zyon)'),
-                })
-        return jsonify({'error': 'No response.'}), 500
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    return Response(
+        stream_with_context(generate()),
+        content_type='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'},
+    )
 
 
 # ── Weekly survey routes ──────────────────────────────────────────────────────

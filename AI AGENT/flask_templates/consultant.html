@@ -1186,6 +1186,54 @@ function collectGoalAnswers() {
   return answers;
 }
 
+// ── Streaming helpers ──────────────────────────────────────────
+function _updateStrategyLoadingMsg(text) {
+  document.getElementById('loading-msg').textContent = text;
+}
+
+async function _streamConsultant(endpoint, body) {
+  const res = await fetch(endpoint, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    throw new Error(d.error || `HTTP ${res.status}`);
+  }
+
+  const reader  = res.body.getReader();
+  const decoder = new TextDecoder();
+  let   buffer  = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const payload = line.slice(6).trim();
+      if (payload === '[DONE]') return null;
+
+      let step;
+      try { step = JSON.parse(payload); } catch { continue; }
+
+      if (step.type === 'status') {
+        _updateStrategyLoadingMsg(step.message);
+      } else if (step.type === 'result') {
+        return step;
+      } else if (step.type === 'error') {
+        throw new Error(step.content);
+      }
+    }
+  }
+  return null;
+}
+
 // ── Build strategy ─────────────────────────────────────────────
 document.getElementById('btn-questions-submit').addEventListener('click', buildStrategy);
 
@@ -1222,34 +1270,27 @@ async function buildStrategy() {
   isLoading = true;
 
   try {
-    const res = await fetch('/api/consultant/analyze', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ goal: goalText, target, timeframe: selectedTf, goal_label: selectedGoalLabel, goal_questions: answers }),
+    const step = await _streamConsultant('/api/consultant/analyze', {
+      goal: goalText, target, timeframe: selectedTf,
+      goal_label: selectedGoalLabel, goal_questions: answers,
     });
-    const data = await res.json();
     stopLoadingCycle();
     isLoading = false;
-
     document.getElementById('loading-state').style.display  = 'none';
     document.getElementById('strategy-panel').style.display = 'block';
 
-    if (data.error) {
-      document.getElementById('strategy-content').innerHTML =
-        `<div class="alert-error">Could not generate strategy: ${data.error}</div>`;
-    } else {
-      document.getElementById('strategy-content').innerHTML = marked.parse(data.response || '');
-      document.getElementById('followup-section').style.display = 'block';
-      document.getElementById('btn-send').disabled = false;
-      followupHistory = [{ role: 'assistant', content: data.response }];
-    }
+    if (!step) throw new Error('No response received.');
+    document.getElementById('strategy-content').innerHTML = marked.parse(step.content || '');
+    document.getElementById('followup-section').style.display = 'block';
+    document.getElementById('btn-send').disabled = false;
+    followupHistory = [{ role: 'assistant', content: step.content }];
   } catch (err) {
     stopLoadingCycle();
     isLoading = false;
     document.getElementById('loading-state').style.display  = 'none';
     document.getElementById('strategy-panel').style.display = 'block';
     document.getElementById('strategy-content').innerHTML =
-      `<div class="alert-error">Failed to load strategy. Please try again.</div>`;
+      `<div class="alert-error">Could not generate strategy: ${err.message}</div>`;
   }
 }
 
@@ -1328,30 +1369,22 @@ async function sendFollowup() {
     '<div class="typing-dots"><span></span><span></span><span></span></div>');
 
   try {
-    const res = await fetch('/api/consultant/followup', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ message: text, history: followupHistory }),
+    const step = await _streamConsultant('/api/consultant/followup', {
+      message: text, history: followupHistory,
     });
-    const data = await res.json();
-
     typingDiv.remove();
     isLoading = false;
     btnSend.disabled = chatInput.value.trim() === '';
 
-    const reply = data.error
-      ? `Sorry, I ran into an issue: ${data.error}`
-      : (data.response || '');
+    const reply = step ? step.content : 'No response received.';
     appendMsg('atlas', marked.parse(reply));
     followupHistory.push({ role: 'assistant', content: reply });
-
     document.getElementById('followup-chips').style.display = 'none';
-
   } catch (err) {
     typingDiv.remove();
     isLoading = false;
     btnSend.disabled = false;
-    appendMsg('atlas', 'Something went wrong. Please try again.');
+    appendMsg('atlas', `⚠ ${err.message || 'Something went wrong. Please try again.'}`);
   }
 }
 
