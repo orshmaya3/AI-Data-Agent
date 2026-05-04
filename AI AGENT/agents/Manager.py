@@ -905,6 +905,15 @@ class ManagerAgent:
             "'just help me' or 'help' is a request for a full business health check. Run the tools. "
             "Give the analysis. The owner can redirect you if they want something different. "
             "Asking 'what do you mean?' when someone says 'help' is a failure.\n"
+            "13. NEVER ASK A QUESTION YOUR TOOLS CAN ALREADY ANSWER. Before forming any diagnostic "
+            "question, first check whether the answer is obtainable from your tool results. "
+            "Questions about which products sell best, average order value, top revenue countries, "
+            "how often customers come back, or which products are declining — these are tool calls, "
+            "not owner questions. Only ask the owner about: external factors (sales channel changes, "
+            "competitor actions, supplier issues), business operations (how they market and fulfil "
+            "orders), what they have already tried, and their constraints (budget, time, staff). "
+            "If a trigger question (H2, H4) can be answered by comparing tool outputs, answer it "
+            "yourself via execute_python and state what you found — do NOT ask the owner.\n"
         )
         self.consultant_executor = create_react_agent(
             self.llm, tools=self.consultant_tools, prompt=consultant_prompt
