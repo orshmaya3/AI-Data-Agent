@@ -1,4 +1,5 @@
 import json
+import queue
 import threading
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -238,33 +239,59 @@ def api_consultant_analyze():
     if manager is None:
         return jsonify({'error': 'Agent not available. Please check server logs.'}), 503
 
+    # Capture session values before entering the generator (worker runs outside request context)
+    captured_user_id = session.get('user_id')
+
     def generate():
-        try:
-            for step in manager.handle_consultant_request(prompt):
+        q = queue.Queue()
+
+        def worker():
+            try:
+                for step in manager.handle_consultant_request(prompt):
+                    q.put(('event', step))
+            except Exception as e:
+                q.put(('error', str(e)))
+            finally:
+                q.put(('done', None))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+        while True:
+            try:
+                kind, payload = q.get(timeout=20)
+            except queue.Empty:
+                yield ': keep-alive\n\n'
+                continue
+            if kind == 'done':
+                break
+            elif kind == 'error':
+                yield f"data: {json.dumps({'type': 'error', 'content': payload})}\n\n"
+                break
+            else:
+                step = payload
                 if step['type'] == 'result':
                     strategy_text = step['content']
                     _append_log({
-                        'id':              str(uuid.uuid4()),
-                        'event':           'strategy_generated',
-                        'timestamp':       datetime.now(timezone.utc).isoformat(),
-                        'name':            profile_name,
-                        'email':           profile_email,
-                        'business_type':   profile_type,
-                        'goal_label':      goal_label,
-                        'goal_questions':  goal_questions,
-                        'timeframe':       timeframe,
-                        'target':          target,
+                        'id':               str(uuid.uuid4()),
+                        'event':            'strategy_generated',
+                        'timestamp':        datetime.now(timezone.utc).isoformat(),
+                        'name':             profile_name,
+                        'email':            profile_email,
+                        'business_type':    profile_type,
+                        'goal_label':       goal_label,
+                        'goal_questions':   goal_questions,
+                        'timeframe':        timeframe,
+                        'target':           target,
                         'strategy_snippet': strategy_text[:300],
                     })
-                    user_id = session.get('user_id')
-                    if user_id:
+                    if captured_user_id:
                         from models import db, ConsultantPlan
                         initial_history = json.dumps([
                             {'role': 'user',      'content': prompt},
                             {'role': 'assistant', 'content': strategy_text},
                         ])
                         plan = ConsultantPlan(
-                            user_id=user_id,
+                            user_id=captured_user_id,
                             business_profile=json.dumps(profile),
                             goal_label=goal_label,
                             goal_text=goal,
@@ -278,10 +305,7 @@ def api_consultant_analyze():
                         db.session.commit()
                         session['active_plan_id'] = plan.id
                 yield f"data: {json.dumps(step)}\n\n"
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
-        finally:
-            yield "data: [DONE]\n\n"
+        yield "data: [DONE]\n\n"
 
     return Response(
         stream_with_context(generate()),
@@ -308,17 +332,43 @@ def api_consultant_followup():
     if manager is None:
         return jsonify({'error': 'Agent not available.'}), 503
 
+    # Capture session values before entering the generator (worker runs outside request context)
+    captured_user_id = session.get('user_id')
+    captured_plan_id = session.get('active_plan_id')
+
     def generate():
-        try:
-            for step in manager.handle_consultant_request(message, history=history):
+        q = queue.Queue()
+
+        def worker():
+            try:
+                for step in manager.handle_consultant_request(message, history=history):
+                    q.put(('event', step))
+            except Exception as e:
+                q.put(('error', str(e)))
+            finally:
+                q.put(('done', None))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+        while True:
+            try:
+                kind, payload = q.get(timeout=20)
+            except queue.Empty:
+                yield ': keep-alive\n\n'
+                continue
+            if kind == 'done':
+                break
+            elif kind == 'error':
+                yield f"data: {json.dumps({'type': 'error', 'content': payload})}\n\n"
+                break
+            else:
+                step = payload
                 if step['type'] == 'result':
                     response_text = step['content']
-                    user_id  = session.get('user_id')
-                    plan_id  = session.get('active_plan_id')
-                    if user_id and plan_id:
+                    if captured_user_id and captured_plan_id:
                         from models import db, ConsultantPlan
-                        plan = ConsultantPlan.query.get(plan_id)
-                        if plan and plan.user_id == user_id:
+                        plan = ConsultantPlan.query.get(captured_plan_id)
+                        if plan and plan.user_id == captured_user_id:
                             h = json.loads(plan.conversation_history or '[]')
                             h.append({'role': 'user',      'content': message})
                             h.append({'role': 'assistant', 'content': response_text})
@@ -326,10 +376,7 @@ def api_consultant_followup():
                             plan.updated_at = datetime.now(timezone.utc)
                             db.session.commit()
                 yield f"data: {json.dumps(step)}\n\n"
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
-        finally:
-            yield "data: [DONE]\n\n"
+        yield "data: [DONE]\n\n"
 
     return Response(
         stream_with_context(generate()),

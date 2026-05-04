@@ -1,4 +1,6 @@
 import json
+import queue
+import threading
 
 from flask import Blueprint, render_template, session, request, jsonify, Response, stream_with_context
 from flask_routes.utils import login_required
@@ -31,13 +33,33 @@ def api_prediction_chat():
         return jsonify({'error': 'Agent not available.'}), 503
 
     def generate():
-        try:
-            for step in manager.handle_prediction_request(message, history=history):
-                yield f"data: {json.dumps(step)}\n\n"
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
-        finally:
-            yield "data: [DONE]\n\n"
+        q = queue.Queue()
+
+        def worker():
+            try:
+                for step in manager.handle_prediction_request(message, history=history):
+                    q.put(('event', step))
+            except Exception as e:
+                q.put(('error', str(e)))
+            finally:
+                q.put(('done', None))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+        while True:
+            try:
+                kind, payload = q.get(timeout=20)
+            except queue.Empty:
+                yield ': keep-alive\n\n'
+                continue
+            if kind == 'done':
+                break
+            elif kind == 'error':
+                yield f"data: {json.dumps({'type': 'error', 'content': payload})}\n\n"
+                break
+            else:
+                yield f"data: {json.dumps(payload)}\n\n"
+        yield "data: [DONE]\n\n"
 
     return Response(
         stream_with_context(generate()),
