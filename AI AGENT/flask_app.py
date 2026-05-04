@@ -5,6 +5,7 @@ import uuid
 from datetime import timedelta
 from flask import Flask, session
 from dotenv import load_dotenv
+from models import db
 
 # Make sure the AI AGENT directory and agents/ subfolder are on the path
 _BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -32,6 +33,22 @@ def _start_session_eviction_thread(app):
     t.start()
 
 
+def _seed_admin_users(app):
+    """Insert hardcoded admin rows if they don't exist. Idempotent."""
+    with app.app_context():
+        from models import User
+        admins = [
+            {'username': 'Or',    'email': 'or@admin.local',    'role': 'admin'},
+            {'username': 'Taeir', 'email': 'taeir@admin.local', 'role': 'admin'},
+        ]
+        for a in admins:
+            if not User.query.filter_by(username=a['username']).first():
+                u = User(username=a['username'], email=a['email'],
+                         role=a['role'], password_hash=None)
+                db.session.add(u)
+        db.session.commit()
+
+
 def create_app():
     app = Flask(
         __name__,
@@ -44,6 +61,15 @@ def create_app():
         'ai_data_agent_dev_fallback_change_me'
     )
     app.permanent_session_lifetime = timedelta(minutes=30)
+
+    db_path = os.path.join(BASE_DIR, 'data', 'orbital.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db.init_app(app)
+
+    with app.app_context():
+        db.create_all()
+    _seed_admin_users(app)
 
     from flask_routes.dashboard import dashboard_bp
     from flask_routes.chat import chat_bp

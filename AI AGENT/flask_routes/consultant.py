@@ -1,7 +1,7 @@
 import json
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from flask import Blueprint, render_template, session, request, jsonify
@@ -21,10 +21,82 @@ def _append_log(entry: dict):
         _LOG_PATH.write_text(json.dumps(entries, indent=2), encoding='utf-8')
 
 
+def _build_survey_opening_prompt(plan) -> str:
+    profile = json.loads(plan.business_profile)
+    days_since = (datetime.now(timezone.utc) - plan.created_at.replace(tzinfo=timezone.utc)).days
+
+    return (
+        "[SURVEY MODE — WEEKLY PROGRESS CHECK-IN]\n\n"
+        f"You are Zyon conducting a weekly progress check-in with {profile.get('name', 'this business owner')}.\n\n"
+        "CONTEXT YOU HAVE:\n"
+        f"- Business type: {profile.get('business_type', 'unknown')}\n"
+        f"- Original goal: {plan.goal_label or plan.goal_text}\n"
+        f"- Days since plan was created: {days_since}\n"
+        "- Their previous strategy (do not repeat this verbatim):\n"
+        f"{(plan.strategy_text or '')[:800]}\n\n"
+        "YOUR JOB IN THIS CHECK-IN:\n"
+        "1. Open with a warm but direct greeting referencing their specific goal.\n"
+        "2. Ask 2-3 short, focused questions to understand what's happened:\n"
+        "   - Did they try any of the recommended actions?\n"
+        "   - What results have they seen (even small ones)?\n"
+        "   - What got in the way?\n"
+        "3. After they answer, run your standard data tools to see how the numbers have moved.\n"
+        "4. Produce an UPDATED plan that incorporates both what they told you AND what the new data shows.\n"
+        "5. When you write the updated plan, start it with the exact marker: [[PLAN_UPDATE]]\n\n"
+        "TONE: You are a trusted advisor who remembers their situation. Build on what you already know. "
+        "Be brief in the opening questions — this is a check-in, not a full consultation.\n\n"
+        "Start now with your opening greeting and first question."
+    )
+
+
+def _build_survey_continuation_prompt(plan) -> str:
+    return (
+        "[SURVEY MODE — CONTINUING CHECK-IN]\n"
+        f"Original goal: {plan.goal_label or plan.goal_text}\n"
+        f"Original strategy snippet: {(plan.strategy_text or '')[:500]}\n\n"
+        "You are mid-way through a weekly check-in. The conversation so far is in your history. "
+        "Continue the check-in. When you have gathered enough information (usually after 2-3 user replies), "
+        "run your data tools and produce an updated strategy. "
+        "Begin the updated strategy section with [[PLAN_UPDATE]]. "
+        "If you need more information first, ask one focused follow-up question."
+    )
+
+
 @consultant_bp.route('/consultant')
 @login_required
 def consultant():
-    return render_template('consultant.html', username=session.get('username'))
+    user_id = session.get('user_id')
+    existing_plan = None
+    survey_due = False
+
+    if user_id:
+        from models import ConsultantPlan
+        plan = (ConsultantPlan.query
+                .filter_by(user_id=user_id)
+                .order_by(ConsultantPlan.updated_at.desc())
+                .first())
+        if plan:
+            existing_plan = {
+                'id':                   plan.id,
+                'strategy_text':        plan.strategy_text,
+                'goal_label':           plan.goal_label or '',
+                'business_profile':     json.loads(plan.business_profile),
+                'conversation_history': json.loads(plan.conversation_history or '[]'),
+                'updated_at':           plan.updated_at.isoformat(),
+            }
+            session['active_plan_id'] = plan.id
+            if plan.next_checkin_due:
+                due = plan.next_checkin_due
+                if due.tzinfo is None:
+                    due = due.replace(tzinfo=timezone.utc)
+                survey_due = due <= datetime.now(timezone.utc)
+
+    return render_template(
+        'consultant.html',
+        username=session.get('username'),
+        existing_plan=existing_plan,
+        survey_due=survey_due,
+    )
 
 
 @consultant_bp.route('/api/consultant/profile', methods=['POST'])
@@ -137,14 +209,12 @@ def api_consultant_analyze():
     if not goal:
         return jsonify({'error': 'No goal provided.'}), 400
 
-    # Inject business profile context if available
     profile       = session.get('business_profile', {})
     profile_name  = profile.get('name', '')
     profile_email = profile.get('email', '')
     profile_type  = profile.get('business_type', '')
     profile_type_label = profile.get('business_type_other') or profile_type
 
-    # Build a rich natural-language prompt for Zyon
     parts = []
     if profile_name and profile_type_label:
         parts.append(
@@ -185,6 +255,30 @@ def api_consultant_analyze():
                     'target':          target,
                     'strategy_snippet': strategy_text[:300],
                 })
+
+                # Persist plan for logged-in users
+                user_id = session.get('user_id')
+                if user_id:
+                    from models import db, ConsultantPlan
+                    initial_history = json.dumps([
+                        {'role': 'user',      'content': prompt},
+                        {'role': 'assistant', 'content': strategy_text},
+                    ])
+                    plan = ConsultantPlan(
+                        user_id=user_id,
+                        business_profile=json.dumps(profile),
+                        goal_label=goal_label,
+                        goal_text=goal,
+                        timeframe=timeframe,
+                        target=target,
+                        strategy_text=strategy_text,
+                        conversation_history=initial_history,
+                        next_checkin_due=datetime.now(timezone.utc) + timedelta(days=7),
+                    )
+                    db.session.add(plan)
+                    db.session.commit()
+                    session['active_plan_id'] = plan.id
+
                 return jsonify({
                     'response': strategy_text,
                     'agent':    step.get('agent_label', 'Consultant (Zyon)'),
@@ -215,9 +309,126 @@ def api_consultant_followup():
     try:
         for step in manager.handle_consultant_request(message, history=history):
             if step['type'] == 'result':
+                response_text = step['content']
+
+                # Persist conversation update
+                user_id  = session.get('user_id')
+                plan_id  = session.get('active_plan_id')
+                if user_id and plan_id:
+                    from models import db, ConsultantPlan
+                    plan = ConsultantPlan.query.get(plan_id)
+                    if plan and plan.user_id == user_id:
+                        h = json.loads(plan.conversation_history or '[]')
+                        h.append({'role': 'user',      'content': message})
+                        h.append({'role': 'assistant', 'content': response_text})
+                        plan.conversation_history = json.dumps(h)
+                        plan.updated_at = datetime.now(timezone.utc)
+                        db.session.commit()
+
                 return jsonify({
-                    'response': step['content'],
+                    'response': response_text,
                     'agent':    step.get('agent_label', 'Consultant (Zyon)'),
+                })
+        return jsonify({'error': 'No response.'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ── Weekly survey routes ──────────────────────────────────────────────────────
+
+@consultant_bp.route('/api/consultant/survey/start', methods=['POST'])
+@login_required
+def api_survey_start():
+    user_id = session.get('user_id')
+    plan_id = session.get('active_plan_id')
+
+    if not user_id or not plan_id:
+        return jsonify({'error': 'No active plan.'}), 404
+
+    from models import db, ConsultantPlan, WeeklySurvey
+    plan = ConsultantPlan.query.get(plan_id)
+    if not plan or plan.user_id != user_id:
+        return jsonify({'error': 'Plan not found.'}), 404
+
+    survey = WeeklySurvey(
+        plan_id=plan.id,
+        user_id=user_id,
+        survey_conversation='[]',
+    )
+    db.session.add(survey)
+    db.session.commit()
+    session['active_survey_id'] = survey.id
+
+    opening_prompt = _build_survey_opening_prompt(plan)
+
+    from flask_routes.utils import resolve_manager
+    manager = resolve_manager(session.get('session_id'))
+    if manager is None:
+        return jsonify({'error': 'Agent not available.'}), 503
+
+    try:
+        for step in manager.handle_consultant_request(opening_prompt):
+            if step['type'] == 'result':
+                convo = [{'role': 'assistant', 'content': step['content']}]
+                survey.survey_conversation = json.dumps(convo)
+                db.session.commit()
+                return jsonify({'response': step['content'], 'survey_id': survey.id})
+        return jsonify({'error': 'No response from Zyon.'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@consultant_bp.route('/api/consultant/survey/reply', methods=['POST'])
+@login_required
+def api_survey_reply():
+    data      = request.get_json(silent=True) or {}
+    message   = data.get('message', '').strip()
+    user_id   = session.get('user_id')
+    survey_id = session.get('active_survey_id')
+
+    if not message:
+        return jsonify({'error': 'Empty message.'}), 400
+    if not survey_id or not user_id:
+        return jsonify({'error': 'No active survey.'}), 404
+
+    from models import db, ConsultantPlan, WeeklySurvey
+    survey = WeeklySurvey.query.get(survey_id)
+    if not survey or survey.user_id != user_id:
+        return jsonify({'error': 'Survey not found.'}), 404
+
+    plan  = ConsultantPlan.query.get(survey.plan_id)
+    convo = json.loads(survey.survey_conversation or '[]')
+    convo.append({'role': 'user', 'content': message})
+
+    continuation_prompt = _build_survey_continuation_prompt(plan)
+
+    from flask_routes.utils import resolve_manager
+    manager = resolve_manager(session.get('session_id'))
+    if manager is None:
+        return jsonify({'error': 'Agent not available.'}), 503
+
+    try:
+        for step in manager.handle_consultant_request(continuation_prompt, history=convo):
+            if step['type'] == 'result':
+                response_text = step['content']
+                convo.append({'role': 'assistant', 'content': response_text})
+                survey.survey_conversation = json.dumps(convo)
+
+                if '[[PLAN_UPDATE]]' in response_text:
+                    updated_strategy = response_text.split('[[PLAN_UPDATE]]', 1)[1].strip()
+                    survey.updated_strategy = updated_strategy
+                    survey.completed_at     = datetime.now(timezone.utc)
+
+                    plan.strategy_text        = updated_strategy
+                    plan.conversation_history = json.dumps(convo)
+                    plan.updated_at           = datetime.now(timezone.utc)
+                    plan.next_checkin_due     = datetime.now(timezone.utc) + timedelta(days=7)
+
+                db.session.commit()
+                return jsonify({
+                    'response':        response_text,
+                    'plan_updated':    '[[PLAN_UPDATE]]' in response_text,
+                    'updated_strategy': survey.updated_strategy,
                 })
         return jsonify({'error': 'No response.'}), 500
     except Exception as e:

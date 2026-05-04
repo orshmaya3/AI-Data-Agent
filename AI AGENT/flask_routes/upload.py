@@ -133,6 +133,11 @@ def api_upload():
             )
         }), 422
 
+    # ── Persist parquet for logged-in users ──────────────────────────────
+    user_id = session.get('user_id')
+    if user_id:
+        _save_upload_parquet(user_id, df_clean, detected_mapping, f.filename)
+
     # ── Register + kick off background manager init ───────────────────────
     register_session_data(session_id, df_clean)
 
@@ -160,3 +165,33 @@ def api_clear_upload():
         with _session_lock:
             _session_registry.pop(session_id, None)
     return jsonify({'status': 'cleared'}), 200
+
+
+def _save_upload_parquet(user_id, df_clean, detected_mapping, original_filename):
+    """Save cleaned DataFrame as parquet and record it in the DB."""
+    import uuid as _uuid
+    from pathlib import Path
+    from models import db, UserUpload
+
+    upload_dir = Path(__file__).parent.parent / 'data' / 'uploads' / str(user_id)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    parquet_name = f"{_uuid.uuid4().hex}.parquet"
+    parquet_full = upload_dir / parquet_name
+    df_clean.to_parquet(str(parquet_full), index=False)
+
+    # Relative path stored in DB (relative to data/)
+    parquet_rel = str(Path('uploads') / str(user_id) / parquet_name)
+
+    # Deactivate previous uploads for this user
+    UserUpload.query.filter_by(user_id=user_id, is_active=True).update({'is_active': False})
+
+    record = UserUpload(
+        user_id=user_id,
+        filename_original=original_filename,
+        parquet_path=parquet_rel,
+        row_count=len(df_clean),
+        column_mapping=json.dumps(detected_mapping),
+    )
+    db.session.add(record)
+    db.session.commit()

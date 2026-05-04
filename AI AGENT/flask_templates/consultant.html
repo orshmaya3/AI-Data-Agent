@@ -423,6 +423,69 @@
 #health-preview { animation: slideDown 0.28s ease; }
 @keyframes pulse { from { opacity:0.4; } to { opacity:0.9; } }
 
+/* ── Survey check-in banner ──────────────────────────────────── */
+#survey-banner {
+  display: none;
+  background: rgba(120,160,255,0.07);
+  border: 1px solid rgba(120,160,255,0.25);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  max-width: 780px;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+#survey-banner .survey-banner-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+#survey-banner .survey-banner-text {
+  flex: 1;
+  min-width: 200px;
+}
+#survey-banner .survey-banner-text strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+#survey-banner .survey-banner-text span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+#btn-start-checkin {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+#btn-start-checkin:hover { opacity: 0.88; }
+#btn-start-checkin:disabled { opacity: 0.4; cursor: not-allowed; }
+#survey-mode-banner {
+  display: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: rgba(120,160,255,0.08);
+  border: 1px solid rgba(120,160,255,0.2);
+  border-radius: 4px;
+  padding: 5px 12px;
+  margin-bottom: 12px;
+  width: fit-content;
+}
+
 /* ── Floating help bubble ─────────────────────────────────────── */
 #help-bubble {
   position: fixed;
@@ -561,6 +624,16 @@
 <div class="page-header">
   <h1>Business Consultant</h1>
   <p>Tell Zyon your goal — it will analyse your data and tell you exactly what to do.</p>
+</div>
+
+<!-- ══ Weekly check-in banner ════════════════════════════════════ -->
+<div id="survey-banner">
+  <div class="survey-banner-icon">📊</div>
+  <div class="survey-banner-text">
+    <strong>Time for your weekly check-in</strong>
+    <span>It's been over a week since Zyon gave you your plan. Let's see what's changed and update your strategy.</span>
+  </div>
+  <button id="btn-start-checkin" onclick="startCheckin()">Start Check-In</button>
 </div>
 
 <!-- ══ Progress Stepper ═══════════════════════════════════════════ -->
@@ -752,6 +825,8 @@
 <!-- ══ PHASE 2: Results ══════════════════════════════════════════ -->
 <div id="phase-results" style="max-width:780px;">
 
+  <div id="survey-mode-banner">Weekly check-in in progress</div>
+
   <!-- Header bar -->
   <div class="results-header">
     <div id="results-badge" class="results-badge">
@@ -831,6 +906,11 @@ let selectedTf        = 'the next 3 months';
 let followupHistory   = [];
 let isLoading         = false;
 let currentStep       = 0;
+let isSurveyMode      = false;
+
+// Server-injected data (null if not logged in or no plan)
+const EXISTING_PLAN = {{ existing_plan | tojson }};
+const SURVEY_DUE    = {{ survey_due | tojson }};
 
 // ── Goal questions map ─────────────────────────────────────────
 const GOAL_QUESTIONS = {
@@ -1231,6 +1311,8 @@ function appendMsg(role, html) {
 }
 
 async function sendFollowup() {
+  if (isSurveyMode) { sendSurveyReply(); return; }
+
   const text = chatInput.value.trim();
   if (!text || isLoading) return;
 
@@ -1273,6 +1355,110 @@ async function sendFollowup() {
   }
 }
 
+// ── Weekly check-in (survey) functions ────────────────────────
+async function startCheckin() {
+  const btn = document.getElementById('btn-start-checkin');
+  btn.disabled = true;
+  btn.textContent = 'Starting…';
+
+  // Show results phase with chat visible
+  document.getElementById('survey-banner').style.display     = 'none';
+  document.getElementById('phase-profile').style.display     = 'none';
+  document.getElementById('phase-setup').style.display       = 'none';
+  document.getElementById('phase-questions').style.display   = 'none';
+  document.getElementById('phase-results').style.display     = 'block';
+  document.getElementById('strategy-panel').style.display    = 'block';
+  document.getElementById('followup-section').style.display  = 'block';
+  document.getElementById('survey-mode-banner').style.display = 'block';
+  document.getElementById('followup-chips').style.display    = 'none';
+  document.getElementById('btn-send').disabled = false;
+  updateStepper(3);
+  isSurveyMode = true;
+
+  const typingDiv = appendMsg('atlas',
+    '<div class="typing-dots"><span></span><span></span><span></span></div>');
+  isLoading = true;
+
+  try {
+    const res  = await fetch('/api/consultant/survey/start', { method: 'POST' });
+    const data = await res.json();
+    typingDiv.remove();
+    isLoading = false;
+    btnSend.disabled = false;
+
+    if (data.error) {
+      appendMsg('atlas', `Could not start check-in: ${escapeHtml(data.error)}`);
+      isSurveyMode = false;
+    } else {
+      appendMsg('atlas', marked.parse(data.response || ''));
+      followupHistory = [{ role: 'assistant', content: data.response }];
+    }
+  } catch (err) {
+    typingDiv.remove();
+    isLoading = false;
+    isSurveyMode = false;
+    appendMsg('atlas', 'Could not start check-in. Please try again.');
+  }
+}
+
+async function sendSurveyReply() {
+  const text = chatInput.value.trim();
+  if (!text || isLoading) return;
+
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  btnSend.disabled = true;
+  isLoading = true;
+
+  appendMsg('user', escapeHtml(text));
+  followupHistory.push({ role: 'user', content: text });
+
+  const typingDiv = appendMsg('atlas',
+    '<div class="typing-dots"><span></span><span></span><span></span></div>');
+
+  try {
+    const res  = await fetch('/api/consultant/survey/reply', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ message: text }),
+    });
+    const data = await res.json();
+
+    typingDiv.remove();
+    isLoading = false;
+    btnSend.disabled = chatInput.value.trim() === '';
+
+    if (data.error) {
+      appendMsg('atlas', `Error: ${escapeHtml(data.error)}`);
+    } else {
+      const rawReply = data.response || '';
+
+      if (data.plan_updated && data.updated_strategy) {
+        // Render the updated plan in the strategy panel, hide survey UI
+        document.getElementById('strategy-content').innerHTML =
+          marked.parse(data.updated_strategy);
+        isSurveyMode = false;
+        document.getElementById('survey-mode-banner').style.display = 'none';
+
+        // Strip [[PLAN_UPDATE]] marker from the chat reply before showing it
+        const chatReply = rawReply.replace('[[PLAN_UPDATE]]', '').split('\n')[0].trim() ||
+          'Your plan has been updated based on your progress.';
+        appendMsg('atlas', marked.parse(chatReply +
+          '\n\n*Your strategy above has been updated. Your next check-in is in 7 days.*'));
+        document.getElementById('btn-send').disabled = true;
+      } else {
+        appendMsg('atlas', marked.parse(rawReply));
+        followupHistory.push({ role: 'assistant', content: rawReply });
+      }
+    }
+  } catch (err) {
+    typingDiv.remove();
+    isLoading = false;
+    btnSend.disabled = false;
+    appendMsg('atlas', 'Something went wrong. Please try again.');
+  }
+}
+
 function escapeHtml(str) {
   if (typeof str !== 'string') str = String(str);
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1280,6 +1466,43 @@ function escapeHtml(str) {
 
 // ── Page init ──────────────────────────────────────────────────
 (function init() {
+  // If a saved plan exists, jump straight to results phase
+  if (EXISTING_PLAN) {
+    const profile = EXISTING_PLAN.business_profile || {};
+    const bizType = profile.business_type_other || profile.business_type || '';
+
+    document.getElementById('phase-profile').style.display   = 'none';
+    document.getElementById('phase-setup').style.display     = 'none';
+    document.getElementById('phase-questions').style.display = 'none';
+    document.getElementById('phase-results').style.display   = 'block';
+    updateStepper(3);
+
+    // Render saved strategy
+    document.getElementById('loading-state').style.display  = 'none';
+    document.getElementById('strategy-panel').style.display = 'block';
+    document.getElementById('strategy-content').innerHTML   =
+      marked.parse(EXISTING_PLAN.strategy_text || '');
+    document.getElementById('followup-section').style.display = 'block';
+    document.getElementById('btn-send').disabled = false;
+
+    // Restore badge
+    document.getElementById('badge-label').textContent =
+      EXISTING_PLAN.goal_label || 'Your Strategy';
+
+    // Seed conversation history
+    followupHistory = EXISTING_PLAN.conversation_history || [];
+
+    // Show the profile chip if we have a name
+    if (profile.name) renderProfileChip(profile.name, bizType);
+
+    // Show survey banner if check-in is due
+    if (SURVEY_DUE) {
+      document.getElementById('survey-banner').style.display = 'flex';
+    }
+    return;
+  }
+
+  // No saved plan — normal flow
   const hasProfile = {{ 'true' if session.get('business_profile') else 'false' }};
 
   if (hasProfile) {

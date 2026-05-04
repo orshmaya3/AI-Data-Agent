@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login — Orbital AI</title>
+  <title>Register — Orbital AI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -20,7 +20,6 @@
       justify-content: center;
     }
 
-    /* Subtle radial glow behind card */
     body::before {
       content: '';
       position: fixed;
@@ -41,7 +40,6 @@
       position: relative;
     }
 
-    /* Top accent line */
     .login-box::before {
       content: '';
       position: absolute;
@@ -127,10 +125,15 @@
 
     .login-footer {
       text-align: center;
-      margin-top: 28px;
-      font-size: 10px;
-      color: rgba(240,240,250,0.18);
+      margin-top: 22px;
+      font-size: 11px;
+      color: rgba(240,240,250,0.30);
     }
+    .login-footer a {
+      color: rgba(120,160,255,0.7);
+      text-decoration: none;
+    }
+    .login-footer a:hover { color: #78a0ff; }
   </style>
 </head>
 <body>
@@ -145,31 +148,51 @@
         </svg>
       </div>
       <h1>Orbital AI</h1>
-      <p>Data Agent Platform</p>
+      <p>Create your account</p>
     </div>
 
     {% if error %}
     <div class="alert-error">⚠ {{ error }}</div>
     {% endif %}
 
-    <form method="POST" action="{{ url_for('auth.login') }}">
+    <form method="POST" action="{{ url_for('auth.register') }}" id="registerForm">
       <div class="form-group">
         <label for="username">Username</label>
         <input type="text" id="username" name="username" class="form-control"
-               placeholder="Enter username" autocomplete="username" required>
+               placeholder="Choose a username" autocomplete="username" required minlength="3">
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" class="form-control"
+               placeholder="your@email.com" autocomplete="email" required>
       </div>
       <div class="form-group">
         <label for="password">Password</label>
         <input type="password" id="password" name="password" class="form-control"
-               placeholder="Enter password" autocomplete="current-password" required>
+               placeholder="At least 8 characters" autocomplete="new-password" required minlength="8">
       </div>
-      <button type="submit" class="btn-login">Sign In</button>
+      <div class="form-group">
+        <label for="confirm_password">Confirm Password</label>
+        <input type="password" id="confirm_password" name="confirm_password" class="form-control"
+               placeholder="Repeat password" autocomplete="new-password" required>
+      </div>
+      <button type="submit" class="btn-login">Create Account</button>
     </form>
 
-    <div class="login-footer" style="margin-top:18px;font-size:11px;color:rgba(240,240,250,0.3);">
-      New here? <a href="{{ url_for('auth.register') }}" style="color:rgba(120,160,255,0.7);text-decoration:none;">Create an account</a>
+    <div class="login-footer">
+      Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
     </div>
-    <div class="login-footer">Powered by Claude · Retail Intelligence</div>
   </div>
+
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+      const pw  = document.getElementById('password').value;
+      const cpw = document.getElementById('confirm_password').value;
+      if (pw !== cpw) {
+        e.preventDefault();
+        alert('Passwords do not match.');
+      }
+    });
+  </script>
 </body>
 </html>
