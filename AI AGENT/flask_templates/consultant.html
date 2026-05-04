@@ -623,6 +623,11 @@
         <option value="other">Other</option>
       </select>
     </div>
+    <div id="biztype-other-wrap" style="display:none;">
+      <label class="form-label" for="profile-biztype-other">Describe your business type</label>
+      <input id="profile-biztype-other" class="form-input" type="text"
+             placeholder="e.g. SaaS startup, photography studio, law firm…">
+    </div>
   </div>
 
   <div id="profile-error" style="display:none;margin-top:12px;
@@ -796,14 +801,14 @@
 </div>
 
 <!-- ── Floating help bubble (Phase 1.5 only) ───────────────── -->
-<button id="help-bubble" title="Ask Zyon for help" onclick="toggleHelpPanel()">
+<button id="help-bubble" title="Ask AI for help" onclick="toggleHelpPanel()">
   <svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
   <span class="help-bubble-dot"></span>
 </button>
 
 <div id="help-panel">
   <div class="help-panel-header">
-    <span>⚡ Ask Zyon</span>
+    <span>💬 Ask AI</span>
     <button class="help-panel-close" onclick="toggleHelpPanel()">×</button>
   </div>
   <div id="help-messages"></div>
@@ -939,11 +944,22 @@ async function resetProfile() {
 }
 
 // ── Profile form submit ────────────────────────────────────────
+document.getElementById('profile-biztype').addEventListener('change', function () {
+  const wrap = document.getElementById('biztype-other-wrap');
+  if (this.value === 'other') {
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+    document.getElementById('profile-biztype-other').value = '';
+  }
+});
+
 document.getElementById('btn-profile-submit').addEventListener('click', async () => {
-  const name    = document.getElementById('profile-name').value.trim();
-  const email   = document.getElementById('profile-email').value.trim();
-  const bizType = document.getElementById('profile-biztype').value;
-  const errEl   = document.getElementById('profile-error');
+  const name         = document.getElementById('profile-name').value.trim();
+  const email        = document.getElementById('profile-email').value.trim();
+  const bizType      = document.getElementById('profile-biztype').value;
+  const bizTypeOther = document.getElementById('profile-biztype-other').value.trim();
+  const errEl        = document.getElementById('profile-error');
 
   errEl.style.display = 'none';
 
@@ -953,10 +969,19 @@ document.getElementById('btn-profile-submit').addEventListener('click', async ()
     return;
   }
 
+  if (bizType === 'other' && !bizTypeOther) {
+    errEl.textContent   = 'Please describe your business type.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const body = { name, email, business_type: bizType };
+  if (bizType === 'other') body.business_type_other = bizTypeOther;
+
   const res  = await fetch('/api/consultant/profile', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ name, email, business_type: bizType }),
+    body:    JSON.stringify(body),
   });
   const data = await res.json();
 
@@ -966,9 +991,10 @@ document.getElementById('btn-profile-submit').addEventListener('click', async ()
     return;
   }
 
+  const displayType = bizType === 'other' ? bizTypeOther : bizType;
   document.getElementById('phase-profile').style.display = 'none';
   document.getElementById('phase-setup').style.display   = 'block';
-  renderProfileChip(name, bizType);
+  renderProfileChip(name, displayType);
   updateStepper(1);
 });
 
@@ -1057,6 +1083,8 @@ function showGoalQuestions() {
   document.getElementById('phase-questions').style.display = 'block';
   updateStepper(2);
   document.getElementById('help-bubble').style.display = 'flex';
+  const _panel = document.getElementById('help-panel');
+  if (_panel.style.display !== 'flex') { toggleHelpPanel(); }
 }
 
 function goBackToGoals() {
@@ -1277,7 +1305,7 @@ function toggleHelpPanel() {
   panel.style.display = open ? 'none' : 'flex';
   if (!open && helpHistory.length === 0) {
     _addHelpMsg('ai',
-      "Hi! I'm Zyon. Tell me a bit about your situation and I'll help you answer these questions.");
+      "Hi! I'm your AI assistant. Ask me anything about your business or these questions and I'll help you think it through.");
   }
   if (!open) document.getElementById('help-input').focus();
 }
@@ -1299,12 +1327,11 @@ async function sendHelpMessage() {
   input.value = '';
   _addHelpMsg('user', text);
 
-  const context = `The user is filling out a consultant form with goal: "${selectedGoalLabel}". ` +
-    `They are answering questions about their business situation and want help thinking through their answers. ` +
-    `Keep replies concise and practical.`;
+  const context = `The user is filling out a business strategy form. They selected the goal: "${selectedGoalLabel}". ` +
+    `Help them think through the questions and provide relevant, concise business insights based on the data.`;
   const history = helpHistory.length
     ? helpHistory
-    : [{ role: 'user', content: context }, { role: 'assistant', content: "Understood, I'll help!" }];
+    : [{ role: 'user', content: context }, { role: 'assistant', content: "Got it, I'll help you work through this!" }];
 
   helpHistory.push({ role: 'user', content: text });
 
@@ -1318,7 +1345,7 @@ async function sendHelpMessage() {
   helpBusy = true;
 
   try {
-    const res  = await fetch('/api/consultant/followup', {
+    const res  = await fetch('/api/chat', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ message: text, history }),

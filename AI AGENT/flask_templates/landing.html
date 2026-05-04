@@ -1413,9 +1413,7 @@
     const MAX_POLLS   = 80;     // 80 × 3s = 4 min max wait
 
     /* ── Modal open/close ─────────────────────────────────────────── */
-    const _isLoggedIn = {{ 'true' if session.get('username') else 'false' }};
     window.openUploadModal = function () {
-      if (!_isLoggedIn) { window.location.href = '/login'; return; }
       document.getElementById('upload-overlay').classList.add('open');
       goToStep('step-drop');
     };
@@ -1644,12 +1642,12 @@
 
 <!-- ── Dark mode suggestion popup ─────────────────────────── -->
 <div id="dm-popup" style="
-  position:fixed;bottom:28px;left:28px;z-index:300;
-  width:280px;background:var(--card,#f7f8fd);
+  position:fixed;bottom:calc(50% + 32px);right:8px;z-index:300;
+  width:268px;background:var(--card,#f7f8fd);
   border:1px solid var(--card-border,rgba(10,12,30,0.10));
   border-radius:14px;padding:14px 14px 0;
   box-shadow:0 6px 28px rgba(0,0,0,0.16);
-  opacity:0;transform:translateY(20px);pointer-events:none;
+  opacity:0;transform:translateY(-8px);pointer-events:none;
   transition:opacity 0.35s ease,transform 0.35s ease;
   display:none;
 ">
@@ -1697,7 +1695,7 @@
 
   function dismiss() {
     pop.style.opacity    = '0';
-    pop.style.transform  = 'translateY(20px)';
+    pop.style.transform  = 'translateY(-8px)';
     pop.style.pointerEvents = 'none';
     setTimeout(() => { pop.style.display = 'none'; }, 350);
     localStorage.setItem(KEY, '1');

@@ -30,10 +30,11 @@ def consultant():
 @consultant_bp.route('/api/consultant/profile', methods=['POST'])
 @login_required
 def api_consultant_profile():
-    data          = request.get_json(silent=True) or {}
-    name          = data.get('name', '').strip()
-    email         = data.get('email', '').strip()
-    business_type = data.get('business_type', '').strip()
+    data                = request.get_json(silent=True) or {}
+    name                = data.get('name', '').strip()
+    email               = data.get('email', '').strip()
+    business_type       = data.get('business_type', '').strip()
+    business_type_other = data.get('business_type_other', '').strip()
 
     if not name or not email or not business_type:
         return jsonify({'error': 'Name, email, and business type are required.'}), 400
@@ -42,14 +43,20 @@ def api_consultant_profile():
     if business_type not in VALID_TYPES:
         return jsonify({'error': 'Invalid business type.'}), 400
 
-    session['business_profile'] = {'name': name, 'email': email, 'business_type': business_type}
+    if business_type == 'other' and not business_type_other:
+        return jsonify({'error': 'Please describe your business type.'}), 400
+
+    profile = {'name': name, 'email': email, 'business_type': business_type}
+    if business_type == 'other':
+        profile['business_type_other'] = business_type_other
+    session['business_profile'] = profile
     _append_log({
         'id':            str(uuid.uuid4()),
         'event':         'profile_submitted',
         'timestamp':     datetime.now(timezone.utc).isoformat(),
         'name':          name,
         'email':         email,
-        'business_type': business_type,
+        'business_type': business_type_other if business_type == 'other' else business_type,
     })
     return jsonify({'ok': True})
 
@@ -135,13 +142,14 @@ def api_consultant_analyze():
     profile_name  = profile.get('name', '')
     profile_email = profile.get('email', '')
     profile_type  = profile.get('business_type', '')
+    profile_type_label = profile.get('business_type_other') or profile_type
 
     # Build a rich natural-language prompt for Zyon
     parts = []
-    if profile_name and profile_type:
+    if profile_name and profile_type_label:
         parts.append(
             f"[Context: You are speaking with {profile_name}, "
-            f"who runs a {profile_type} business.]"
+            f"who runs a {profile_type_label} business.]"
         )
     parts.append(f"My business goal is: {goal}.")
     if target:
