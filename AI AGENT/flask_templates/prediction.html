@@ -209,7 +209,56 @@ function appendMsg(role, text, label) {
   document.getElementById('btn-clear').style.display = history.length > 0 ? 'inline-block' : 'none';
 }
 
-function sendMessage() {
+function _updateLoadingMsg(text) {
+  const el = document.querySelector('#typing span');
+  if (el) el.textContent = text;
+}
+
+async function _streamPrediction(text, hist) {
+  const res = await fetch('/api/prediction/chat', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ message: text, history: hist }),
+  });
+
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    throw new Error(d.error || `HTTP ${res.status}`);
+  }
+
+  const reader  = res.body.getReader();
+  const decoder = new TextDecoder();
+  let   buffer  = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const payload = line.slice(6).trim();
+      if (payload === '[DONE]') return null;
+
+      let step;
+      try { step = JSON.parse(payload); } catch { continue; }
+
+      if (step.type === 'status') {
+        _updateLoadingMsg(step.message);
+      } else if (step.type === 'result') {
+        return step;
+      } else if (step.type === 'error') {
+        throw new Error(step.content);
+      }
+    }
+  }
+  return null;
+}
+
+async function sendMessage() {
   const input = document.getElementById('chat-input');
   const text  = input.value.trim();
   if (!text) return;
@@ -220,25 +269,21 @@ function sendMessage() {
   history.push({ role: 'user', content: text });
   document.getElementById('btn-send').disabled = true;
   document.getElementById('typing').classList.add('show');
+  _updateLoadingMsg('Rey is thinking...');
 
-  fetch('/api/prediction/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: text, history: history.slice(0, -1) })
-  })
-  .then(r => r.json())
-  .then(d => {
+  try {
+    const step  = await _streamPrediction(text, history.slice(0, -1));
+    const reply = step ? step.content : 'No response received.';
+    const label = step ? step.agent_label : undefined;
+    appendMsg('agent', reply, label);
+    if (step) history.push({ role: 'assistant', content: reply });
+  } catch (err) {
+    appendMsg('agent', `⚠ ${err.message || 'Request failed. Please try again.'}`);
+  } finally {
     document.getElementById('typing').classList.remove('show');
     document.getElementById('btn-send').disabled = false;
-    const reply = d.error ? `⚠ ${d.error}` : d.response;
-    appendMsg('agent', reply, d.agent);
-    if (!d.error) history.push({ role: 'assistant', content: d.response });
-  })
-  .catch(() => {
-    document.getElementById('typing').classList.remove('show');
-    document.getElementById('btn-send').disabled = false;
-    appendMsg('agent', '⚠ Request failed. Please try again.');
-  });
+    _updateLoadingMsg('Rey is thinking...');
+  }
 }
 
 function sendSuggestion(btn) {

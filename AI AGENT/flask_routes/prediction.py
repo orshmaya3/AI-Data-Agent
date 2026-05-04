@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, session, request, jsonify
+import json
+
+from flask import Blueprint, render_template, session, request, jsonify, Response, stream_with_context
 from flask_routes.utils import login_required
 
 prediction_bp = Blueprint('prediction', __name__)
@@ -26,18 +28,25 @@ def api_prediction_chat():
     manager = resolve_manager(session.get('session_id'))
 
     if manager is None:
-        return jsonify({'error': 'Agent not available.'}), 500
+        return jsonify({'error': 'Agent not available.'}), 503
 
-    try:
-        response = ""
-        agent_label = "Prediction Agent (Rey)"
-        for step in manager.handle_prediction_request(message, history=history):
-            if step["type"] == "result":
-                response = step["content"]
-                agent_label = step.get("agent_label", agent_label)
-        return jsonify({'response': response, 'agent': agent_label})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    def generate():
+        try:
+            for step in manager.handle_prediction_request(message, history=history):
+                yield f"data: {json.dumps(step)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+        finally:
+            yield "data: [DONE]\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        content_type='text/event-stream',
+        headers={
+            'Cache-Control':     'no-cache',
+            'X-Accel-Buffering': 'no',
+        },
+    )
 
 
 @prediction_bp.route('/api/prediction/metrics')
