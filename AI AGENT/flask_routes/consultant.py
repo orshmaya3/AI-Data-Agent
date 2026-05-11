@@ -215,6 +215,64 @@ def api_consultant_health_preview():
         return jsonify({'error': str(e)}), 500
 
 
+_DEFAULT_GOALS = [
+    {'icon': '📈', 'title': 'Grow Revenue',         'description': 'Increase total sales and monthly revenue',          'goal_key': 'grow_revenue'},
+    {'icon': '🔄', 'title': 'Retain Customers',     'description': 'Reduce churn and improve repeat purchase rate',     'goal_key': 'retain_customers'},
+    {'icon': '📦', 'title': 'Optimise Products',    'description': 'Identify top performers and cut slow movers',       'goal_key': 'optimise_products'},
+    {'icon': '🎯', 'title': 'Expand Market',        'description': 'Find new segments or regions to target',           'goal_key': 'expand_market'},
+]
+
+
+@consultant_bp.route('/api/consultant/goals')
+@login_required
+def api_consultant_goals():
+    cached = session.get('dynamic_goals')
+    if cached:
+        return jsonify(cached)
+
+    try:
+        from flask_routes.utils import resolve_data_agents
+        from flask_routes.dashboard import _build_data_profile
+        session_id = session.get('session_id')
+        df, _ = resolve_data_agents(session_id)
+        if df is None:
+            return jsonify(_DEFAULT_GOALS)
+
+        profile = _build_data_profile(df, session_id)
+        top_items_str = ', '.join(profile['top_items'][:5]) if profile['top_items'] else 'various products'
+
+        from openai import OpenAI
+        client = OpenAI()
+        resp = client.chat.completions.create(
+            model='gpt-4o-mini',
+            messages=[{
+                'role': 'user',
+                'content': (
+                    f"Generate 4 business goal cards for an analytics dashboard.\n"
+                    f"Dataset: {profile['filename'] or 'uploaded dataset'}\n"
+                    f"Top items: {top_items_str}\n"
+                    f"Data type: {'product categories' if profile['is_categorical'] else 'individual products'}\n"
+                    f"Date range: {profile['date_from']} – {profile['date_to']}\n"
+                    f"Unique customers: {profile['unique_customers']:,}\n"
+                    f"Currency: {profile['currency_code']}\n\n"
+                    "Return a JSON object with key \"goals\" containing an array of exactly 4 objects. "
+                    "Each object must have: icon (single emoji), title (max 4 words), "
+                    "description (max 12 words), goal_key (snake_case). "
+                    "Make the goals specific and relevant to this dataset."
+                ),
+            }],
+            response_format={'type': 'json_object'},
+            max_tokens=400,
+        )
+        goals = json.loads(resp.choices[0].message.content).get('goals', [])
+        if not goals or len(goals) < 4:
+            return jsonify(_DEFAULT_GOALS)
+        session['dynamic_goals'] = goals
+        return jsonify(goals)
+    except Exception:
+        return jsonify(_DEFAULT_GOALS)
+
+
 @consultant_bp.route('/api/consultant/analyze', methods=['POST'])
 @login_required
 def api_consultant_analyze():
@@ -234,21 +292,32 @@ def api_consultant_analyze():
     profile_type  = profile.get('business_type', '')
     profile_type_label = profile.get('business_type_other') or profile_type
 
-    # Inject user's own data context when available
-    upload_meta = None
+    # Inject user's own data profile context when available
+    data_profile = None
     if session.get('user_id'):
-        from models import UserUpload
-        upl = UserUpload.query.filter_by(user_id=session['user_id'], is_active=True).first()
-        if upl:
-            upload_meta = {'filename': upl.filename_original, 'rows': upl.row_count or 0}
+        try:
+            from flask_routes.utils import resolve_data_agents
+            from flask_routes.dashboard import _build_data_profile
+            session_id = session.get('session_id')
+            df, _ = resolve_data_agents(session_id)
+            if df is not None:
+                data_profile = _build_data_profile(df, session_id)
+        except Exception:
+            pass
 
     parts = []
-    if upload_meta:
+    if data_profile and data_profile.get('filename'):
+        top_items = data_profile.get('top_items', [])[:5]
+        country_ctx = 'No country dimension.' if not data_profile.get('has_country') else 'Multiple countries.'
         parts.append(
-            f"[DATA SOURCE: You are analysing THIS USER'S OWN real business dataset "
-            f"(file: \"{upload_meta['filename']}\", {upload_meta['rows']:,} rows). "
-            f"All your tool calls and insights must be based on this dataset, not demo data. "
-            f"Treat every number you find as representing their actual business performance.]"
+            f"[DATA SCHEMA: File '{data_profile['filename']}' · "
+            f"{data_profile['row_count']:,} rows · "
+            f"{data_profile.get('date_from', '?')} to {data_profile.get('date_to', '?')} · "
+            f"Currency: {data_profile['currency_code']} ({data_profile['currency_symbol']}) · "
+            f"Top {data_profile['item_label'].lower()}: {', '.join(top_items) if top_items else 'N/A'} · "
+            f"{country_ctx} "
+            f"This is the user's OWN real business dataset. "
+            f"All tool calls and insights must be based on this data, not demo data.]"
         )
     if profile_name and profile_type_label:
         parts.append(

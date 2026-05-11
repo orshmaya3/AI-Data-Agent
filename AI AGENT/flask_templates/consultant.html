@@ -752,27 +752,12 @@
 
   <div style="margin-bottom:18px;">
     <label class="form-label">What do you want to achieve?</label>
-    <div class="goal-grid">
-      <div class="goal-card" data-goal="Grow my revenue — increase total sales and the amount each customer spends per order">
-        <div class="goal-icon">💰</div>
-        <div class="goal-title">Grow my revenue</div>
-        <div class="goal-desc">Increase total sales and what each customer spends per visit</div>
-      </div>
-      <div class="goal-card" data-goal="Get more customers — attract new buyers and turn one-time shoppers into regulars">
-        <div class="goal-icon">👥</div>
-        <div class="goal-title">Get more customers</div>
-        <div class="goal-desc">Attract new buyers and turn one-time shoppers into regulars</div>
-      </div>
-      <div class="goal-card" data-goal="Stop losing customers — identify buyers who haven't returned recently and win them back">
-        <div class="goal-icon">🛡️</div>
-        <div class="goal-title">Stop losing customers</div>
-        <div class="goal-desc">Find buyers who haven't returned and bring them back</div>
-      </div>
-      <div class="goal-card" data-goal="Sell my stock smarter — focus on products that sell well, clear slow ones, and find what to promote together">
-        <div class="goal-icon">📦</div>
-        <div class="goal-title">Sell my stock smarter</div>
-        <div class="goal-desc">Focus on fast-movers, clear slow ones, and find what to bundle</div>
-      </div>
+    <div class="goal-grid" id="goal-cards-grid">
+      <!-- Populated dynamically by loadGoalCards() -->
+      <div class="goal-card" style="opacity:0.4;pointer-events:none;"><div class="goal-icon">⋯</div><div class="goal-title">Loading…</div></div>
+      <div class="goal-card" style="opacity:0.4;pointer-events:none;"><div class="goal-icon">⋯</div><div class="goal-title">Loading…</div></div>
+      <div class="goal-card" style="opacity:0.4;pointer-events:none;"><div class="goal-icon">⋯</div><div class="goal-title">Loading…</div></div>
+      <div class="goal-card" style="opacity:0.4;pointer-events:none;"><div class="goal-icon">⋯</div><div class="goal-title">Loading…</div></div>
     </div>
   </div>
 
@@ -1150,19 +1135,46 @@ document.getElementById('btn-profile-submit').addEventListener('click', async ()
   updateStepper(1);
 });
 
-// ── Goal card selection ────────────────────────────────────────
-document.querySelectorAll('.goal-card').forEach(card => {
-  card.addEventListener('click', () => {
-    document.querySelectorAll('.goal-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    selectedGoal      = card.dataset.goal;
-    selectedGoalLabel = card.querySelector('.goal-title').textContent;
-    selectedGoalIcon  = card.querySelector('.goal-icon').textContent;
+// ── Goal cards: dynamic load ───────────────────────────────────
+function _esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-    fetchHealthPreview();
-    showGoalQuestions();
+function _bindGoalCards() {
+  document.querySelectorAll('#goal-cards-grid .goal-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('#goal-cards-grid .goal-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedGoal      = card.dataset.goal;
+      selectedGoalLabel = card.querySelector('.goal-title').textContent;
+      selectedGoalIcon  = card.querySelector('.goal-icon').textContent;
+      fetchHealthPreview();
+      showGoalQuestions();
+    });
   });
-});
+}
+
+async function loadGoalCards() {
+  try {
+    const resp  = await fetch('/api/consultant/goals');
+    const goals = await resp.json();
+    if (!Array.isArray(goals) || goals.length === 0) throw new Error('empty');
+    const grid = document.getElementById('goal-cards-grid');
+    grid.innerHTML = goals.map(g => `
+      <div class="goal-card" data-goal="${_esc(g.title)} — ${_esc(g.description)}">
+        <div class="goal-icon">${_esc(g.icon)}</div>
+        <div class="goal-title">${_esc(g.title)}</div>
+        <div class="goal-desc">${_esc(g.description)}</div>
+      </div>`).join('');
+    _bindGoalCards();
+  } catch (_) {
+    // fallback: static cards already in HTML skeleton — bind those
+    document.getElementById('goal-cards-grid').innerHTML = `
+      <div class="goal-card" data-goal="Grow my revenue — increase total sales and the amount each customer spends per order"><div class="goal-icon">💰</div><div class="goal-title">Grow my revenue</div><div class="goal-desc">Increase total sales and what each customer spends per visit</div></div>
+      <div class="goal-card" data-goal="Get more customers — attract new buyers and turn one-time shoppers into regulars"><div class="goal-icon">👥</div><div class="goal-title">Get more customers</div><div class="goal-desc">Attract new buyers and turn one-time shoppers into regulars</div></div>
+      <div class="goal-card" data-goal="Stop losing customers — identify buyers who haven't returned recently and win them back"><div class="goal-icon">🛡️</div><div class="goal-title">Stop losing customers</div><div class="goal-desc">Find buyers who haven't returned and bring them back</div></div>
+      <div class="goal-card" data-goal="Sell my stock smarter — focus on products that sell well, clear slow ones, and find what to promote together"><div class="goal-icon">📦</div><div class="goal-title">Sell my stock smarter</div><div class="goal-desc">Focus on fast-movers, clear slow ones, and find what to bundle</div></div>`;
+    _bindGoalCards();
+  }
+}
 
 // ── Timeframe pills ────────────────────────────────────────────
 document.querySelectorAll('.tf-pill').forEach(pill => {
@@ -1601,6 +1613,9 @@ function showLoginRequired() {
 
 // ── Page init ──────────────────────────────────────────────────
 (function init() {
+  // Pre-load goal cards in the background so they are ready when phase-setup shows
+  loadGoalCards();
+
   // Demo users skip the profile phase and go straight to goal selection
   if (IS_DEMO) {
     document.getElementById('phase-profile').style.display = 'none';

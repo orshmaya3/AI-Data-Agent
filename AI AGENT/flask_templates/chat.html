@@ -154,18 +154,7 @@
     <p>Ask Idan, Dana, Maya or Aria anything about your retail data</p>
   </div>
 
-  <div class="suggestions" id="suggestions">
-    {% for chip in [
-      "Who is my top customer?",
-      "Top 5 products by revenue",
-      "Show monthly revenue trend",
-      "What is the refund rate?",
-      "Which country earns the most?",
-      "Weekend vs weekday sales"
-    ] %}
-    <div class="chip" onclick="sendSuggestion(this)">{{ chip }}</div>
-    {% endfor %}
-  </div>
+  <div class="suggestions" id="suggestions"></div>
 
   <div class="chat-history" id="chat-history"></div>
 
@@ -192,6 +181,42 @@ const chatEl  = document.getElementById('chat-history');
 const inputEl = document.getElementById('chat-input');
 const sendBtn = document.getElementById('btn-send');
 const suggsEl = document.getElementById('suggestions');
+
+const DEFAULT_CHIPS = [
+  'Who is my top customer?',
+  'Top 5 products by revenue',
+  'Show monthly revenue trend',
+  'What is the refund rate?',
+  'Which country earns the most?',
+  'Weekend vs weekday sales',
+];
+
+function renderChips(chips) {
+  suggsEl.innerHTML = chips
+    .map(c => `<div class="chip" onclick="sendSuggestion(this)">${c.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`)
+    .join('');
+}
+
+(async function loadChips() {
+  try {
+    const p = await fetch('/api/data/profile').then(r => r.json());
+    if (p.error) throw new Error(p.error);
+    const items = p.top_items || [];
+    const sym   = p.currency_symbol || '£';
+    const label = (p.item_label || 'Products').toLowerCase();
+    const chips = [
+      items[0] ? `Top customers buying ${items[0]}` : 'Who is my top customer?',
+      items[1] ? `Revenue trend for ${items[1]}`    : 'Show monthly revenue trend',
+      `Top 5 ${label} by revenue`,
+      `What is the refund rate?`,
+      items[2] ? `Compare ${items[0]} vs ${items[2]}` : (p.has_country ? 'Which country earns the most?' : 'Best month for sales?'),
+      'Weekend vs weekday sales',
+    ];
+    renderChips(chips);
+  } catch (_) {
+    renderChips(DEFAULT_CHIPS);
+  }
+})();
 
 (function restoreSession() {
   try {

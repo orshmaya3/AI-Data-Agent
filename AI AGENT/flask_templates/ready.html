@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Ready — Orbital AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #000;
+      color: rgba(240,240,250,0.85);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 28%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(120,160,255,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Top bar ─────────────────────────────────────────────── */
+    .top-bar {
+      width: 100%;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(240,240,250,0.06);
+    }
+    .top-bar-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none;
+    }
+    .top-bar-logo svg { width: 28px; height: 28px; flex-shrink: 0; }
+    .top-bar-logo span {
+      font-size: 14px; font-weight: 700; color: rgba(240,240,250,0.9);
+    }
+    .top-bar-welcome { margin-left: auto; font-size: 12px; color: rgba(240,240,250,0.35); }
+
+    /* ── Main wrap ───────────────────────────────────────────── */
+    .ready-wrap {
+      flex: 1;
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 52px 20px 60px;
+      width: 100%;
+    }
+    .ready-card {
+      background: rgba(240,240,250,0.04);
+      border: 1px solid rgba(240,240,250,0.10);
+      border-radius: 12px;
+      padding: 40px;
+      width: 100%; max-width: 560px;
+      position: relative;
+    }
+    .ready-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(120,160,255,0.6), transparent);
+    }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    .ready-header {
+      display: flex; align-items: flex-start; gap: 14px;
+      margin-bottom: 28px;
+    }
+    .ready-check {
+      font-size: 28px; line-height: 1; flex-shrink: 0;
+    }
+    .ready-title {
+      font-size: 18px; font-weight: 700; color: rgba(240,240,250,0.95);
+      margin-bottom: 4px;
+    }
+    .ready-filename {
+      font-size: 11px; color: rgba(240,240,250,0.35);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 380px;
+    }
+    #ready-filename-text { color: rgba(120,160,255,0.7); }
+
+    /* ── Stat tiles ──────────────────────────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .stat-tile {
+      background: rgba(240,240,250,0.03);
+      border: 1px solid rgba(240,240,250,0.08);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .stat-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.7px;
+      text-transform: uppercase; color: rgba(240,240,250,0.35);
+      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .stat-value {
+      font-size: 16px; font-weight: 700; color: rgba(240,240,250,0.9);
+      margin-bottom: 4px;
+    }
+    .stat-sub {
+      font-size: 11px; color: rgba(240,240,250,0.3);
+    }
+
+    /* Top items pills */
+    .pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+    .pill {
+      font-size: 10px; font-weight: 500;
+      background: rgba(120,160,255,0.10);
+      border: 1px solid rgba(120,160,255,0.20);
+      color: rgba(120,160,255,0.85);
+      border-radius: 20px; padding: 2px 8px;
+      white-space: nowrap; max-width: 140px;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* Skeleton shimmer while loading */
+    .skeleton {
+      background: linear-gradient(90deg,
+        rgba(240,240,250,0.05) 25%,
+        rgba(240,240,250,0.10) 50%,
+        rgba(240,240,250,0.05) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* ── What's next ─────────────────────────────────────────── */
+    .whats-next-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.7px;
+      text-transform: uppercase; color: rgba(240,240,250,0.25);
+      margin-bottom: 12px;
+    }
+    .next-items { display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px; }
+    .next-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 14px;
+      background: rgba(240,240,250,0.02);
+      border: 1px solid rgba(240,240,250,0.06);
+      border-radius: 7px;
+    }
+    .next-icon {
+      font-size: 16px; flex-shrink: 0; margin-top: 1px;
+    }
+    .next-title {
+      font-size: 13px; font-weight: 600; color: rgba(240,240,250,0.85);
+      margin-bottom: 2px;
+    }
+    .next-desc { font-size: 11px; color: rgba(240,240,250,0.35); line-height: 1.4; }
+
+    /* ── CTA ─────────────────────────────────────────────────── */
+    .btn-goto {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%;
+      background: #78a0ff; border: none; border-radius: 6px;
+      color: #000; font-family: 'Inter', sans-serif;
+      font-size: 14px; font-weight: 700; padding: 13px;
+      cursor: pointer; text-decoration: none;
+      transition: opacity 0.15s; letter-spacing: 0.3px;
+    }
+    .btn-goto:hover { opacity: 0.88; }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <a class="top-bar-logo" href="/">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="16" stroke="rgba(120,160,255,0.35)" stroke-width="1.5"/>
+        <ellipse cx="24" cy="24" rx="16" ry="7" stroke="rgba(120,160,255,0.18)" stroke-width="1.2"/>
+        <circle cx="24" cy="8" r="3.5" fill="#78a0ff"/>
+        <circle cx="24" cy="24" r="3" fill="rgba(120,160,255,0.25)"/>
+      </svg>
+      <span>Orbital AI</span>
+    </a>
+    <span class="top-bar-welcome">Welcome, {{ username }}</span>
+  </div>
+
+  <div class="ready-wrap">
+    <div class="ready-card">
+
+      <div class="ready-header">
+        <span class="ready-check">✅</span>
+        <div>
+          <div class="ready-title">Your data is ready</div>
+          <div class="ready-filename">
+            <span id="ready-filename-text">Loading…</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 stat tiles -->
+      <div class="stat-grid">
+        <div class="stat-tile">
+          <div class="stat-label">📊 Records</div>
+          <div class="stat-value" id="stat-rows"><span class="skeleton" style="width:80px;height:18px;">&nbsp;</span></div>
+          <div class="stat-sub" id="stat-customers">&nbsp;</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">📅 Date Range</div>
+          <div class="stat-value" id="stat-dates"><span class="skeleton" style="width:110px;height:18px;">&nbsp;</span></div>
+          <div class="stat-sub">&nbsp;</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label" id="stat-items-label">📦 Top Items</div>
+          <div id="stat-items"><span class="skeleton" style="width:120px;height:14px;">&nbsp;</span></div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">💱 Currency</div>
+          <div class="stat-value" id="stat-currency"><span class="skeleton" style="width:60px;height:18px;">&nbsp;</span></div>
+          <div class="stat-sub" id="stat-currency-sub">&nbsp;</div>
+        </div>
+      </div>
+
+      <!-- What's next -->
+      <div class="whats-next-label">What's next</div>
+      <div class="next-items">
+        <div class="next-item">
+          <span class="next-icon">📈</span>
+          <div>
+            <div class="next-title">Dashboard</div>
+            <div class="next-desc">KPI cards, revenue trends, and charts — all from your data</div>
+          </div>
+        </div>
+        <div class="next-item">
+          <span class="next-icon">🤖</span>
+          <div>
+            <div class="next-title">AI Consultant</div>
+            <div class="next-desc">Goal-driven strategy built around your specific dataset</div>
+          </div>
+        </div>
+        <div class="next-item">
+          <span class="next-icon">💬</span>
+          <div>
+            <div class="next-title">Chat Agents</div>
+            <div class="next-desc">Ask any question about your data in plain English</div>
+          </div>
+        </div>
+      </div>
+
+      <a href="/dashboard" class="btn-goto">
+        Explore My Dashboard
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M2.5 7h9M7.5 3.5L11 7l-3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+
+    </div>
+  </div>
+
+<script>
+  (function () {
+    function esc(s) {
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    fetch('/api/data/profile')
+      .then(r => r.json())
+      .then(function (p) {
+        // Filename
+        document.getElementById('ready-filename-text').textContent =
+          p.filename || 'Your uploaded dataset';
+
+        // Rows + customers
+        document.getElementById('stat-rows').textContent =
+          (p.row_count || 0).toLocaleString() + ' rows';
+        document.getElementById('stat-customers').textContent =
+          p.unique_customers
+            ? p.unique_customers.toLocaleString() + ' unique customers'
+            : '';
+
+        // Date range
+        document.getElementById('stat-dates').textContent =
+          (p.date_from && p.date_to) ? p.date_from + ' – ' + p.date_to : 'N/A';
+
+        // Top items
+        var itemLabel = p.item_label || 'Products';
+        document.getElementById('stat-items-label').innerHTML =
+          '📦 Top ' + itemLabel;
+        var items = (p.top_items || []).slice(0, 3);
+        document.getElementById('stat-items').innerHTML = items.length
+          ? '<div class="pills">' + items.map(function(it) {
+              return '<span class="pill">' + esc(it) + '</span>';
+            }).join('') + '</div>'
+          : '<span style="color:rgba(240,240,250,0.3);font-size:12px">—</span>';
+
+        // Currency
+        document.getElementById('stat-currency').textContent =
+          p.currency_symbol || '—';
+        document.getElementById('stat-currency-sub').textContent =
+          p.currency_code && p.currency_code !== p.currency_symbol
+            ? p.currency_code
+            : '';
+      })
+      .catch(function () {
+        document.getElementById('ready-filename-text').textContent = 'Your uploaded dataset';
+        document.getElementById('stat-rows').textContent = '—';
+        document.getElementById('stat-dates').textContent = '—';
+        document.getElementById('stat-currency').textContent = '—';
+      });
+  })();
+</script>
+
+</body>
+</html>

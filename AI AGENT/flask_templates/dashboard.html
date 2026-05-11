@@ -146,7 +146,7 @@
 {% block scripts %}
 <script>
 /* ── cached data for re-render on theme change ── */
-let _kpiData = null, _chartData = null;
+let _kpiData = null, _chartData = null, _profileData = null;
 
 function getColors() {
   const dark = document.documentElement.getAttribute('data-theme') !== 'light';
@@ -198,7 +198,7 @@ function makeLayout() {
 const CFG = { responsive: true, displayModeBar: false };
 
 const KPI_DEFS = [
-  { icon: '£', color: 'rgba(120,160,255,0.15)', text: '#78a0ff' },
+  { color: 'rgba(120,160,255,0.15)', text: '#78a0ff' },
   { icon: '◈', color: 'rgba(74,222,128,0.12)',  text: '#4ade80' },
   { icon: '▦', color: 'rgba(251,146,60,0.12)',  text: '#fb923c' },
   { icon: '◎', color: 'rgba(167,139,250,0.12)', text: '#a78bfa' },
@@ -206,12 +206,13 @@ const KPI_DEFS = [
 
 const loader = document.getElementById('page-loader');
 
-function renderKpis(d) {
+function renderKpis(d, profile) {
   if (!d || d.error) {
     document.getElementById('kpi-row').innerHTML =
       `<div style="grid-column:1/-1"><div class="alert-error">Could not load KPIs: ${(d && d.error) || 'Unknown error'}. <a href="/api/health" target="_blank" style="color:#a78bfa">View health status</a></div></div>`;
     return;
   }
+  const sym = (profile && profile.currency_symbol) || '£';
   const mom = d.mom_growth;
   const badge = mom > 0
     ? `<span class="kpi-badge badge-up">↑ ${mom.toFixed(1)}%</span>`
@@ -220,16 +221,17 @@ function renderKpis(d) {
       : `<span class="kpi-badge badge-flat">Stable</span>`;
 
   const kpis = [
-    { label: 'Total Revenue',   value: `£${d.total_revenue.toLocaleString('en-GB', {maximumFractionDigits:0})}`, sub: badge },
+    { label: 'Total Revenue',   value: `${sym}${d.total_revenue.toLocaleString('en-GB', {maximumFractionDigits:0})}`, sub: badge },
     { label: 'Total Orders',    value: d.total_orders.toLocaleString(), sub: 'Unique invoices' },
     { label: 'Items Sold',      value: d.total_items.toLocaleString(), sub: 'Units dispatched' },
-    { label: 'Avg Order Value', value: `£${d.aov.toFixed(2)}`, sub: 'Per invoice' },
+    { label: 'Avg Order Value', value: `${sym}${d.aov.toFixed(2)}`, sub: 'Per invoice' },
   ];
 
   document.getElementById('kpi-row').innerHTML = kpis.map((k, i) => {
     const def = KPI_DEFS[i];
+    const icon = i === 0 ? sym : def.icon;
     return `<div class="kpi-card">
-      <div class="kpi-card-icon" style="background:${def.color};color:${def.text};font-weight:700;font-size:15px">${def.icon}</div>
+      <div class="kpi-card-icon" style="background:${def.color};color:${def.text};font-weight:700;font-size:15px">${icon}</div>
       <div class="kpi-label">${k.label}</div>
       <div class="kpi-value">${k.value}</div>
       <div class="kpi-sub" style="margin-top:5px">${k.sub}</div>
@@ -237,10 +239,25 @@ function renderKpis(d) {
   }).join('');
 }
 
-function renderCharts(d) {
+function renderDataBanner(profile) {
+  const banner = document.getElementById('upload-banner');
+  const bannerText = document.getElementById('upload-banner-text');
+  if (!banner || !bannerText) return;
+  if (!profile || !profile.filename) return;   // demo data — no banner
+  const parts = ['📁 ' + profile.filename];
+  if (profile.row_count) parts.push(profile.row_count.toLocaleString() + ' rows');
+  if (profile.date_from && profile.date_to) parts.push(profile.date_from + ' – ' + profile.date_to);
+  if (profile.currency_code) parts.push(profile.currency_code);
+  bannerText.textContent = parts.join(' · ');
+  banner.style.display = 'flex';
+}
+
+function renderCharts(d, profile) {
   if (!d || d.error) return;
-  const c = getColors();
-  const L = makeLayout();
+  const c   = getColors();
+  const L   = makeLayout();
+  const sym = (profile && profile.currency_symbol) || (d.meta && d.meta.currency_symbol) || '£';
+  const meta = d.meta || {};
 
   const months = Object.keys(d.monthly_revenue);
   const revs   = Object.values(d.monthly_revenue);
@@ -249,19 +266,26 @@ function renderCharts(d) {
     fill: 'tozeroy',
     line: { color: c.ACCENT, width: 2 },
     fillcolor: c.FILL,
-    hovertemplate: '<b>%{x}</b><br>£%{y:,.0f}<extra></extra>',
+    hovertemplate: `<b>%{x}</b><br>${sym}%{y:,.0f}<extra></extra>`,
   }], { ...L, title: { text: 'Monthly Revenue', font: { color: c.TITLE_C, size: 12 } },
-        yaxis: { ...L.yaxis, tickprefix: '£' } }, CFG);
+        yaxis: { ...L.yaxis, tickprefix: sym } }, CFG);
 
-  const ctry_names = Object.keys(d.top_countries);
-  const ctry_vals  = Object.values(d.top_countries);
-  const maxCtry = Math.max(...ctry_vals);
+  /* Chart 2: Top Countries OR Top Categories (based on data profile) */
+  const hasCountry = meta.has_country !== false && Object.keys(d.top_countries || {}).length > 1;
+  const chart2Data = hasCountry ? d.top_countries : d.top_products;
+  const chart2Title = hasCountry
+    ? 'Top 5 Countries'
+    : 'Top ' + (meta.item_label || 'Categories');
+  const c2_names = Object.keys(chart2Data || {});
+  const c2_vals  = Object.values(chart2Data || {});
+  const maxC2 = Math.max(...c2_vals, 0);
   Plotly.newPlot('chart-countries', [{
-    x: ctry_vals, y: ctry_names, type: 'bar', orientation: 'h',
-    marker: { color: ctry_vals.map(v => v === maxCtry ? c.ACCENT : c.ACCENT_DIM) },
-    hovertemplate: '<b>%{y}</b><br>£%{x:,.0f}<extra></extra>',
-  }], { ...L, title: { text: 'Top 5 Countries', font: { color: c.TITLE_C, size: 12 } },
-        xaxis: { ...L.xaxis, tickprefix: '£' } }, CFG);
+    x: c2_vals, y: c2_names.map(n => n.length > 28 ? n.slice(0,28)+'…' : n),
+    type: 'bar', orientation: 'h',
+    marker: { color: c2_vals.map(v => v === maxC2 ? c.ACCENT : c.ACCENT_DIM) },
+    hovertemplate: `<b>%{y}</b><br>${sym}%{x:,.0f}<extra></extra>`,
+  }], { ...L, title: { text: chart2Title, font: { color: c.TITLE_C, size: 12 } },
+        xaxis: { ...L.xaxis, tickprefix: sym } }, CFG);
 
   const hours_raw = d.hourly_sales;
   const hours = Object.keys(hours_raw).sort((a,b) => parseInt(a)-parseInt(b));
@@ -270,25 +294,26 @@ function renderCharts(d) {
   Plotly.newPlot('chart-hourly', [{
     x: hours, y: h_vals, type: 'bar',
     marker: { color: h_vals.map(v => v === maxH ? c.ACCENT : c.ACCENT_DIM) },
-    hovertemplate: '<b>%{x}:00</b><br>£%{y:,.0f}<extra></extra>',
+    hovertemplate: `<b>%{x}:00</b><br>${sym}%{y:,.0f}<extra></extra>`,
   }], { ...L, title: { text: 'Sales by Hour of Day', font: { color: c.TITLE_C, size: 12 } },
-        yaxis: { ...L.yaxis, tickprefix: '£' }, height: 300 }, CFG);
+        yaxis: { ...L.yaxis, tickprefix: sym }, height: 300 }, CFG);
 
   const prod_names = Object.keys(d.top_products).map(n => n.length > 26 ? n.slice(0,26)+'…' : n);
   const prod_vals  = Object.values(d.top_products);
   const maxP = Math.max(...prod_vals);
+  const prodTitle = (meta.is_categorical && !hasCountry) ? 'Revenue by Category' : 'Top Products';
   Plotly.newPlot('chart-products', [{
     x: prod_vals, y: prod_names, type: 'bar', orientation: 'h',
     marker: { color: prod_vals.map(v => v === maxP ? c.GREEN : c.GREEN_DIM) },
-    hovertemplate: '<b>%{y}</b><br>£%{x:,.0f}<extra></extra>',
-  }], { ...L, title: { text: 'Top Products', font: { color: c.TITLE_C, size: 12 } },
-        xaxis: { ...L.xaxis, tickprefix: '£' }, height: 300 }, CFG);
+    hovertemplate: `<b>%{y}</b><br>${sym}%{x:,.0f}<extra></extra>`,
+  }], { ...L, title: { text: prodTitle, font: { color: c.TITLE_C, size: 12 } },
+        xaxis: { ...L.xaxis, tickprefix: sym }, height: 300 }, CFG);
 }
 
 /* called by base.html theme engine on every toggle */
 window._dashboardSetTheme = function() {
-  if (_kpiData)   renderKpis(_kpiData);
-  if (_chartData) renderCharts(_chartData);
+  if (_kpiData)   renderKpis(_kpiData, _profileData);
+  if (_chartData) renderCharts(_chartData, _profileData);
 };
 
 function safeFetch(url, label) {
@@ -299,18 +324,21 @@ function safeFetch(url, label) {
 }
 
 Promise.all([
-  safeFetch('/api/kpis', 'KPI fetch'),
-  safeFetch('/api/charts', 'Charts fetch'),
-]).then(([kpiData, chartData]) => {
-  _kpiData   = kpiData;
-  _chartData = chartData;
-  try { renderKpis(kpiData); } catch(e) {
+  safeFetch('/api/kpis',         'KPI fetch'),
+  safeFetch('/api/charts',       'Charts fetch'),
+  safeFetch('/api/data/profile', 'Profile fetch'),
+]).then(([kpiData, chartData, profileData]) => {
+  _kpiData    = kpiData;
+  _chartData  = chartData;
+  _profileData = profileData && !profileData.error ? profileData : null;
+  try { renderKpis(kpiData, _profileData); } catch(e) {
     document.getElementById('kpi-row').innerHTML =
       `<div style="grid-column:1/-1"><div class="alert-error">KPI render error: ${e.message}. <a href="/api/health" target="_blank" style="color:#a78bfa">Health</a></div></div>`;
   }
-  try { renderCharts(chartData); } catch(e) {
+  try { renderCharts(chartData, _profileData); } catch(e) {
     console.error('Chart render error:', e);
   }
+  try { renderDataBanner(_profileData); } catch(e) {}
   loader.classList.add('done');
 });
 
