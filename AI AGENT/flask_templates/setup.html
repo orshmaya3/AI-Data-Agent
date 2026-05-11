@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Setup — Orbital AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #000;
+      color: rgba(240,240,250,0.85);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 30%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(120,160,255,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Top bar ──────────────────────────────────────────────── */
+    .top-bar {
+      width: 100%;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(240,240,250,0.06);
+    }
+    .top-bar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .top-bar-logo svg { width: 28px; height: 28px; flex-shrink: 0; }
+    .top-bar-logo span {
+      font-size: 14px;
+      font-weight: 700;
+      color: rgba(240,240,250,0.9);
+    }
+    .top-bar-welcome {
+      margin-left: auto;
+      font-size: 12px;
+      color: rgba(240,240,250,0.35);
+    }
+
+    /* ── Main card ────────────────────────────────────────────── */
+    .setup-wrap {
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 20px 60px;
+      width: 100%;
+    }
+    .setup-card {
+      background: rgba(240,240,250,0.04);
+      border: 1px solid rgba(240,240,250,0.10);
+      border-radius: 12px;
+      padding: 40px;
+      width: 100%;
+      max-width: 560px;
+      position: relative;
+    }
+    .setup-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(120,160,255,0.6), transparent);
+    }
+
+    .setup-heading {
+      font-size: 17px;
+      font-weight: 700;
+      color: rgba(240,240,250,0.92);
+      margin-bottom: 6px;
+    }
+    .setup-sub {
+      font-size: 12px;
+      color: rgba(240,240,250,0.35);
+      margin-bottom: 28px;
+    }
+
+    /* ── Option panels ────────────────────────────────────────── */
+    .option-panel {
+      border: 1px solid rgba(240,240,250,0.10);
+      border-radius: 8px;
+      padding: 20px 24px;
+    }
+    .option-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .option-icon {
+      width: 32px; height: 32px;
+      background: rgba(120,160,255,0.10);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .option-icon svg { width: 16px; height: 16px; }
+    .option-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(240,240,250,0.9);
+    }
+    .option-desc {
+      font-size: 12px;
+      color: rgba(240,240,250,0.35);
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+
+    .btn-option {
+      display: block;
+      width: 100%;
+      background: #78a0ff;
+      border: none;
+      border-radius: 4px;
+      color: #000;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 11px;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: opacity 0.15s;
+      letter-spacing: 0.3px;
+    }
+    .btn-option:hover { opacity: 0.88; }
+    .btn-option:active { opacity: 0.75; }
+
+    .btn-option-ghost {
+      display: block;
+      width: 100%;
+      background: rgba(120,160,255,0.08);
+      border: 1px solid rgba(120,160,255,0.2);
+      border-radius: 4px;
+      color: rgba(120,160,255,0.9);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 11px;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s, border-color 0.15s;
+      letter-spacing: 0.3px;
+    }
+    .btn-option-ghost:hover {
+      background: rgba(120,160,255,0.14);
+      border-color: rgba(120,160,255,0.35);
+    }
+
+    /* ── Divider ──────────────────────────────────────────────── */
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+      color: rgba(240,240,250,0.18);
+      font-size: 11px;
+    }
+    .or-divider::before,
+    .or-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(240,240,250,0.08);
+    }
+
+    /* ── Inline upload area ───────────────────────────────────── */
+    #upload-area { display: none; margin-top: 16px; }
+    #upload-area.open { display: block; }
+
+    /* Upload steps */
+    .upload-step { display: none; }
+    .upload-step.active { display: block; }
+
+    .upload-panel-inner h2 {
+      font-size: 1rem; font-weight: 700;
+      margin: 0 0 .3rem; color: rgba(240,240,250,0.9);
+    }
+    .upload-sub {
+      font-size: .875rem; color: rgba(240,240,250,0.4);
+      margin: 0 0 1.25rem;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed rgba(240,240,250,0.12);
+      border-radius: 12px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: #78a0ff;
+      background: rgba(120,160,255,0.05);
+    }
+    .drop-icon { font-size: 2rem; margin-bottom: .75rem; display: block; }
+    .drop-label {
+      font-size: .95rem; font-weight: 600; margin: 0 0 .35rem;
+      color: rgba(240,240,250,0.85);
+    }
+    .drop-sub { font-size: .8rem; color: rgba(240,240,250,0.35); margin: 0 0 1rem; }
+
+    .btn-ghost-upload {
+      font-size: .85rem; padding: .4rem 1rem;
+      background: rgba(240,240,250,0.06);
+      border: 1px solid rgba(240,240,250,0.12);
+      border-radius: 6px;
+      color: rgba(240,240,250,0.7);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: background .15s;
+    }
+    .btn-ghost-upload:hover { background: rgba(240,240,250,0.10); }
+
+    .schema-toggle {
+      font-size: .8rem; color: #78a0ff;
+      background: none; border: none; cursor: pointer; padding: 0;
+      margin-top: .75rem; display: block; width: 100%; text-align: center;
+      font-family: 'Inter', sans-serif;
+    }
+    .schema-hint {
+      margin-top: .75rem;
+      font-size: .8rem;
+      background: rgba(240,240,250,0.04);
+      border: 1px solid rgba(240,240,250,0.08);
+      border-radius: 8px; padding: .75rem 1rem;
+      color: rgba(240,240,250,0.45);
+      line-height: 1.5;
+    }
+
+    /* Progress */
+    .prog-list { list-style: none; padding: 0; margin: 1.5rem 0 0; }
+    .prog-list li {
+      display: flex; align-items: center; gap: .6rem;
+      font-size: .875rem; padding: .5rem 0;
+      color: rgba(240,240,250,0.35);
+      border-bottom: 1px solid rgba(240,240,250,0.07);
+    }
+    .prog-list li:last-child { border-bottom: none; }
+    .prog-list li.done { color: rgba(240,240,250,0.85); }
+    .prog-list li.active { color: #78a0ff; font-weight: 600; }
+    .prog-icon { font-size: 1rem; width: 1.25rem; text-align: center; flex-shrink: 0; }
+
+    /* Spinner */
+    .upload-spinner {
+      width: 42px; height: 42px;
+      border: 3px solid rgba(240,240,250,0.10);
+      border-top-color: #78a0ff;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 1.25rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Mapping table */
+    .map-table { width: 100%; border-collapse: collapse; font-size: .83rem; margin-top: 1rem; }
+    .map-table th {
+      text-align: left; font-weight: 600;
+      padding: .45rem .6rem;
+      border-bottom: 2px solid rgba(240,240,250,0.10);
+      color: rgba(240,240,250,0.4);
+      font-size: .78rem; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .map-table td { padding: .45rem .6rem; border-bottom: 1px solid rgba(240,240,250,0.07); }
+    .map-table select {
+      width: 100%; padding: .3rem .5rem;
+      border: 1px solid rgba(240,240,250,0.12);
+      border-radius: 6px;
+      background: rgba(240,240,250,0.04);
+      color: rgba(240,240,250,0.85);
+      font-size: .82rem;
+      font-family: 'Inter', sans-serif;
+    }
+    .map-table select.err { border-color: #f87171; }
+    .map-table .req { color: #f87171; font-size: .75rem; }
+    .sample-cell { color: rgba(240,240,250,0.35); font-size: .78rem; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Mapping actions */
+    .upload-actions {
+      display: flex; gap: .75rem; margin-top: 1.5rem; justify-content: flex-end;
+    }
+    .btn-map-back {
+      font-size: .875rem; padding: .55rem 1.2rem;
+      background: rgba(240,240,250,0.06);
+      border: 1px solid rgba(240,240,250,0.12);
+      border-radius: 6px;
+      color: rgba(240,240,250,0.7);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: background .15s;
+    }
+    .btn-map-back:hover { background: rgba(240,240,250,0.10); }
+    .btn-map-continue {
+      font-size: .875rem; padding: .55rem 1.2rem;
+      background: #78a0ff;
+      border: none;
+      border-radius: 6px;
+      color: #000;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Ready / Error */
+    .upload-result-icon {
+      font-size: 2.5rem; text-align: center; display: block; margin: 0 auto .75rem;
+    }
+    .upload-warning {
+      font-size: .8rem; color: rgba(240,240,250,0.4);
+      background: rgba(240,240,250,0.04);
+      border: 1px solid rgba(240,240,250,0.08);
+      border-radius: 6px; padding: .5rem .75rem;
+      margin-top: .5rem;
+    }
+    .btn-upload-cta {
+      display: flex; align-items: center; gap: .5rem;
+      width: 100%; justify-content: center;
+      font-size: 1rem; padding: .75rem 1.5rem;
+      margin-top: 1.5rem;
+      background: #78a0ff;
+      border: none;
+      border-radius: 6px;
+      color: #000;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: opacity .15s;
+    }
+    .btn-upload-cta:hover { opacity: .88; }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <a class="top-bar-logo" href="/">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="16" stroke="rgba(120,160,255,0.35)" stroke-width="1.5"/>
+        <ellipse cx="24" cy="24" rx="16" ry="7" stroke="rgba(120,160,255,0.18)" stroke-width="1.2"/>
+        <circle cx="24" cy="8" r="3.5" fill="#78a0ff"/>
+        <circle cx="24" cy="24" r="3" fill="rgba(120,160,255,0.25)"/>
+      </svg>
+      <span>Orbital AI</span>
+    </a>
+    <span class="top-bar-welcome">Welcome, {{ username }}</span>
+  </div>
+
+  <div class="setup-wrap">
+    <div class="setup-card">
+      <h2 class="setup-heading">How would you like to get started?</h2>
+      <p class="setup-sub">You can switch to your own data anytime from the dashboard.</p>
+
+      <!-- Option A: Demo data -->
+      <div class="option-panel">
+        <div class="option-header">
+          <div class="option-icon">
+            <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="9" width="3" height="6" rx="1" fill="#78a0ff"/>
+              <rect x="6" y="5" width="3" height="10" rx="1" fill="#78a0ff" opacity=".7"/>
+              <rect x="11" y="2" width="3" height="13" rx="1" fill="#78a0ff" opacity=".4"/>
+            </svg>
+          </div>
+          <span class="option-title">Explore with Demo Data</span>
+        </div>
+        <p class="option-desc">Browse pre-loaded retail analytics — no setup needed. A curated dataset is ready for you to explore right away.</p>
+        <a href="{{ url_for('setup.setup_use_demo') }}" class="btn-option">Explore Demo Data</a>
+      </div>
+
+      <div class="or-divider">or</div>
+
+      <!-- Option B: Upload -->
+      <div class="option-panel">
+        <div class="option-header">
+          <div class="option-icon">
+            <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 10V2M8 2L5 5M8 2l3 3" stroke="#78a0ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="#78a0ff" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="option-title">Upload Your Own Data</span>
+        </div>
+        <p class="option-desc">Analyse your own CSV or Excel file. Our AI agents will process it and build custom insights for your business.</p>
+        <button class="btn-option-ghost" onclick="toggleUploadArea(this)">Upload a File</button>
+
+        <!-- Inline upload UI -->
+        <div id="upload-area">
+
+          <!-- Step 0: Drop zone -->
+          <div id="step-drop" class="upload-step active">
+            <div style="height:1px;background:rgba(240,240,250,0.08);margin:20px 0 20px"></div>
+            <div class="upload-panel-inner">
+              <div id="drop-zone" class="drop-zone" tabindex="0" role="button"
+                   aria-label="Drop file here or click to browse"
+                   onclick="document.getElementById('upload-file-input').click()"
+                   ondragover="handleDragOver(event)"
+                   ondragleave="handleDragLeave(event)"
+                   ondrop="handleDrop(event)">
+                <span class="drop-icon">⬆</span>
+                <p class="drop-label">Drag &amp; drop your file here</p>
+                <p class="drop-sub">CSV, XLSX, XLS &middot; max 50 MB &middot; up to 500,000 rows</p>
+                <button class="btn-ghost-upload" onclick="event.stopPropagation();document.getElementById('upload-file-input').click()">
+                  Browse File
+                </button>
+              </div>
+              <input type="file" id="upload-file-input" accept=".csv,.xlsx,.xls" style="display:none"
+                     onchange="handleFileSelect(this.files[0])">
+              <button class="schema-toggle" onclick="toggleSchemaHint(event)">
+                What columns do I need?
+              </button>
+              <div id="schema-hint" class="schema-hint" style="display:none">
+                <strong>Expected fields:</strong> Customer ID, Invoice, Description, Quantity, Price, InvoiceDate, Country.<br>
+                Column names are detected automatically — common aliases like <em>order_id</em>, <em>product_name</em>, <em>date</em>, <em>qty</em> all work.
+                Country is optional.
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 1: Column mapping -->
+          <div id="step-mapping" class="upload-step">
+            <div style="height:1px;background:rgba(240,240,250,0.08);margin:20px 0 20px"></div>
+            <div class="upload-panel-inner">
+              <h2>Map Your Columns</h2>
+              <p class="upload-sub">We couldn't auto-detect some fields. Choose which column maps to each.</p>
+              <div id="mapping-table-wrap"></div>
+              <div class="upload-actions">
+                <button class="btn-map-back" onclick="goToStep('step-drop')">Back</button>
+                <button class="btn-map-continue" onclick="submitWithMapping()">Continue</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Processing -->
+          <div id="step-processing" class="upload-step" style="text-align:center;padding:1.5rem 0">
+            <div style="height:1px;background:rgba(240,240,250,0.08);margin:0 0 24px"></div>
+            <div class="upload-spinner"></div>
+            <h2 id="proc-headline" style="color:rgba(240,240,250,0.9);font-size:1rem;margin-bottom:.35rem">Uploading your file…</h2>
+            <p class="upload-sub" id="proc-sub">Please wait a moment.</p>
+            <ul class="prog-list">
+              <li id="prog-upload"><span class="prog-icon">○</span> Uploading file</li>
+              <li id="prog-data"><span class="prog-icon">○</span> Processing &amp; cleaning data</li>
+              <li id="prog-ai"><span class="prog-icon">○</span> Initialising AI agents</li>
+            </ul>
+          </div>
+
+          <!-- Step 3: Ready -->
+          <div id="step-ready" class="upload-step" style="text-align:center;padding:1rem 0">
+            <div style="height:1px;background:rgba(240,240,250,0.08);margin:0 0 24px"></div>
+            <span class="upload-result-icon">✅</span>
+            <h2 style="color:rgba(240,240,250,0.9);font-size:1rem;margin-bottom:.35rem">Your data is ready!</h2>
+            <p class="upload-sub" id="ready-summary"></p>
+            <div id="ready-warnings"></div>
+            <button class="btn-upload-cta" onclick="goToDashboard()">
+              Analyse My Data
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7h9M7.5 3.5L11 7l-3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+
+          <!-- Step 4: Error -->
+          <div id="step-error" class="upload-step" style="text-align:center;padding:1rem 0">
+            <div style="height:1px;background:rgba(240,240,250,0.08);margin:0 0 24px"></div>
+            <span class="upload-result-icon">⚠️</span>
+            <h2 style="color:rgba(240,240,250,0.9);font-size:1rem;margin-bottom:.35rem">Something went wrong</h2>
+            <p class="upload-sub" id="error-message">An error occurred.</p>
+            <div style="display:flex;justify-content:center;margin-top:1.5rem">
+              <button class="btn-map-back" onclick="goToStep('step-drop')">Try Again</button>
+            </div>
+          </div>
+
+        </div><!-- /#upload-area -->
+      </div><!-- /.option-panel upload -->
+
+    </div><!-- /.setup-card -->
+  </div><!-- /.setup-wrap -->
+
+<script>
+  /* ── Upload area toggle ──────────────────────────────────────── */
+  window.toggleUploadArea = function (btn) {
+    const area = document.getElementById('upload-area');
+    const isOpen = area.classList.toggle('open');
+    btn.textContent = isOpen ? 'Hide Upload' : 'Upload a File';
+    if (isOpen) {
+      goToStep('step-drop');
+      area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
+
+  /* ══ Upload logic ═══════════════════════════════════════════════ */
+  (function () {
+    let _file         = null;
+    let _rawMapping   = null;
+    let _rawColumns   = [];
+    let _rawPreview   = [];
+    let _rawDtypes    = {};
+    let _pollTimer    = null;
+    let _pollCount    = 0;
+    const MAX_POLLS   = 80;   // 80 × 3 s = 4 min max wait
+
+    /* ── Step navigation ──────────────────────────────────────── */
+    window.goToStep = function (id) {
+      document.querySelectorAll('.upload-step').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    };
+
+    /* ── Schema hint ──────────────────────────────────────────── */
+    window.toggleSchemaHint = function (e) {
+      e.stopPropagation();
+      const hint = document.getElementById('schema-hint');
+      hint.style.display = hint.style.display === 'none' ? 'block' : 'none';
+    };
+
+    /* ── Drag & drop ──────────────────────────────────────────── */
+    window.handleDragOver = function (e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.add('drag-over');
+    };
+    window.handleDragLeave = function () {
+      document.getElementById('drop-zone').classList.remove('drag-over');
+    };
+    window.handleDrop = function (e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.remove('drag-over');
+      const f = e.dataTransfer.files[0];
+      if (f) handleFileSelect(f);
+    };
+
+    /* ── File selected ────────────────────────────────────────── */
+    window.handleFileSelect = function (file) {
+      if (!file) return;
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!['csv', 'xlsx', 'xls'].includes(ext)) {
+        showError('Unsupported file type ".' + ext + '". Please upload a CSV, XLSX, or XLS file.');
+        return;
+      }
+      if (file.size > 50 * 1024 * 1024) {
+        showError('File is larger than 50 MB. Please upload a smaller file.');
+        return;
+      }
+      _file = file;
+      uploadFile(file, null);
+    };
+
+    /* ── Upload ───────────────────────────────────────────────── */
+    async function uploadFile(file, manualMapping) {
+      /* Open the upload area if it's not already visible */
+      const area = document.getElementById('upload-area');
+      if (!area.classList.contains('open')) area.classList.add('open');
+
+      goToStep('step-processing');
+      setProgStep('prog-upload', 'active');
+      setProgStep('prog-data', '');
+      setProgStep('prog-ai', '');
+      document.getElementById('proc-headline').textContent = 'Uploading your file…';
+
+      const form = new FormData();
+      form.append('file', file);
+      if (manualMapping) form.append('mapping', JSON.stringify(manualMapping));
+
+      let data;
+      try {
+        const resp = await fetch('/api/upload', { method: 'POST', body: form });
+        data = await resp.json();
+        if (!resp.ok) { showError(data.error || 'Upload failed.'); return; }
+      } catch (e) {
+        showError('Network error. Please check your connection and try again.'); return;
+      }
+
+      setProgStep('prog-upload', 'done');
+
+      if (data.status === 'mapping_required') {
+        _rawMapping = data.detected_mapping;
+        _rawColumns = data.columns;
+        _rawPreview = data.preview;
+        _rawDtypes  = data.dtypes;
+        renderMappingTable();
+        goToStep('step-mapping');
+        return;
+      }
+
+      setProgStep('prog-data', 'done');
+      setProgStep('prog-ai', 'active');
+      document.getElementById('proc-headline').textContent = 'Initialising AI agents…';
+      document.getElementById('proc-sub').textContent = 'This usually takes 10–30 seconds.';
+      startPolling(data.rows, data.warnings);
+    }
+
+    /* ── Polling ──────────────────────────────────────────────── */
+    function startPolling(rows, warnings) {
+      _pollCount = 0;
+      _pollTimer = setInterval(async function () {
+        _pollCount++;
+        if (_pollCount > MAX_POLLS) {
+          stopPolling();
+          showError('AI initialisation is taking longer than expected. Please try again.');
+          return;
+        }
+        try {
+          const resp = await fetch('/api/upload/status');
+          const d    = await resp.json();
+          if (d.status === 'ready') {
+            stopPolling();
+            setProgStep('prog-ai', 'done');
+            showReady(rows, warnings);
+          } else if (d.status === 'error') {
+            stopPolling();
+            showError(d.error || 'AI initialisation failed. Please try again.');
+          }
+        } catch (_) { /* ignore transient network errors */ }
+      }, 3000);
+    }
+    function stopPolling() {
+      if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+    }
+
+    /* ── Progress steps ───────────────────────────────────────── */
+    const ICONS = { '': '○', active: '⬤', done: '✓' };
+    function setProgStep(id, state) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = state;
+      el.querySelector('.prog-icon').textContent = ICONS[state] || '○';
+    }
+
+    /* ── Column mapping UI ────────────────────────────────────── */
+    const CANONICALS = ['Customer ID','Invoice','Description','Quantity','Price','InvoiceDate','Country'];
+    const REQUIRED   = ['Customer ID','Invoice','Description','Quantity','Price','InvoiceDate'];
+
+    function renderMappingTable() {
+      let html = '<table class="map-table"><thead><tr>'
+        + '<th>Required Field</th><th>Your Column</th><th>Sample Values</th>'
+        + '</tr></thead><tbody>';
+
+      CANONICALS.forEach(function (canon) {
+        const isReq   = REQUIRED.includes(canon);
+        const selCol  = _rawMapping[canon] || '';
+        const colIdx  = _rawColumns.indexOf(selCol);
+        const samples = colIdx >= 0
+          ? _rawPreview.slice(0, 3).map(r => r[colIdx]).filter(v => v !== '').join(', ')
+          : '—';
+        const safeId  = 'map_' + canon.replace(/ /g, '_');
+
+        html += '<tr>'
+          + '<td>' + canon + (isReq ? ' <span class="req">*</span>' : '') + '</td>'
+          + '<td><select id="' + safeId + '" class="col-select" onchange="updateSampleCell(\'' + canon + '\', this.value)">'
+          + '<option value="">— select —</option>'
+          + _rawColumns.map(c => '<option value="' + esc(c) + '"' + (c === selCol ? ' selected' : '') + '>' + esc(c) + '</option>').join('')
+          + '</select></td>'
+          + '<td class="sample-cell" id="sample_' + safeId + '">' + esc(samples) + '</td>'
+          + '</tr>';
+      });
+      html += '</tbody></table><p style="font-size:.78rem;color:rgba(240,240,250,0.3);margin:.5rem 0 0">* Required fields</p>';
+      document.getElementById('mapping-table-wrap').innerHTML = html;
+    }
+
+    window.updateSampleCell = function (canon, col) {
+      const idx  = _rawColumns.indexOf(col);
+      const samp = idx >= 0
+        ? _rawPreview.slice(0, 3).map(r => r[idx]).filter(v => v !== '').join(', ')
+        : '—';
+      const el = document.getElementById('sample_map_' + canon.replace(/ /g, '_'));
+      if (el) el.textContent = samp;
+    };
+
+    window.submitWithMapping = function () {
+      const mapping = {};
+      let valid = true;
+      CANONICALS.forEach(function (canon) {
+        const sel = document.getElementById('map_' + canon.replace(/ /g, '_'));
+        const val = sel ? sel.value : '';
+        if (REQUIRED.includes(canon) && !val) {
+          if (sel) sel.classList.add('err');
+          valid = false;
+        } else {
+          if (sel) sel.classList.remove('err');
+          mapping[canon] = val || null;
+        }
+      });
+      if (!valid) return;
+      uploadFile(_file, mapping);
+    };
+
+    /* ── Ready state ──────────────────────────────────────────── */
+    function showReady(rows, warnings) {
+      document.getElementById('ready-summary').textContent =
+        rows.toLocaleString() + ' rows loaded and ready for analysis.';
+      const wWrap = document.getElementById('ready-warnings');
+      wWrap.innerHTML = (warnings && warnings.length)
+        ? warnings.map(w => '<p class="upload-warning">' + esc(w) + '</p>').join('')
+        : '';
+      goToStep('step-ready');
+    }
+
+    /* After upload completes, route through /setup — it detects SESSION_READY and forwards to /dashboard */
+    window.goToDashboard = function () {
+      window.location.href = '/setup';
+    };
+
+    /* ── Error state ──────────────────────────────────────────── */
+    function showError(msg) {
+      document.getElementById('error-message').textContent = msg;
+      goToStep('step-error');
+    }
+
+    /* ── Helpers ──────────────────────────────────────────────── */
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  })();
+</script>
+
+</body>
+</html>

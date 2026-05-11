@@ -138,7 +138,7 @@ def register():
         session['role']     = user.role
         session['user_id']  = user.id
         session.permanent   = True
-        return redirect(url_for('dashboard.main'))
+        return redirect(url_for('setup.data_setup'))
 
     return render_template('register.html')
 
