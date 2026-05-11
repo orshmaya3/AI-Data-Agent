@@ -1315,6 +1315,49 @@
   }
 </style>
 
+<!-- ── Login-gate modal (shown when non-logged-in user clicks "Try your own") ── -->
+<div id="login-gate-overlay" style="
+  display:none;position:fixed;inset:0;z-index:900;
+  background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;
+" onclick="if(event.target===this)closeLoginGate()">
+  <div style="
+    background:var(--surface,#1a1a2e);border:1px solid var(--border,rgba(255,255,255,0.1));
+    border-radius:16px;padding:40px 36px;max-width:420px;width:90%;
+    box-shadow:0 24px 64px rgba(0,0,0,0.4);position:relative;text-align:center;
+  ">
+    <button onclick="closeLoginGate()" style="
+      position:absolute;top:14px;right:16px;background:none;border:none;
+      font-size:22px;cursor:pointer;color:var(--text-secondary,#888);line-height:1;
+    ">×</button>
+    <div style="font-size:36px;margin-bottom:16px;">📊</div>
+    <div style="font-size:19px;font-weight:700;color:var(--text,#f0f0f0);margin-bottom:10px;">
+      Analyse your own data
+    </div>
+    <div style="font-size:13px;color:var(--text-secondary,#888);margin-bottom:28px;line-height:1.6;">
+      Create a free account to upload your dataset and get AI-powered insights tailored to your business.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <a href="/register" style="
+        display:block;padding:12px;background:var(--accent,#6c63ff);color:#fff;
+        font-family:inherit;font-size:14px;font-weight:700;border-radius:8px;
+        text-decoration:none;transition:opacity 0.15s;
+      " onmouseover="this.style.opacity=0.88" onmouseout="this.style.opacity=1">
+        Sign up — it's free
+      </a>
+      <a href="/login" style="
+        display:block;padding:12px;background:transparent;
+        border:1px solid var(--border,rgba(255,255,255,0.15));
+        color:var(--text,#f0f0f0);font-family:inherit;font-size:14px;font-weight:600;
+        border-radius:8px;text-decoration:none;transition:all 0.15s;
+      " onmouseover="this.style.borderColor='var(--accent,#6c63ff)';this.style.color='var(--accent,#6c63ff)'"
+         onmouseout="this.style.borderColor='var(--border,rgba(255,255,255,0.15))';this.style.color='var(--text,#f0f0f0)'">
+        Log in
+      </a>
+    </div>
+  </div>
+</div>
+
 <div id="upload-overlay" class="upload-overlay" role="dialog" aria-modal="true" aria-labelledby="upload-title">
   <div class="upload-panel">
     <button class="upload-close" onclick="closeUploadModal()" aria-label="Close">×</button>
@@ -1413,9 +1456,17 @@
     const MAX_POLLS   = 80;     // 80 × 3s = 4 min max wait
 
     /* ── Modal open/close ─────────────────────────────────────────── */
+    const _IS_LOGGED_IN = {{ is_logged_in | tojson }};
     window.openUploadModal = function () {
+      if (!_IS_LOGGED_IN) {
+        document.getElementById('login-gate-overlay').style.display = 'flex';
+        return;
+      }
       document.getElementById('upload-overlay').classList.add('open');
       goToStep('step-drop');
+    };
+    window.closeLoginGate = function () {
+      document.getElementById('login-gate-overlay').style.display = 'none';
     };
     window.closeUploadModal = function () {
       document.getElementById('upload-overlay').classList.remove('open');

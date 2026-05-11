@@ -95,8 +95,8 @@ def create_app():
 
     @app.route('/')
     def index():
-        from flask import render_template
-        return render_template('landing.html')
+        from flask import render_template, session
+        return render_template('landing.html', is_logged_in=bool(session.get('user_id')))
 
     @app.errorhandler(404)
     def not_found(e):
