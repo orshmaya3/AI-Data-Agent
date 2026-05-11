@@ -211,6 +211,12 @@ def get_session_agents(session_id: str | None) -> tuple:
     return entry.get('df'), entry.get('sales')
 
 
+def remove_session(session_id: str) -> None:
+    """Remove a single session from the registry (e.g. after user removes their upload)."""
+    with _session_lock:
+        _session_registry.pop(session_id, None)
+
+
 def evict_expired_sessions(max_age_seconds: int = 3600) -> int:
     """Remove sessions older than max_age_seconds. Returns eviction count."""
     now = time.time()

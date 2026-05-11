@@ -425,6 +425,12 @@
       <span class="nav-icon">◆</span> Admin
     </a>
     {% endif %}
+    {% if session.get('user_id') %}
+    <a class="nav-item {% if request.endpoint == 'auth.account' %}active{% endif %}"
+       href="{{ url_for('auth.account') }}">
+      <span class="nav-icon">◎</span> Account
+    </a>
+    {% endif %}
   </div>
 
   <div class="sidebar-section">
@@ -455,6 +461,26 @@
     </div>
   </div>
 
+  {% if session.get('username') %}
+  <div class="sidebar-footer">
+    <div class="user-panel">
+      <div class="user-ava">{{ session.get('username', '?')[0].upper() }}</div>
+      <div class="user-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        {{ session.get('username') }}
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="btn-logout">Out</a>
+    </div>
+    <div id="data-source-pill" style="
+      margin-top:8px;padding:5px 10px;border-radius:4px;
+      background:var(--card);border:1px solid var(--border);
+      font-size:10px;color:var(--text-dim);
+      display:flex;align-items:center;gap:6px;
+    ">
+      <span id="data-pill-dot" style="width:6px;height:6px;border-radius:50%;background:var(--text-dim);flex-shrink:0;"></span>
+      <span id="data-pill-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Demo data</span>
+    </div>
+  </div>
+  {% endif %}
 </aside>
 
 <div class="main-content">
@@ -496,6 +522,20 @@
     });
 
     applyTheme(root.getAttribute('data-theme') || 'dark');
+  })();
+
+  /* ── Data source pill ── */
+  (function () {
+    const dot   = document.getElementById('data-pill-dot');
+    const label = document.getElementById('data-pill-label');
+    if (!dot || !label) return;
+    fetch('/api/upload/status').then(function(r){ return r.json(); }).then(function(d) {
+      if (d.status === 'ready' && d.filename) {
+        dot.style.background = 'var(--green)';
+        label.textContent    = d.filename;
+        label.style.color    = 'var(--text-muted)';
+      }
+    }).catch(function(){});
   })();
 
   /* ── Page-enter fade-in ── */

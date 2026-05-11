@@ -626,6 +626,20 @@
   <p>Tell Zyon your goal — it will analyse your data and tell you exactly what to do.</p>
 </div>
 
+<!-- ── Data source banner ─────────────────────────────────────── -->
+<div id="data-banner" style="
+  display:none;align-items:center;gap:10px;
+  padding:9px 14px;border-radius:6px;margin-bottom:20px;
+  max-width:680px;font-size:12px;
+">
+  <span id="data-banner-dot" style="width:7px;height:7px;border-radius:50%;flex-shrink:0;"></span>
+  <span id="data-banner-text"></span>
+  <span id="data-banner-spinner" style="display:none;margin-left:4px;">
+    <span style="display:inline-block;width:10px;height:10px;border:1.5px solid var(--border);
+                 border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;"></span>
+  </span>
+</div>
+
 <!-- ══ Weekly check-in banner ════════════════════════════════════ -->
 <div id="survey-banner">
   <div class="survey-banner-icon">📊</div>
@@ -898,7 +912,63 @@
 
 {% block scripts %}
 <script>
-const IS_DEMO = {{ is_demo | tojson }};
+const IS_DEMO        = {{ is_demo | tojson }};
+const DATA_STATUS    = {{ data_status | tojson }};
+const UPLOAD_FILENAME = {{ upload_filename | tojson }};
+
+// ── Data source banner + readiness polling ────────────────────
+(function () {
+  const banner  = document.getElementById('data-banner');
+  const dot     = document.getElementById('data-banner-dot');
+  const text    = document.getElementById('data-banner-text');
+  const spinner = document.getElementById('data-banner-spinner');
+
+  function showBanner(status, filename) {
+    banner.style.display = 'flex';
+    if (IS_DEMO || !filename) {
+      banner.style.background = 'rgba(240,240,250,0.04)';
+      banner.style.border     = '1px solid rgba(240,240,250,0.08)';
+      dot.style.background    = 'var(--text-dim)';
+      text.style.color        = 'var(--text-dim)';
+      text.textContent        = 'Analysing sample data';
+      spinner.style.display   = 'none';
+    } else if (status === 'ready') {
+      banner.style.background = 'rgba(74,222,128,0.06)';
+      banner.style.border     = '1px solid rgba(74,222,128,0.18)';
+      dot.style.background    = 'var(--green)';
+      text.style.color        = 'var(--text-muted)';
+      text.textContent        = 'Analysing your data: ' + filename;
+      spinner.style.display   = 'none';
+    } else {
+      banner.style.background = 'rgba(120,160,255,0.05)';
+      banner.style.border     = '1px solid rgba(120,160,255,0.15)';
+      dot.style.background    = 'var(--accent)';
+      text.style.color        = 'var(--text-muted)';
+      text.textContent        = 'Loading your data…';
+      spinner.style.display   = 'inline';
+    }
+  }
+
+  showBanner(DATA_STATUS, UPLOAD_FILENAME);
+
+  // If data is still initialising, poll until ready then re-enable build button
+  let _pollTimer = null;
+  if (!IS_DEMO && UPLOAD_FILENAME && DATA_STATUS !== 'ready') {
+    // Disable build button immediately
+    const buildBtn = document.getElementById('btn-questions-submit');
+    if (buildBtn) { buildBtn.disabled = true; buildBtn.style.opacity = '0.4'; }
+
+    _pollTimer = setInterval(function () {
+      fetch('/api/upload/status').then(function(r){ return r.json(); }).then(function(d) {
+        if (d.status === 'ready') {
+          clearInterval(_pollTimer);
+          showBanner('ready', d.filename || UPLOAD_FILENAME);
+          if (buildBtn) { buildBtn.disabled = false; buildBtn.style.opacity = '1'; }
+        }
+      }).catch(function(){});
+    }, 3000);
+  }
+})();
 
 // ── State ──────────────────────────────────────────────────────
 let selectedGoal      = '';

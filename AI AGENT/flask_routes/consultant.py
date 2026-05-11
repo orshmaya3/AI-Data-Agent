@@ -96,12 +96,25 @@ def consultant():
                     due = due.replace(tzinfo=timezone.utc)
                 survey_due = due <= datetime.now(timezone.utc)
 
+    is_demo = session.get('user_id') is None
+    data_status = 'none'
+    upload_filename = None
+    if not is_demo:
+        from flask_agents import get_session_status
+        from models import UserUpload
+        data_status = get_session_status(session.get('session_id')).get('status', 'none')
+        upl = UserUpload.query.filter_by(user_id=session['user_id'], is_active=True).first()
+        if upl:
+            upload_filename = upl.filename_original
+
     return render_template(
         'consultant.html',
         username=session.get('username'),
         existing_plan=existing_plan,
         survey_due=survey_due,
-        is_demo=(session.get('user_id') is None),
+        is_demo=is_demo,
+        data_status=data_status,
+        upload_filename=upload_filename,
     )
 
 
@@ -149,8 +162,8 @@ def api_consultant_profile_delete():
 @consultant_bp.route('/api/consultant/health_preview')
 @login_required
 def api_consultant_health_preview():
-    from flask_agents import get_manager
-    manager = get_manager()
+    from flask_routes.utils import resolve_manager
+    manager = resolve_manager(session.get('session_id'))
 
     if manager is None:
         return jsonify({'error': 'Data not available.'}), 503
@@ -221,7 +234,22 @@ def api_consultant_analyze():
     profile_type  = profile.get('business_type', '')
     profile_type_label = profile.get('business_type_other') or profile_type
 
+    # Inject user's own data context when available
+    upload_meta = None
+    if session.get('user_id'):
+        from models import UserUpload
+        upl = UserUpload.query.filter_by(user_id=session['user_id'], is_active=True).first()
+        if upl:
+            upload_meta = {'filename': upl.filename_original, 'rows': upl.row_count or 0}
+
     parts = []
+    if upload_meta:
+        parts.append(
+            f"[DATA SOURCE: You are analysing THIS USER'S OWN real business dataset "
+            f"(file: \"{upload_meta['filename']}\", {upload_meta['rows']:,} rows). "
+            f"All your tool calls and insights must be based on this dataset, not demo data. "
+            f"Treat every number you find as representing their actual business performance.]"
+        )
     if profile_name and profile_type_label:
         parts.append(
             f"[Context: You are speaking with {profile_name}, "

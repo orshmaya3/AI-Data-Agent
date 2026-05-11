@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session
 from datetime import datetime, timedelta
+from flask_routes.utils import login_required
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -149,6 +150,66 @@ def demo():
     session['user_id']  = None
     session.permanent   = True
     return redirect(url_for('dashboard.main'))
+
+
+@auth_bp.route('/account')
+@login_required
+def account():
+    from models import User, UserUpload
+    user   = User.query.get(session['user_id'])
+    upload = UserUpload.query.filter_by(user_id=session['user_id'], is_active=True).first()
+    return render_template('account.html', user=user, upload=upload)
+
+
+@auth_bp.route('/account/password', methods=['POST'])
+@login_required
+def account_password():
+    from models import User, db
+    current  = request.form.get('current_password', '')
+    new_pw   = request.form.get('new_password', '')
+    confirm  = request.form.get('confirm_password', '')
+
+    user = User.query.get(session['user_id'])
+
+    if len(new_pw) < 8:
+        return render_template('account.html', user=user,
+                               upload=None, pw_error='New password must be at least 8 characters.')
+    if new_pw != confirm:
+        return render_template('account.html', user=user,
+                               upload=None, pw_error='Passwords do not match.')
+
+    if user.password_hash is None:
+        return render_template('account.html', user=user,
+                               upload=None, pw_error='Admin accounts cannot change password here.')
+
+    from flask_bcrypt import check_password_hash, generate_password_hash
+    if not check_password_hash(user.password_hash, current):
+        return render_template('account.html', user=user,
+                               upload=None, pw_error='Current password is incorrect.')
+
+    result = generate_password_hash(new_pw)
+    user.password_hash = result.decode('utf-8') if isinstance(result, bytes) else result
+    db.session.commit()
+    return render_template('account.html', user=user, upload=None, pw_success=True)
+
+
+@auth_bp.route('/account/remove-upload', methods=['POST'])
+@login_required
+def account_remove_upload():
+    from models import UserUpload, db
+    upload = UserUpload.query.filter_by(user_id=session['user_id'], is_active=True).first()
+    if upload:
+        upload.is_active = False
+        db.session.commit()
+    # Evict session manager so the app falls back to demo data
+    session_id = session.get('session_id')
+    if session_id:
+        try:
+            from flask_agents import remove_session
+            remove_session(session_id)
+        except Exception:
+            pass
+    return redirect(url_for('auth.account'))
 
 
 @auth_bp.route('/logout')

@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Account — Orbital AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Account</h1>
+  <p>Manage your profile, dataset, and password.</p>
+</div>
+
+<div style="max-width:600px;display:flex;flex-direction:column;gap:20px;">
+
+  <!-- ── Profile card ─────────────────────────────────────── -->
+  <div class="card" style="padding:24px;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+                color:var(--text-muted);margin-bottom:18px;">Profile</div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+      <div style="
+        width:48px;height:48px;border-radius:50%;
+        background:var(--accent-dim);border:1px solid var(--accent);
+        display:flex;align-items:center;justify-content:center;
+        font-size:18px;font-weight:700;color:var(--accent);flex-shrink:0;
+      ">{{ user.username[0].upper() }}</div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--text);">{{ user.username }}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">{{ user.email }}</div>
+      </div>
+      {% if user.role == 'admin' %}
+      <div style="
+        margin-left:auto;padding:3px 10px;border-radius:4px;
+        background:rgba(120,160,255,0.1);border:1px solid rgba(120,160,255,0.25);
+        font-size:10px;font-weight:700;letter-spacing:0.8px;
+        text-transform:uppercase;color:var(--accent);
+      ">Admin</div>
+      {% endif %}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:12px 14px;">
+        <div style="font-size:9px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;
+                    color:var(--text-dim);margin-bottom:5px;">Member since</div>
+        <div style="font-size:13px;color:var(--text-muted);">
+          {{ user.created_at.strftime('%d %b %Y') if user.created_at else '—' }}
+        </div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:12px 14px;">
+        <div style="font-size:9px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;
+                    color:var(--text-dim);margin-bottom:5px;">Last login</div>
+        <div style="font-size:13px;color:var(--text-muted);">
+          {{ user.last_login.strftime('%d %b %Y') if user.last_login else '—' }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Dataset card ─────────────────────────────────────── -->
+  <div class="card" style="padding:24px;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+                color:var(--text-muted);margin-bottom:18px;">Your Dataset</div>
+
+    {% if upload %}
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;"></div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);flex:1;
+                  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        {{ upload.filename_original }}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:12px 14px;">
+        <div style="font-size:9px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;
+                    color:var(--text-dim);margin-bottom:5px;">Rows</div>
+        <div style="font-size:13px;color:var(--text-muted);">
+          {{ '{:,}'.format(upload.row_count) if upload.row_count else '—' }}
+        </div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:12px 14px;">
+        <div style="font-size:9px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;
+                    color:var(--text-dim);margin-bottom:5px;">Uploaded</div>
+        <div style="font-size:13px;color:var(--text-muted);">
+          {{ upload.uploaded_at.strftime('%d %b %Y') if upload.uploaded_at else '—' }}
+        </div>
+      </div>
+    </div>
+    <form method="POST" action="{{ url_for('auth.account_remove_upload') }}"
+          onsubmit="return confirm('Remove your dataset? The platform will fall back to demo data.')">
+      <button type="submit" style="
+        background:transparent;border:1px solid rgba(248,113,113,0.3);border-radius:5px;
+        color:var(--red);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;
+        padding:7px 16px;cursor:pointer;transition:all 0.15s;
+      " onmouseover="this.style.background='rgba(248,113,113,0.08)'"
+         onmouseout="this.style.background='transparent'">
+        Remove dataset
+      </button>
+    </form>
+    {% else %}
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+      No dataset uploaded yet. Upload your own retail CSV to get personalised insights.
+    </div>
+    <a href="/" style="
+      display:inline-block;padding:8px 20px;
+      background:var(--accent);color:#000;
+      font-family:'Inter',sans-serif;font-size:13px;font-weight:700;
+      border-radius:5px;text-decoration:none;transition:opacity 0.15s;
+    " onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+      Upload data →
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- ── Password card ────────────────────────────────────── -->
+  {% if user.password_hash %}
+  <div class="card" style="padding:24px;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+                color:var(--text-muted);margin-bottom:18px;">Change Password</div>
+
+    {% if pw_error %}
+    <div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);
+                border-radius:5px;color:var(--red);font-size:12px;padding:10px 14px;margin-bottom:16px;">
+      ⚠ {{ pw_error }}
+    </div>
+    {% endif %}
+    {% if pw_success %}
+    <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);
+                border-radius:5px;color:var(--green);font-size:12px;padding:10px 14px;margin-bottom:16px;">
+      ✓ Password updated successfully.
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('auth.account_password') }}"
+          style="display:flex;flex-direction:column;gap:14px;">
+      {% for field_id, field_label, field_auto in [
+          ('current_password', 'Current password', 'current-password'),
+          ('new_password',     'New password',     'new-password'),
+          ('confirm_password', 'Confirm new password', 'new-password')
+      ] %}
+      <div>
+        <label for="{{ field_id }}" style="display:block;font-size:10px;font-weight:600;
+               letter-spacing:0.8px;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px;">
+          {{ field_label }}
+        </label>
+        <input type="password" id="{{ field_id }}" name="{{ field_id }}"
+               autocomplete="{{ field_auto }}" required
+               style="width:100%;background:var(--card);border:1px solid var(--card-border);
+                      border-radius:5px;color:var(--text);font-family:'Inter',sans-serif;
+                      font-size:13px;padding:9px 12px;outline:none;transition:border-color 0.15s;"
+               onfocus="this.style.borderColor='rgba(120,160,255,0.5)'"
+               onblur="this.style.borderColor='var(--card-border)'">
+      </div>
+      {% endfor %}
+      <button type="submit" style="
+        align-self:flex-start;padding:9px 24px;
+        background:var(--accent);color:#000;
+        border:none;border-radius:5px;font-family:'Inter',sans-serif;
+        font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;
+      " onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+        Update password
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

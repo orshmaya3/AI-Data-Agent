@@ -134,6 +134,12 @@
   </style>
 </head>
 <body>
+  <div style="text-align:center;margin-bottom:18px;">
+    <a href="/" style="font-size:12px;color:rgba(240,240,250,0.3);text-decoration:none;transition:color 0.15s;"
+       onmouseover="this.style.color='rgba(120,160,255,0.7)'" onmouseout="this.style.color='rgba(240,240,250,0.3)'">
+      ← Back to home
+    </a>
+  </div>
   <div class="login-box">
     <div class="login-logo">
       <div class="orbital-icon">
@@ -166,7 +172,16 @@
       <button type="submit" class="btn-login">Sign In</button>
     </form>
 
-    <div class="login-footer" style="margin-top:18px;font-size:11px;color:rgba(240,240,250,0.3);">
+    <div style="text-align:center;margin-top:14px;">
+      <a href="{{ url_for('auth.demo') }}" style="
+        font-size:11px;color:rgba(240,240,250,0.25);text-decoration:none;transition:color 0.15s;
+      " onmouseover="this.style.color='rgba(120,160,255,0.55)'"
+         onmouseout="this.style.color='rgba(240,240,250,0.25)'">
+        or continue as demo →
+      </a>
+    </div>
+
+    <div class="login-footer" style="margin-top:14px;font-size:11px;color:rgba(240,240,250,0.3);">
       New here? <a href="{{ url_for('auth.register') }}" style="color:rgba(120,160,255,0.7);text-decoration:none;">Create an account</a>
     </div>
     <div class="login-footer">Powered by Claude · Retail Intelligence</div>
