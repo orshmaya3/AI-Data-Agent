@@ -126,7 +126,8 @@ def register():
             return render_template('register.html', error='Email already registered.')
 
         from flask_bcrypt import generate_password_hash
-        pw_hash = generate_password_hash(password).decode('utf-8')
+        result  = generate_password_hash(password)
+        pw_hash = result.decode('utf-8') if isinstance(result, bytes) else result
 
         user = User(username=username, email=email, password_hash=pw_hash, role='user')
         db.session.add(user)
