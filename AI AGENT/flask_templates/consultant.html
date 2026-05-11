@@ -898,6 +898,8 @@
 
 {% block scripts %}
 <script>
+const IS_DEMO = {{ is_demo | tojson }};
+
 // ── State ──────────────────────────────────────────────────────
 let selectedGoal      = '';
 let selectedGoalLabel = '';
@@ -1239,6 +1241,7 @@ document.getElementById('btn-questions-submit').addEventListener('click', buildS
 
 async function buildStrategy() {
   if (!selectedGoal || isLoading) return;
+  if (IS_DEMO) { showLoginRequired(); return; }
 
   document.getElementById('help-bubble').style.display = 'none';
   document.getElementById('help-panel').style.display  = 'none';
@@ -1497,8 +1500,45 @@ function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── Login-required card ────────────────────────────────────────
+function showLoginRequired() {
+  document.getElementById('phase-questions').style.display  = 'none';
+  document.getElementById('phase-results').style.display    = 'block';
+  document.getElementById('loading-state').style.display    = 'none';
+  document.getElementById('strategy-panel').style.display   = 'block';
+  document.getElementById('followup-section').style.display = 'none';
+  updateStepper(3);
+  document.getElementById('strategy-content').innerHTML = `
+    <div style="text-align:center;padding:48px 20px;">
+      <div style="font-size:32px;margin-bottom:16px;">🔒</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">
+        Log in to generate your strategy
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px;max-width:360px;margin-left:auto;margin-right:auto;">
+        Your personalised strategy is saved to your account so you can track progress and get weekly check-ins.
+      </div>
+      <a href="/login" style="
+        display:inline-block;padding:11px 28px;
+        background:var(--accent);color:#000;
+        font-family:'Inter',sans-serif;font-size:14px;font-weight:700;
+        border-radius:6px;text-decoration:none;transition:opacity 0.15s;
+      " onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+        Log in / Sign up
+      </a>
+    </div>
+  `;
+}
+
 // ── Page init ──────────────────────────────────────────────────
 (function init() {
+  // Demo users skip the profile phase and go straight to goal selection
+  if (IS_DEMO) {
+    document.getElementById('phase-profile').style.display = 'none';
+    document.getElementById('phase-setup').style.display   = 'block';
+    updateStepper(1);
+    return;
+  }
+
   // If a saved plan exists, jump straight to results phase
   if (EXISTING_PLAN) {
     const profile = EXISTING_PLAN.business_profile || {};

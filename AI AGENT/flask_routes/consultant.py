@@ -101,6 +101,7 @@ def consultant():
         username=session.get('username'),
         existing_plan=existing_plan,
         survey_due=survey_due,
+        is_demo=(session.get('user_id') is None),
     )
 
 
