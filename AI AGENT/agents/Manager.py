@@ -1053,7 +1053,7 @@ class ManagerAgent:
         """
         system_prompt = (
             "You are a routing assistant for a retail analytics system. "
-            "Classify the question into EXACTLY ONE of these five categories:\n\n"
+            "Classify the question into EXACTLY ONE of these six categories:\n\n"
             "- sales: revenue totals, order counts, total quantity sold, total items sold, "
             "units sold, how many items, trends, growth rates, refund rates, anomalies, "
             "busiest days, peak hours, weekend vs weekday, month-over-month comparisons, "
@@ -1078,21 +1078,31 @@ class ManagerAgent:
             "'Champions', 'Loyal customers', 'Hibernating', 'segment', 'segments'\n"
             "- general: overview of the business, dataset summary, 'what data do you have', "
             "questions that span multiple domains, require joining sales + products + customers, "
-            "involve custom code/analysis, or do not fit the categories above\n\n"
+            "involve custom code/analysis, or do not fit the categories above\n"
+            "- off_topic: anything NOT related to this retail business or its data. "
+            "Examples: general coding puzzles (two-sum, fibonacci, sorting algorithms), "
+            "trivia or general knowledge, recipes, jokes, creative writing, translation, "
+            "homework help, weather, news, advice unrelated to business data, "
+            "any request to write code that has nothing to do with analysing this dataset.\n\n"
             "DISAMBIGUATION EXAMPLES:\n"
             "- 'customers quantity' → customer (means: how many customers)\n"
             "- 'total quantity sold' → sales (means: total items/units sold)\n"
             "- 'how many products' → product\n"
             "- 'give me an overview' → general\n"
-            "- 'what data do you have' → general\n\n"
+            "- 'what data do you have' → general\n"
+            "- 'write a python script for two sum' → off_topic\n"
+            "- 'what is the capital of France' → off_topic\n"
+            "- 'write me a poem' → off_topic\n"
+            "- 'solve this leetcode problem' → off_topic\n\n"
             "IMPORTANT: The user may ask short follow-up questions using pronouns. "
             "Use the conversation history to understand context, then classify based on "
             "the full intent — not just the current message.\n\n"
             "RULES:\n"
             "- If the question mentions a numeric customer ID, ALWAYS classify as 'customer'.\n"
             "- If the question is about the future, forecasting, or risk, ALWAYS classify as 'prediction'.\n"
-            "- If the question mentions 'quantity' without a customer ID, classify as 'sales'.\n\n"
-            "Reply with ONLY one word: sales, product, customer, prediction, or general."
+            "- If the question mentions 'quantity' without a customer ID, classify as 'sales'.\n"
+            "- If the question has nothing to do with the retail business or its data, classify as 'off_topic'.\n\n"
+            "Reply with ONLY one word: sales, product, customer, prediction, general, or off_topic."
         )
 
         messages = [{"role": "system", "content": system_prompt}]
@@ -1109,7 +1119,8 @@ class ManagerAgent:
                 temperature=0.0,
             )
             result = response.choices[0].message.content.strip().lower()
-            bucket = result if result in ("sales", "product", "customer", "prediction", "general") else "general"
+            valid = ("sales", "product", "customer", "prediction", "general", "off_topic")
+            bucket = result if result in valid else "general"
             logger.info("[ManagerAgent] Routed '%s' → %s", user_text[:60], bucket)
             return bucket
         except Exception as e:
@@ -1249,6 +1260,23 @@ class ManagerAgent:
         yield {"type": "status", "message": "🧠 Manager Agent is analyzing your request..."}
 
         agent_bucket = self._route_to_agent(user_text, history or [])
+
+        if agent_bucket == "off_topic":
+            logger.info("[ManagerAgent] Off-topic request blocked: %r", user_text[:80])
+            yield {
+                "type": "result",
+                "content": (
+                    "I'm a business data analyst — I can only help with questions about "
+                    "your sales, products, customers, and forecasts from your dataset.\n\n"
+                    "Try asking something like:\n"
+                    "- *What are my top-selling products?*\n"
+                    "- *Which customers are at risk of leaving?*\n"
+                    "- *How did revenue trend over the last 6 months?*"
+                ),
+                "agent_label": "Manager",
+            }
+            return
+
         messages = self._build_messages(user_text, history or [])
 
         # ReAct recursion limit: 25 graph steps ≈ ~10-12 tool calls
